@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+        <div class="alert alert-danger">
+            {{ form.non_field_errors }}
+        </div>
+    {% endif %}
+    {% for field in form %}
+        <p class="form-label">{{ field.label }}</p>
+        <p>{{ field }}</p>
+        {% if field.errors %}
+            <ul class="alert alert-danger">
+                {{ field.errors }}
+            </ul>
+        {% endif %}
+    {% endfor %}
+    <button type="submit" class="btn btn-outline-success">Зарегистрироваться</button>
+</form>
+{% endblock content %}

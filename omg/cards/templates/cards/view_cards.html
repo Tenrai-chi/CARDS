@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'cards' %}">Все карты / </a>
+{% endblock navigation %}
+
+{% block content %}
+    {% for card in cards %}
+    <div>
+        <p>ID: <a href="{% url 'card' card_id=card.pk %}" style="color:#00FF00">{{ card.pk }}</a></p>
+        <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
+        <p>Владелец: <a href="{% url 'view_profile' user_id=card.owner.pk %}" style="color:#0000FF">{{ card.owner }}</a></p>
+        <p>Редкость: {{ card.rarity }}</p>
+        <p>Класс: {{ card.class_card }}</p>
+        <p>Тип: {{ card.type }}</p>
+        <p>Здоровье: {{ card.hp }}</p>
+        <p>Урон: {{ card.damage }}</p>
+        <p>Уровень: {{ card.level }}</p>
+        -------------------------------------------------
+    </div>
+    {% endfor %}
+
+<div>
+    {% if page.has_previous %}
+    <a href="?page={{ page.previous_page_number }}">&lt;</a>
+    &nbsp;&nbsp;|&nbsp;
+    {% endif %}
+    {% if page.paginator.num_pages > 1 %}
+        <p>Часть №{{ page.number }} из {{ page.paginator.num_pages }}</p>
+    {% endif %}
+    {% if page.has_next %}
+    &nbsp;&nbsp;|&nbsp;&nbsp;
+    <a href="?page={{ page.next_page_number }}">&gt;</a>
+    {% endif %}
+</div>
+{% endblock content %}

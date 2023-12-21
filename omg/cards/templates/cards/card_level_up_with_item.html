@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }} / </a>
+<a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }} / </a>
+<a href="{% url 'level_up' card_id=card.pk %}">Улучшение / </a>
+{% endblock navigation %}
+
+{% block content %}
+    <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
+    <p>Уровень: {{ card.level }}</p>
+    <p>Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
+    ----------------------------------------
+    <p>Предмет: {{ item.item.name }}</p>
+    <p>Количество: {{ item.amount }}</p>
+    <p>Цена использования: {{ item.item.gold_for_use }}</p>
+    <p>Получаемый опыт: {{ item.item.experience_amount }}</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Улучшить">
+    </form>
+{% endblock content %}

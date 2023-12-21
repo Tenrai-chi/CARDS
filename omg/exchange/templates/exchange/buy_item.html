@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'items_store' %}">Магазин предметов / </a>
+<a href="{% url 'buy_item' item_id=item.pk %}">{{ item.name }} / </a>
+{% endblock navigation %}
+
+{% block content %}
+    <p style="color:#0000ff">Цена за 1 предмет: {{ item.price }}</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Купить">
+    </form>
+
+{% endblock content %}

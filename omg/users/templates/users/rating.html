@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная/ </a><a href="{% url 'rating' %}">Рейтинг/</a>
+{% endblock navigation %}
+
+{% block content %}
+    --------------------------------------
+    {% for user in users %}
+    <p>Пользователь: <a href="{% url 'view_profile' user_id=user.pk %}">{{ user.username }}</a></p>
+    <p>Рейтинг: {{ user.rating }}</p>
+    --------------------------------------
+    {% endfor %}
+{% endblock content %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'view_profile' user_id=user.id %}">{{ user.username }} / </a>
+<a href="{% url 'inventory_user' user_id=user.id %}">Инвентарь / </a>
+{% endblock navigation %}
+
+{% block content %}
+{% for item in user_items %}
+    <p><img width="200" height="200" alt="card_image" src="{{ item.item.image.url }}"><p>
+    <p>Предмет: {{ item.item.name }}</p>
+    <p>Опыт: {{ item.item.experience_amount }}</p>
+    <p>Количество: {{ item.amount }}</p>
+    ------------------------------------
+{% endfor %}
+{% endblock content %}

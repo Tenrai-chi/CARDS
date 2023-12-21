@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'get_card' %}">Получить бесплатно / </a>
+{% endblock navigation %}
+
+{% block content %}
+    {% if user.is_authenticated %}
+        {% if take_card == True %}
+            <form action="{% url 'create_card' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" name='create_card_button' value={{excel_path}}>Получить карту</button>
+            </form>
+        {% else %}
+            Извините, сейчас вы не можете получить бесплатную карту. Следующая попытка будет доступна через: {{ hours }} часов
+        {% endif %}
+    {% else %}
+        Для просмотра этой страницы вы должны авторизироваться
+    {% endif %}
+{% endblock content %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }} / </a>
+<a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }} / </a>
+{% endblock navigation %}
+
+{# Камментарий #}
+{% block content %}
+    <div>
+        <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
+        <p>Владелец: <a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner }}</a></p>
+        <p>Редкость: {{ card.rarity }}</p>
+        <p>Класс: {{ card.class_card }}</p>
+        <p>Тип: {{ card.type }}</p>
+        <p>Здоровье: {{ card.hp }}</p>
+        <p>Урон: {{ card.damage }}</p>
+        <p>Уровень: {{ card.level }}</p>
+        {% if user == card.owner %}
+            <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
+            <a href="{% url 'level_up' card_id=card.pk %}"><p>Улучшить</p></a>
+        {% endif %}
+        -------------------------------------------------
+    </div>
+{% endblock content %}

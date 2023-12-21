@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<a href="{% url 'home' %}">Главная / </a>
+<a href="{% url 'view_profile' user_id=user_info.pk %}">{{ user_info.username }} / </a>
+{% endblock navigation %}
+
+{% block content %}
+    <div>
+        <p><img width="200" height="200" alt="profile_image" src="{{ user_info.profile.profile_pic.url }}"><p>
+        <p>Обо мне: {{ user_info.profile.about_user }}</p>
+        <p style="color:#008000" >Победы: {{ user_info.profile.win }}</p>
+        <p style="color:#ff0000" >Поражения: {{ user_info.profile.lose }}</p>
+        {% if user == user_info %}
+            <a href="{% url 'edit_profile' user_id=user.id %}"><p>Редактировать</p></a>
+        {% endif %}
+        -------------------------------------------------<br>
+        {% if user_info.profile.current_card %}
+            <p><img width="200" height="200" alt="card_image"src="{{ user_info.profile.current_card.class_card.image.url }}"></p>
+            <p>Выбранная карта: {{ user_info.profile.current_card.id }}</p>
+            <p>Редкость: {{ user_info.profile.current_card.rarity }}</p>
+            <p>Класс: {{ user_info.profile.current_card.class_card }}</p>
+            <p>Тип: {{ user_info.profile.current_card.type }}</p>
+            <p>Здоровье: {{ user_info.profile.current_card.hp }}</p>
+            <p>Урон: {{ user_info.profile.current_card.damage }}</p>
+            <p>Уровень: {{ user_info.profile.current_card.level }}</p>
+        {% else %}
+            <p>У пользователя нет избранной карты</p>
+        {% endif %}
+        -------------------------------------------------
+        <a href="{% url 'user_cards' user_id=user_info.id %}"><p>Все карты</p></a>
+        {% if user.is_authenticated %}
+            <a href="{% url 'user_cards_sale' user_id=user_info.id %}"><p>Обмен</p></a>
+            {% if user.id != user_info.id %}
+                {% if user_info.profile.current_card %}
+                    <a href="{% url 'fight' protector_id=user_info.id %}"><p>БОЙ</p></a>
+                {% endif %}
+            {% else %}
+                 <a href="{% url 'inventory_user' user_id=user.id %}"><p>Инвентарь</p></a>
+            {% endif %}
+
+        {% endif %}
+    </div>
+{% endblock content %}
