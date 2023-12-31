@@ -6,25 +6,31 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-{% if winner == user %}
-    <a href="{% url 'view_profile' user_id=loser.pk %}">{{ loser.username }} / </a>
-{% else %}
-    <a href="{% url 'view_profile' user_id=winner.pk %}">{{ winner.username }} / </a>
-{% endif %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            {% if winner == user %}
+                <li class="breadcrumb-item active" aria-current="page">Бой с {{ loser.username }}</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">Бой с {{ winner.username }}</li>
+            {% endif %}
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    <p><img width="200" height="200" alt="profile_image" src="{{ winner.profile.profile_pic.url }}"><p>
-    <p style="color:#008000">Победитель: <a style="color:#008000" href="{% url 'view_profile' user_id=winner.id %}">{{ winner.username }}</a></p>
-    <p><img width="200" height="200" alt="profile_image" src="{{ loser.profile.profile_pic.url }}"><p>
-    <p style="color:#ff0000">Проигравший: <a style="color:#ff0000" href="{% url 'view_profile' user_id=loser.id %}">{{ loser.username }}</a></p>
-    {% if reward_user %}
-        ------------------------------
-        <p>Награда за бой:</p>
-        {% for item in reward_user %}
-            <p><img width="150" height="150" alt="item_image" src="{{ item.image.url }}"><p>
-            <p>{{ item.name }}</p>
-        {% endfor %}
-    {% endif %}
+    <div class="container">
+        <p><img width="200" height="200" alt="profile_image" src="{{ winner.profile.profile_pic.url }}"><p>
+        <p>Победитель: <a style="color:#008000" href="{% url 'view_profile' user_id=winner.id %}">{{ winner.username }}</a></p>
+        <p><img width="200" height="200" alt="profile_image" src="{{ loser.profile.profile_pic.url }}"><p>
+        <p>Проигравший: <a style="color:#ff0000" href="{% url 'view_profile' user_id=loser.id %}">{{ loser.username }}</a></p>
+        {% if reward_user %}
+            ----------------------------------
+            <p>Награда за бой:</p>
+            {% for item in reward_user %}
+                <p><img width="150" height="150" alt="item_image" src="{{ item.image.url }}"><p>
+                <p>{{ item.name }}</p>
+            {% endfor %}
+        {% endif %}
+    </div>
 {% endblock content %}

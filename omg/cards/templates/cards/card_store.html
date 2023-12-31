@@ -6,31 +6,43 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'card_store' %}">Магазин карт / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Магазин карт</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    {% for card in cards %}
-        <div>
-            <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
-            <p>Редкость: {{ card.rarity }}</p>
-            <p>Класс: {{ card.class_card }}</p>
-            <p>Тип: {{ card.type }}</p>
-            <p>Здоровье: {{ card.hp }}</p>
-            <p>Урон: {{ card.damage }}</p>
-            {% if user.profile.gold < card.price %}
-                <p style="color:#ff0000">Цена: {{ card.price }}</p>
-            {% else %}
-                <p style="color:#008000">Цена: {{ card.price }}</p>
-            {% endif %}
-            {% if user.is_authenticated %}
-                <form action="{% url 'buy_card' card_id=card.pk %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" name='buy_card_button' value={{excel_path}}>Купить карту</button>
-                </form>
-            {% endif %}
-            -------------------------------------
+    <div class="container col-8">
+        <div class="row">
+            {% for card in cards %}
+            <div class="col-6">
+                <div class="card card border-dark" style="width: 25rem;">
+                    <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ card.class_card }}</h5>
+                        <p class="card-text">Редкость: {{ card.rarity }}</p>
+                        <p class="card-text">Тип: {{ card.type }}</p>
+                        <p class="card-text">Здоровье: {{ card.hp }}</p>
+                        <p class="card-text">Урон: {{ card.damage }}</p>
+
+                        {% if user.profile.gold < card.price %}
+                            <p class="card-text">Цена: <span style="color:#ff0000">{{ card.price }}</span></p>
+                        {% else %}
+                            <p class="card-text">Цена: <span style="color:#009933">{{ card.price }}</span></p>
+                        {% endif %}
+                        <div class="btn-group-vertical col-12 mx-auto">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'buy_card' card_id=card.pk %}" class="btn btn-primary">Купить</a>
+                        {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <br>
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    {% endfor %}
 {% endblock content %}

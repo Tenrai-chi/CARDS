@@ -5,17 +5,31 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'view_profile' user_id=user.id %}">{{ user.username }} / </a>
-<a href="{% url 'inventory_user' user_id=user.id %}">Инвентарь / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=user.id %}">{{ user.username }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Инвентарь</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-{% for item in user_items %}
-    <p><img width="200" height="200" alt="card_image" src="{{ item.item.image.url }}"><p>
-    <p>Предмет: {{ item.item.name }}</p>
-    <p>Опыт: {{ item.item.experience_amount }}</p>
-    <p>Количество: {{ item.amount }}</p>
-    ------------------------------------
-{% endfor %}
+    <div class="container col-8">
+        <div class="row">
+            {% for item in user_items %}
+            <div class="col-6">
+                <div class="card card border-dark" style="width: 23rem;">
+                    <img src="{{ item.item.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <h5 class="card-title" class="card text-center">{{ item.item.name }}</h5>
+                        <p class="card-text">Опыт: {{ item.item.experience_amount }}</p>
+                        <p class="card-text">Количество: {{ item.amount }}</p>
+                    </div>
+                </div>
+                <br>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 {% endblock content %}

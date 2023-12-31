@@ -5,52 +5,96 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'view_profile' user_id=user_info.pk %}">{{ user_info.username }} / </a>
-<a href="{% url 'user_cards' user_id=user_info.pk %}">Карты пользователя / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=user_info.pk %}">{{ user_info.username }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Карты пользователя</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    {% for card in cards %}
-    <div>
-        <a href="{% url 'card' card_id=card.pk %}"><p>ID: {{ card.pk }}</p></a>
-        {% if user.id == card.owner.id and card.sale_status == True %}
-            <p style="color:#00FF00">Продается</p>
-            <p style="color:#ff0000"> Цена: {{ card.price }}</p>
-        {% endif %}
-        {% if user.profile.current_card == card %}
-            <p style="color:#ff5c77">Избранная карта</p>
-        {% endif %}
-        <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
-        <p>Редкость: {{ card.rarity }}</p>
-        <p>Класс: {{ card.class_card }}</p>
-        <p>Тип: {{ card.type }}</p>
-        <p>Здоровье: {{ card.hp }}</p>
-        <p>Урон: {{ card.damage }}</p>
-        <p>Уровень: {{ card.level }}</p>
-        {% if user.id == card.owner.id %}
-            {% if card.sale_status %}
-                <a href="{% url 'remove_from_sale_card' card_id=card.pk %}"><p>Убрать с продажи</p></a>
-            {% else %}
-                <a href="{% url 'card_sale' card_id=card.pk %}"><p>Выставить на продажу</p></a>
-            {% endif %}
-            <a href="{% url 'select_favorite_card' selected_card=card.id %}"><p>Сделать избранной</p></a>
-        {% endif %}
-        -------------------------------------------------
+    <div class="container col-8">
+        <div class="row">
+            {% for card in cards %}
+            <div class="col-6">
+                <div class="card card border-dark" style="width: 25rem;">
+                    <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <h5 class="card-title" class="text-center">ID: <a href="{% url 'card' card_id=card.pk %}">{{ card.pk }}</a>
+                            {% if user.profile.current_card == card %}
+                                <span class="text-right" style="color:#ff5c77">Избранная карта</span>
+                            {% endif %}
+                            {% if user.id == card.owner.id and card.sale_status == True %}
+                                <span class="card-text" style="color:#42b85c">Продается: {{ card.price }}</span>
+                        {% endif %}
+                        </h5>
+                        <p class="card-text">Редкость: {{ card.rarity }}</p>
+                        <p class="card-text">Класс: {{ card.class_card }}</p>
+                        <p class="card-text">Тип: {{ card.type }}</p>
+                        <p class="card-text">Здоровье: {{ card.hp }}</p>
+                        <p class="card-text">Урон: {{ card.damage }}</p>
+                        <p class="card-text">Уровень: {{ card.level }}</p>
+                        <div class="btn-group-vertical col-12 mx-auto">
+                            {% if user.id == card.owner.id %}
+                                {% if user.profile.current_card != card %}
+                                    <a href="{% url 'select_favorite_card' selected_card=card.id %}" class="btn btn-primary">Сделать избранной</a><br>
+                                {% endif %}
+                                {% if card.sale_status %}
+                                    <a href="{% url 'remove_from_sale_card' card_id=card.pk %}" class="btn btn-primary">Убрать с продажи</a>
+                                {% else %}
+                                    <a href="{% url 'card_sale' card_id=card.pk %}" class="btn btn-primary">Выставить на продажу</a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <br>
+            </div>
+            {% endfor %}
+        </div>
     </div>
-    {% endfor %}
 
-<div>
-    {% if page.has_previous %}
-    <a href="?page={{ page.previous_page_number }}">&lt;</a>
-    &nbsp;&nbsp;|&nbsp;
-    {% endif %}
-    {% if page.paginator.num_pages > 1 %}
-        <p>Часть №{{ page.number }} из {{ page.paginator.num_pages }}</p>
-    {% endif %}
-    {% if page.has_next %}
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="?page={{ page.next_page_number }}">&gt;</a>
-    {% endif %}
-</div>
+    <div class="container">
+        {% if page.paginator.num_pages > 1 %}
+            <nav aria-label="...">
+                <ul class="pagination justify-content-center">
+                    {% if page.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.previous_page_number }}">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">{{ page.previous_page_number }}</a></li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active" aria-current="page">
+                        <a class="page-link" href="#">{{ page.number }}</a>
+                    </li>
+
+                    {% if page.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}">{{ page.next_page_number }}</a></li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page.next_page_number }}">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="page-item disabled">
+                        <a class="page-link">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
 {% endblock content %}

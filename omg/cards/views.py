@@ -1,6 +1,4 @@
 from random import randint
-from datetime import datetime
-import pytz
 
 from django.contrib import messages
 from django.urls import reverse
@@ -216,7 +214,7 @@ def create_card(request):
                                            )
             new_card.save()
 
-            new_record = HistoryReceivingCards.objects.create(date_and_time=time_now,
+            new_record = HistoryReceivingCards.objects.create(date_and_time=date_time_now(),
                                                               method_receiving='Бесплатная генерация',
                                                               card=new_card,
                                                               user=request.user
@@ -308,9 +306,9 @@ def fight(request, protector_id):
         Проверяет время последнего боя между двумя пользователями, если прошло больше 6 часов, происходит битва.
         После битвы начисляются опыт в experience_bar карт.
         Если опыта достаточно, то увеличивается уровень карты и ее характеристики.
-        В Profile пользователей увеличивается gold, win, lose в зависимости от победителя.
+        В Profile пользователей увеличиваются gold, win, lose в зависимости от победителя.
         В Transactions появляются записи о начислении денег за победу и проигрыш.
-        Появляется новая запись в FightHistory.
+        Создается новая запись в FightHistory.
         Обрабатывается возможность получения книг опыта нападавшему,
         если прокнул шанс, то книги появляются в инвентаре.
     """

@@ -5,37 +5,78 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'cards' %}">Все карты / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Все карты</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    {% for card in cards %}
-    <div>
-        <p>ID: <a href="{% url 'card' card_id=card.pk %}" style="color:#00FF00">{{ card.pk }}</a></p>
-        <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
-        <p>Владелец: <a href="{% url 'view_profile' user_id=card.owner.pk %}" style="color:#0000FF">{{ card.owner }}</a></p>
-        <p>Редкость: {{ card.rarity }}</p>
-        <p>Класс: {{ card.class_card }}</p>
-        <p>Тип: {{ card.type }}</p>
-        <p>Здоровье: {{ card.hp }}</p>
-        <p>Урон: {{ card.damage }}</p>
-        <p>Уровень: {{ card.level }}</p>
-        -------------------------------------------------
+    <div class="container col-8">
+            <div class="row">
+                {% for card in cards %}
+                <div class="col-6">
+                    <div class="card card border-dark" style="width: 25rem;">
+                        <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                        <div class="card-body">
+                            <h5 class="card-title" class="text-center">ID: <a href="{% url 'card' card_id=card.pk %}">{{ card.pk }}</a></h5>
+                            <p class="card-text">Владелец: <a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner }}</a></p>
+                            <p class="card-text">Редкость: {{ card.rarity }}</p>
+                            <p class="card-text">Класс: {{ card.class_card }}</p>
+                            <p class="card-text">Тип: {{ card.type }}</p>
+                            <p class="card-text">Здоровье: {{ card.hp }}</p>
+                            <p class="card-text">Урон: {{ card.damage }}</p>
+                            <p class="card-text">Уровень: {{ card.level }}</p>
+                        </div>
+                    </div>
+                    <br>
+                </div>
+                {% endfor %}
+            </div>
     </div>
-    {% endfor %}
 
-<div>
-    {% if page.has_previous %}
-    <a href="?page={{ page.previous_page_number }}">&lt;</a>
-    &nbsp;&nbsp;|&nbsp;
-    {% endif %}
-    {% if page.paginator.num_pages > 1 %}
-        <p>Часть №{{ page.number }} из {{ page.paginator.num_pages }}</p>
-    {% endif %}
-    {% if page.has_next %}
-    &nbsp;&nbsp;|&nbsp;&nbsp;
-    <a href="?page={{ page.next_page_number }}">&gt;</a>
-    {% endif %}
-</div>
+
+
+
+    <div class="container">
+        <nav aria-label="...">
+            <ul class="pagination justify-content-center">
+                {% if page.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page.previous_page_number }}">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">{{  page.previous_page_number }}</a></li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active" aria-current="page">
+                    <a class="page-link" href="#">{{ page.number }}</a>
+                </li>
+
+                {% if page.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}">{{ page.next_page_number }}</a></li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page.next_page_number }}">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
 {% endblock content %}

@@ -6,21 +6,24 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'get_card' %}">Получить бесплатно / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Получить бесплатно</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    {% if user.is_authenticated %}
-        {% if take_card == True %}
-            <form action="{% url 'create_card' %}" method="post">
-                {% csrf_token %}
-                <button type="submit" name='create_card_button' value={{excel_path}}>Получить карту</button>
-            </form>
+    <div class="container col-10 text-center">
+        {% if user.is_authenticated %}
+            {% if take_card == True %}
+                <a href="{% url 'create_card' %}" class="btn btn-primary btn-lg">Получить карту</a>
+            {% else %}
+                Извините, сейчас вы не можете получить бесплатную карту. Следующая попытка будет доступна через: {{ hours }} часов
+            {% endif %}
         {% else %}
-            Извините, сейчас вы не можете получить бесплатную карту. Следующая попытка будет доступна через: {{ hours }} часов
+            Для просмотра этой страницы вы должны авторизироваться
         {% endif %}
-    {% else %}
-        Для просмотра этой страницы вы должны авторизироваться
-    {% endif %}
+    </div>
 {% endblock content %}

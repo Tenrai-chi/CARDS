@@ -5,14 +5,29 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная/ </a><a href="{% url 'rating' %}">Рейтинг/</a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Рейтинг</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    --------------------------------------
-    {% for user in users %}
-    <p>Пользователь: <a href="{% url 'view_profile' user_id=user.pk %}">{{ user.username }}</a></p>
-    <p>Рейтинг: {{ user.rating }}</p>
-    --------------------------------------
-    {% endfor %}
+    <div class="container col-md-7">
+        <ol class="list-group list-group-numbered list-group-flush">
+            {% for user in users %}
+                <li class="list-group-item" class="row">
+                    <div class="row">
+                        <div class="col-11">
+                            <a href="{% url 'view_profile' user_id=user.pk %}">{{ user.username }}</a>
+                        </div>
+                        <div class="col-1">
+                            {{ user.rating }}
+                        </div>
+                    </div>
+                </li>
+            {% endfor %}
+        </ol>
+    </div>
 {% endblock content %}

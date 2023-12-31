@@ -5,15 +5,21 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }} / </a>
-<a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }} / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Карта {{ card.pk }}</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <input type="submit" value="Продать">
-    </form>
+    <div class="container">
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="Продать">
+        </form>
+    </div>
 {% endblock content %}

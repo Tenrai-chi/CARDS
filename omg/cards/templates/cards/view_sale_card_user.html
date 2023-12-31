@@ -5,42 +5,52 @@
 {% block header %}{{ header }}{% endblock header %}
 
 {% block navigation%}
-<a href="{% url 'home' %}">Главная / </a>
-<a href="{% url 'view_profile' user_id=owner.id %}">{{ owner.username }} / </a>
-<a href="{% url 'user_cards_sale' user_id=owner.id %}">Карты в продаже / </a>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=owner.pk %}">{{ owner.username }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Карты в продаже</li>
+        </ol>
+    </nav>
 {% endblock navigation %}
 
 {% block content %}
-    {% if messages %}
-        <ul class="messages">
-            {% for message in messages %}
-            <li {% if message.tags %} class="{{ message.tags }}"{% endif %}>
-                {{ message }}
-            </li>
+    <div class="container col-8">
+        <div class="row">
+            {% for card in cards %}
+            <div class="col-6">
+                <div class="card card border-dark" style="width: 25rem;">
+                    <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <h5 class="card-title" class="text-center">ID: <a href="{% url 'card' card_id=card.pk %}">{{ card.pk }}</a></h5>
+                        <p class="card-text">Редкость: {{ card.rarity }}</p>
+                        <p class="card-text">Класс: {{ card.class_card }}</p>
+                        <p class="card-text">Тип: {{ card.type }}</p>
+                        <p class="card-text">Здоровье: {{ card.hp }}</p>
+                        <p class="card-text">Урон: {{ card.damage }}</p>
+                        <p class="card-text">Уровень: {{ card.level }}</p>
+
+                        {% if user.id != card.owner.id and user.is_authenticated %}
+                            {% if user.profile.gold < card.price %}
+                        <p class="card-text">Цена: <span style="color:#ff0000">{{ card.price }}</span></p>
+                        {% else %}
+                        <p class="card-text">Цена: <span style="color:#009933">{{ card.price }}</span></p>
+                        {% endif %}
+                        {% else %}
+                        <p class="card-text">Цена: <span style="color:#8b00ff">{{ card.price }}</span></p>
+                        {% endif %}
+                        <div class="btn-group-vertical col-12 mx-auto">
+                            {% if user.id != card.owner.id and user.is_authenticated %}
+                            <a href="{% url 'buy_card_user' card_id=card.pk %}" class="btn btn-primary">Купить</a>
+                            {% else %}
+                            <a href="{% url 'remove_from_sale_card' card_id=card.pk %}" class="btn btn-primary">Убрать с продажи</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <br>
+            </div>
             {% endfor %}
-        </ul>
-    {% endif %}
-
-    <div>
-        {% for card in cards %}
-            <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}"><p>
-            <p>Редкость: {{ card.rarity }}</p>
-            <p>Класс: {{ card.class_card }}</p>
-            <p>Тип: {{ card.type }}</p>
-            <p>Здоровье: {{ card.hp }}</p>
-            <p>Урон: {{ card.damage }}</p>
-            <p>Уровень: {{ card.level }}</p>
-            <p style="color:#00a550">{{ card.price }}</p>
-            {% if user.id != card.owner.id and user.is_authenticated %}
-                <form action="{% url 'buy_card_user' card_id=card.pk %}" method="post">
-                    {% csrf_token %}
-                    <button type="submit" name='buy_card_button' value={{excel_path}}>Купить карту</button>
-                </form>
-            {% else %}
-                <a href="{% url 'remove_from_sale_card' card_id=card.pk %}"><p>Убрать с продажи</p></a>
-            {% endif %}
-            ------------------------------------------------
-        {% endfor %}
+        </div>
     </div>
-
 {% endblock content %}
