@@ -19,18 +19,32 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container">
-        <p><img width="200" height="200" alt="profile_image" src="{{ winner.profile.profile_pic.url }}"><p>
-        <p>Победитель: <a style="color:#008000" href="{% url 'view_profile' user_id=winner.id %}">{{ winner.username }}</a></p>
-        <p><img width="200" height="200" alt="profile_image" src="{{ loser.profile.profile_pic.url }}"><p>
-        <p>Проигравший: <a style="color:#ff0000" href="{% url 'view_profile' user_id=loser.id %}">{{ loser.username }}</a></p>
+    <div class="container col-md-12 text-center">
+        <h4>Итоги боя</h4>
+        <div class="row">
+            <div class="col">
+                <p><img width="300" height="300" alt="profile_image" src="{{ winner.profile.profile_pic.url }}"><p>
+                <p>Победитель: <a style="color:#008000" href="{% url 'view_profile' user_id=winner.id %}">{{ winner.username }}</a></p>
+            </div>
+            <div class="col">
+                <p><img width="300" height="300" alt="profile_image" src="{{ loser.profile.profile_pic.url }}"><p>
+                <p>Проигравший: <a style="color:#ff0000" href="{% url 'view_profile' user_id=loser.id %}">{{ loser.username }}</a></p>
+            </div>
+        </div>
+    </div>
+    <br>
+
+    <div class="container col-10 text-center">
         {% if reward_user %}
-            ----------------------------------
-            <p>Награда за бой:</p>
+        <h4>Награда за бой:</h4>
+        <div class="row">
             {% for item in reward_user %}
-                <p><img width="150" height="150" alt="item_image" src="{{ item.image.url }}"><p>
-                <p>{{ item.name }}</p>
+                <div class="col">
+                    <p><img width="200" height="200" alt="item_image" src="{{ item.image.url }}"><p>
+                    <p>{{ item.name }}</p>
+                </div>
             {% endfor %}
+        </div>
         {% endif %}
     </div>
 {% endblock content %}

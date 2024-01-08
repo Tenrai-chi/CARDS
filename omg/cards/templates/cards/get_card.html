@@ -15,6 +15,26 @@
 {% endblock navigation %}
 
 {% block content %}
+    <div class="container col-md-7 text-center">
+        <table class="table">
+            <thead>
+            <tr>
+                <th scope="col">Редкость</th>
+                <th scope="col">Шанс выпадения</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for rarity in rarity_chance_drop %}
+                <tr>
+                    <th scope="row">{{ rarity.name }}</th>
+                    <td>{{ rarity.drop_chance }} %</td>
+
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <br>
     <div class="container col-10 text-center">
         {% if user.is_authenticated %}
             {% if take_card == True %}

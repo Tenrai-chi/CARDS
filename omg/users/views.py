@@ -2,23 +2,34 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
+from django.core.paginator import Paginator
 from django.views.generic import CreateView
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
-from django.db.models import F
+from django.db.models import F, Q
 
 from .models import Profile
 from .forms import LoginForm, RegistrationForm, EditProfileForm
+
+from cards.models import FightHistory
 
 
 def view_profile(request, user_id):
     """ Просмотр профиля пользователя """
 
     user = get_object_or_404(User, pk=user_id)
-    context = {'title': f'Просмотр профиля {user.username}',
-               'header': f'Просмотр профиля {user.username}',
-               'user_info': user
-               }
+    if user == request.user:
+        fight_history = FightHistory.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-id')
+        context = {'title': f'Просмотр профиля {user.username}',
+                   'header': f'Просмотр профиля {user.username}',
+                   'user_info': user,
+                   'fight_history': fight_history,
+                   }
+    else:
+        context = {'title': f'Просмотр профиля {user.username}',
+                   'header': f'Просмотр профиля {user.username}',
+                   'user_info': user
+                   }
 
     return render(request, 'users/view_profile.html', context)
 

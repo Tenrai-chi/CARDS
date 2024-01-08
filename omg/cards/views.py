@@ -137,8 +137,10 @@ def get_card(request):
             else:
                 take_card = False
 
+            rarity_chance_drop = Rarity.objects.all()
             context = {'title': 'Получить карту',
                        'header': 'Получить бесплатную карту',
+                       'rarity_chance_drop': rarity_chance_drop,
                        'user_profile': user_profile,
                        'take_card': take_card,
                        'hours': 6 - hours
@@ -149,8 +151,10 @@ def get_card(request):
                                                  )
             new_profile.save()
             take_card = True
+            rarity_chance_drop = Rarity.objects.all()
             context = {'title': 'Получить карту',
                        'header': 'Получить бесплатную карту',
+                       'rarity_chance_drop': rarity_chance_drop,
                        'user_profile': new_profile,
                        'take_card': take_card,
                        'hours': 0
@@ -351,8 +355,8 @@ def fight(request, protector_id):
                 attacker_damage = attacker.profile.current_card.damage * 0.8
             else:
                 # Если нападение лучше защиты
-                attacker_damage = protector.profile.current_card.damage * 1.2
-                protector_damage = attacker.profile.current_card.damage * 0.8
+                attacker_damage = attacker.profile.current_card.damage * 1.2
+                protector_damage = protector.profile.current_card.damage * 0.8
         else:
             # Стандартные статы урона
             protector_damage = protector.profile.current_card.damage
@@ -396,24 +400,33 @@ def fight(request, protector_id):
         winner.profile.gold += 100
         loser.profile.gold += 25
 
-        # Начисление опыта (вынести)
-        winner.profile.current_card.experience_bar += 75
-        loser.profile.current_card.experience_bar += 25
+        # Начисление опыта, если не достигнут максимальный уровень карты (вынести)
+        if winner.profile.current_card.level < winner.profile.current_card.rarity.max_level:
+            winner.profile.current_card.experience_bar += 75
+        if loser.profile.current_card.level < loser.profile.current_card.rarity.max_level:
+            loser.profile.current_card.experience_bar += 25
 
-        # Увеличение уровня при достижении определенного опыта (вынести)
+        # Увеличение уровня карты победителя при достижении определенного опыта (вынести)
         if winner.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** winner.profile.current_card.level:
             winner.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** winner.profile.current_card.level
             winner.profile.current_card.level += 1
+            # Если достигнут максимальный уровень прогресс опыта обнуляется
+            if winner.profile.current_card.level == winner.profile.current_card.rarity.max_level:
+                winner.profile.current_card.experience_bar = 0
 
-            # Увеличение характеристик (вынести)
+            # Увеличение характеристик карты победителя (вынести)
             winner.profile.current_card.hp += winner.profile.current_card.rarity.coefficient_hp_for_level
             winner.profile.current_card.damage += winner.profile.current_card.rarity.coefficient_damage_for_level
 
+        # Увеличение уровня карты проигравшего при достижении определенного опыта (вынести)
         if loser.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** loser.profile.current_card.level:
             loser.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** loser.profile.current_card.level
             loser.profile.current_card.level += 1
+            # Если достигнут максимальный уровень прогресс опыта обнуляется
+            if loser.profile.current_card.level == loser.profile.current_card.rarity.max_level:
+                loser.profile.current_card.experience_bar = 0
 
-            # Увеличение характеристик (вынести)
+            # Увеличение характеристик карты проигравшего (вынести)
             loser.profile.current_card.hp += loser.profile.current_card.rarity.coefficient_hp_for_level
             loser.profile.current_card.damage += loser.profile.current_card.rarity.coefficient_damage_for_level
 
@@ -636,6 +649,11 @@ def level_up_with_item(request, card_id, item_id):
     """
 
     card = get_object_or_404(Card, pk=card_id)
+    if card.level >= card.rarity.max_level:
+        messages.error(request, 'Эту карту больше нельзя улучшить!')
+
+        return HttpResponseRedirect(reverse('home'))
+
     item = get_object_or_404(UsersInventory, pk=item_id)
     need_exp = 1000 + 100 * 1.15 ** card.level
     need_exp = round(need_exp, 2)

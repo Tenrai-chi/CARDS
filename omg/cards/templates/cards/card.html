@@ -25,7 +25,7 @@
         <p>Здоровье: {{ card.hp }}</p>
         <p>Урон: {{ card.damage }}</p>
         <p>Уровень: {{ card.level }}</p>
-        {% if user == card.owner %}
+        {% if user == card.owner and card.level < card.rarity.max_level %}
             <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
             <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-md-12 mx-auto">Улучшить</a>
         {% endif %}

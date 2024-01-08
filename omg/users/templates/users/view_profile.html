@@ -16,60 +16,92 @@
 
 {% block content %}
     <div class="container col-md-12">
-            <div class="row">
-                <div class="col">
-                    <p><img width="400" height="400" alt="profile_image" src="{{ user_info.profile.profile_pic.url }}"></p>
-                    {% if user_info.profile.about_user %}
-                        <p>Обо мне: {{ user_info.profile.about_user }}</p>
-                    {% else %}
-                        <p>Обо мне: </p>
-                    {% endif %}
-                    <p style="color:#008000">Победы: {{ user_info.profile.win }}</p>
-                    <p style="color:#ff0000">Поражения: {{ user_info.profile.lose }}</p>
-                    {% if user == user_info %}
-                    <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
-                    <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
-                    {% endif %}
-                </div>
-
-                <div class="col">
-                    {% if user_info.profile.current_card %}
-                        <div class="card card border-dark" style="width: 18rem;">
-                            <img src="{{ user_info.profile.current_card.class_card.image.url }}" class="card-img-top" alt="card_image">
-                            <div class="card-body">
-                                {% if user.id == user_info.id %}
-                                <h5 class="card-title" class="card text-center"><a href="{% url 'card' card_id=user_info.profile.current_card.pk %}">Выбранная
-                                    карта</a></h5>
-                                {% else %}
-                                <h5 class="card-title" class="card text-center">Выбранная карта</h5>
-                                {% endif %}
-                                <p class="card-text">Класс: {{ user_info.profile.current_card.class_card }}</p>
-                                <p class="card-text">Редкость: {{ user_info.profile.current_card.rarity }}</p>
-                                <p class="card-text">Тип: {{ user_info.profile.current_card.type }}</p>
-                                <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }}</p>
-                                <p class="card-text">Урон: {{ user_info.profile.current_card.damage }}</p>
-                                <p class="card-text">Уровень: {{ user_info.profile.current_card.level }}</p>
-                            </div>
-                        </div>
-                    {% else %}
-                        <p><img width="400" height="400" alt="profile_image" src="{% static '/users/image/default.png' %}"></p>
-                        <p>У пользователя нет избранной карты</p>
-                    {% endif %}
-                    <br>
-
-                        <a href="{% url 'user_cards' user_id=user_info.id %}" class="btn btn-primary">Все карты</a>
-                        {% if user.is_authenticated %}
-                        <a href="{% url 'user_cards_sale' user_id=user_info.id %}" class="btn btn-primary">Обмен</a>
-                        {% if user.id != user_info.id %}
-                        {% if user_info.profile.current_card %}
-                        <a href="{% url 'fight' protector_id=user_info.id %}" class="btn btn-primary">Бой</a>
-                        {% endif %}
-                        {% else %}
-                        <a href="{% url 'inventory_user' user_id=user.id %}" class="btn btn-primary">Инвентарь</a>
-                        {% endif %}
-                        {% endif %}
-
-                </div>
+        <div class="row">
+            <div class="col">
+                <p><img width="400" height="400" alt="profile_image" src="{{ user_info.profile.profile_pic.url }}"></p>
+                {% if user_info.profile.about_user %}
+                    <p>Обо мне: {{ user_info.profile.about_user }}</p>
+                {% else %}
+                    <p>Обо мне: </p>
+                {% endif %}
+                <p style="color:#008000">Победы: {{ user_info.profile.win }}</p>
+                <p style="color:#ff0000">Поражения: {{ user_info.profile.lose }}</p>
+                {% if user == user_info %}
+                <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
+                <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
+                {% endif %}
             </div>
+
+            <div class="col">
+                {% if user_info.profile.current_card %}
+                    <div class="card card border-dark" style="width: 18rem;">
+                        <img src="{{ user_info.profile.current_card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                        <div class="card-body">
+                            {% if user.id == user_info.id %}
+                            <h5 class="card-title" class="card text-center"><a href="{% url 'card' card_id=user_info.profile.current_card.pk %}">Выбранная
+                                карта</a></h5>
+                            {% else %}
+                            <h5 class="card-title" class="card text-center">Выбранная карта</h5>
+                            {% endif %}
+                            <p class="card-text">Класс: {{ user_info.profile.current_card.class_card }}</p>
+                            <p class="card-text">Редкость: {{ user_info.profile.current_card.rarity }}</p>
+                            <p class="card-text">Тип: {{ user_info.profile.current_card.type }}</p>
+                            <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }}</p>
+                            <p class="card-text">Урон: {{ user_info.profile.current_card.damage }}</p>
+                            <p class="card-text">Уровень: {{ user_info.profile.current_card.level }}</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <p><img width="400" height="400" alt="profile_image" src="{% static '/users/image/default.png' %}"></p>
+                    <p>У пользователя нет избранной карты</p>
+                {% endif %}
+                <br>
+
+                    <a href="{% url 'user_cards' user_id=user_info.id %}" class="btn btn-primary">Все карты</a>
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'user_cards_sale' user_id=user_info.id %}" class="btn btn-primary">Обмен</a>
+                    {% if user.id != user_info.id %}
+                    {% if user_info.profile.current_card %}
+                    <a href="{% url 'fight' protector_id=user_info.id %}" class="btn btn-primary">Бой</a>
+                    {% endif %}
+                    {% else %}
+                    <a href="{% url 'inventory_user' user_id=user.id %}" class="btn btn-primary">Инвентарь</a>
+                    {% endif %}
+                    {% endif %}
+
+            </div>
+        </div>
+    </div>
+    <br>
+    <br>
+
+    <div class="container col-md-12 text-center">
+        {% if user_info == user %}
+        <table class="table">
+            <thead>
+            <tr class="table-primary">
+                <th scope="col">ID Боя</th>
+                <th scope="col">Дата и время</th>
+                <th scope="col">Победитель</th>
+                <th scope="col">Проигравший</th>
+                <th scope="col">Карта победителя</th>
+                <th scope="col">Карта проигравшего</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for fight in fight_history %}
+                <tr>
+                    <th scope="row">{{ fight.id }}</th>
+                    <td>{{ fight.date_and_time }}</td>
+                    <td><a href="{% url 'view_profile' user_id=fight.winner.id %}">{{ fight.winner.username }}</a></td>
+                    <td><a href="{% url 'view_profile' user_id=fight.loser.id %}">{{ fight.loser.username }}</a></td>
+                    <td><a href="{% url 'card' card_id=fight.card_winner.id %}">{{ fight.card_winner.id }}</a></td>
+                    <td><a href="{% url 'card' card_id=fight.card_loser.id %}">{{ fight.card_loser.id }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
     </div>
 {% endblock content %}
+
