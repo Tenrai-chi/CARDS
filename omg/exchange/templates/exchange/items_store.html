@@ -15,6 +15,7 @@
 
 {% block content %}
     <div class="container col-8">
+        <h4 class="text-center">Книги опыта</h4><br>
         <div class="row">
             {% for item in items %}
             <div class="col-6">
@@ -36,6 +37,39 @@
                         {% endif %}
                         {% else %}
                         <p style="color:#000000" class="card-text">Цена: {{ item.price }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <br><br>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="container col-8">
+        <h4 class="text-center">Амулеты</h4><br>
+        <div class="row">
+            {% for amulet in amulets %}
+            <div class="col-6">
+                <div class="card card border-dark" style="width: 23rem;">
+                    <img src="{{ amulet.amulet_type.image.url }}" class="card-img-top" alt="amulet_image">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ amulet.amulet_type.name }}</h5>
+                        <p class="card-text">Бонус к урону: {{ amulet.bonus_damage }}</p>
+                        <p class="card-text">Бонус к здоровью: {{ amulet.bonus_hp }}</p>
+
+                        {% if user.is_authenticated %}
+                        {% if user.profile.gold < amulet.price %}
+                        <p class="card-text">Цена: <span style="color:#ff0000">{{ amulet.price }}</span></p>
+                        <a href="{% url 'buy_item' item_id=item.pk %}" class="btn btn-primary">Купить</a>
+                        {% else %}
+                        <p class="card-text">Цена: <span style="color:#009933">{{ amulet.price }}</span></p>
+                        <div class="btn-group-vertical col-12 mx-auto">
+                            <a href="{% url 'buy_amulet' amulet_id=amulet.pk %}" class="btn btn-primary">Купить</a>
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <p style="color:#000000" class="card-text">Цена: {{ amulet.price }}</p>
                         {% endif %}
                     </div>
                 </div>

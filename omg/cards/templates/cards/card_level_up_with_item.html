@@ -18,20 +18,32 @@
 
 
 {% block content %}
-    <div class="container">
-        <p><img width="200" height="200" alt="card_image" src="{{ card.class_card.image.url }}">
-        <p>
-        <p>Уровень: {{ card.level }}</p>
-        <p>Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
-        ----------------------------------------
-        <p>Предмет: {{ item.item.name }}</p>
-        <p>Количество: {{ item.amount }}</p>
-        <p>Цена использования: {{ item.item.gold_for_use }}</p>
-        <p>Получаемый опыт: {{ item.item.experience_amount }}</p>
-        <form method="post">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <input type="submit" value="Улучшить">
-        </form>
+    <div class="container col-md-12">
+        <div class="row">
+            <div class="col text-center">
+                <div class="card card border-dark" style="width: 20rem;">
+                    <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <p class="card-text">Уровень: {{ card.level }}</p>
+                        <p class="card-text">Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col">
+                <div class="container">
+                    <h4>Начисление опыта</h4>
+                    <p>Предмет: {{ item.item.name }}</p>
+                    <p>Количество: {{ item.amount }}</p>
+                    <p>Цена использования: {{ item.item.gold_for_use }}</p>
+                    <p>Получаемый опыт: {{ item.item.experience_amount }}</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <input type="submit" value="Улучшить">
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
 {% endblock content %}

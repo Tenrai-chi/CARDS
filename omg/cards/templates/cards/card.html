@@ -27,9 +27,7 @@
         <p>Уровень: {{ card.level }}</p>
         {% if user == card.owner and card.level < card.rarity.max_level %}
             <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
-            <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-md-12 mx-auto">Улучшить</a>
+            <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-6 mx-auto">Улучшить</a>
         {% endif %}
     </div>
 {% endblock content %}
-
-

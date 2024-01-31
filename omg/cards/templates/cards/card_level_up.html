@@ -17,29 +17,36 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container">
+    <div class="container text-center">
         <p><img width="320" height="320" alt="card_image" src="{{ card.class_card.image.url }}"><p>
         <p>Уровень: {{ card.level }}</p>
         <p>Здоровье: {{ card.hp }} + {{ card.rarity.coefficient_hp_for_level }}</p>
         <p>Урон: {{ card.damage }} + {{ card.rarity.coefficient_damage_for_level }}</p>
         <p>Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
-        -------------------------------------------
     </div>
+    <br>
 
-    <div class="container">
-        {% for item in inventory %}
-        <div class="card card border-dark" style="width: 18rem;">
-                <img src="{{ item.item.image.url }}" class="card-img-top" alt="card_image">
-                <div class="card-body">
-                    <h5 class="card-title" class="text-center">{{ item.item.name }}</a></h5>
-                    <p class="card-text">Количество: {{ item.amount }}</p>
-                    <p class="card-text">Получаемый опыт: {{ item.item.experience_amount }}</p>
-                    <div class="btn-group-vertical col-12 mx-auto">
-                        <a href="{% url 'level_up_with_item' card_id=card.id item_id=item.pk %}" class="btn btn-primary">Использовать</a>
+    <div class="container col-md-12 text-center">
+        <h4>Предметы</h4>
+        <br>
+        <div class="row">
+            {% for item in inventory %}
+                <div class="col">
+                    <div class="card card border-dark" style="width: 18rem;">
+                        <img src="{{ item.item.image.url }}" class="card-img-top" alt="card_image">
+                        <div class="card-body">
+                            <h5 class="card-title" class="text-center">{{ item.item.name }}</a></h5>
+                            <p class="card-text">Количество: {{ item.amount }}</p>
+                            <p class="card-text">Получаемый опыт: {{ item.item.experience_amount }}</p>
+                            <div class="btn-group-vertical col-12 mx-auto">
+                                <a href="{% url 'level_up_with_item' card_id=card.id item_id=item.pk %}" class="btn btn-primary">Использовать</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            {% endfor %}
+        </div>
         <br>
-        {% endfor %}
+
     </div>
 {% endblock content %}

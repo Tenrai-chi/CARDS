@@ -2,7 +2,6 @@ from django.contrib import messages
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
-from django.core.paginator import Paginator
 from django.views.generic import CreateView
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView

@@ -14,6 +14,16 @@
 {% endblock navigation %}
 
 {% block content %}
+    <div class="container container-fluid col-8">
+        <form method="get">
+            <button type="submit" class="btn btn-sm btn-primary btn-raised mr-3">Сортировать</button>
+            <input class="form-check-input" name="sort" type="checkbox" value="rarity" {{ by_rarity }}> Редкость
+            <input class="form-check-input" name="sort" type="checkbox" value="class_card" {{ by_class_card }}> Класс
+            <input class="form-check-input" name="sort" type="checkbox" value="type" {{ by_type }}> Тип
+            <input class="form-check-input" name="sort" type="checkbox" value="-level" {{ by_level }}> Уровень
+        </form>
+    </div><br>
+
     <div class="container col-8">
             <div class="row">
                 {% for card in cards %}
@@ -36,9 +46,6 @@
                 {% endfor %}
             </div>
     </div>
-
-
-
 
     <div class="container">
         <nav aria-label="...">

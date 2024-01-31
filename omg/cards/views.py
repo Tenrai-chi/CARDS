@@ -20,7 +20,9 @@ from exchange.models import SaleUserCards, UsersInventory, ExperienceItems
 def view_cards(request):
     """ Вывод всех существующих карт """
 
+    #sort = request.GET.getlist('sort')
     cards = Card.objects.all().order_by('-pk')
+    #cards = Card.objects.all().order_by(*sort)
     paginator = Paginator(cards, 10)
     if 'page' in request.GET:
         page_num = request.GET['page']
@@ -350,7 +352,7 @@ def fight(request, protector_id):
         # Если все проверки ранее пройдены, то идет бой и пределение победителя (вынести)
         if protector.profile.current_card.type != attacker.profile.current_card.type:
             if protector.profile.current_card.type.better == attacker.profile.current_card.type:
-                # Если защита лучше чем нападения
+                # Если защита лучше нападения
                 protector_damage = protector.profile.current_card.damage * 1.2
                 attacker_damage = attacker.profile.current_card.damage * 0.8
             else:
@@ -410,7 +412,7 @@ def fight(request, protector_id):
         if winner.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** winner.profile.current_card.level:
             winner.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** winner.profile.current_card.level
             winner.profile.current_card.level += 1
-            # Если достигнут максимальный уровень прогресс опыта обнуляется
+            # Если достигнут максимальный уровень, прогресс опыта обнуляется
             if winner.profile.current_card.level == winner.profile.current_card.rarity.max_level:
                 winner.profile.current_card.experience_bar = 0
 
@@ -422,7 +424,7 @@ def fight(request, protector_id):
         if loser.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** loser.profile.current_card.level:
             loser.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** loser.profile.current_card.level
             loser.profile.current_card.level += 1
-            # Если достигнут максимальный уровень прогресс опыта обнуляется
+            # Если достигнут максимальный уровень, прогресс опыта обнуляется
             if loser.profile.current_card.level == loser.profile.current_card.rarity.max_level:
                 loser.profile.current_card.experience_bar = 0
 

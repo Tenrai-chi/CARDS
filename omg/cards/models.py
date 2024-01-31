@@ -102,8 +102,8 @@ class CardStore(models.Model):
     price = models.IntegerField(default=0, blank=True, verbose_name='Цена')
 
     class Meta:
-        verbose_name_plural = 'Магазин'
-        verbose_name = 'Карта'
+        verbose_name_plural = 'Магазин карт'
+        verbose_name = 'Карта в магазине'
 
     def __str__(self):
         return f'Карта в магазине ID {self.id}'

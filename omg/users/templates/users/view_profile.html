@@ -38,10 +38,11 @@
                         <img src="{{ user_info.profile.current_card.class_card.image.url }}" class="card-img-top" alt="card_image">
                         <div class="card-body">
                             {% if user.id == user_info.id %}
-                            <h5 class="card-title" class="card text-center"><a href="{% url 'card' card_id=user_info.profile.current_card.pk %}">Выбранная
+                            <h5 class="card-title" class="card"><a
+                                    href="{% url 'card' card_id=user_info.profile.current_card.pk %}">Избранная
                                 карта</a></h5>
                             {% else %}
-                            <h5 class="card-title" class="card text-center">Выбранная карта</h5>
+                            <h5 class="card-title" class="card text-center">Избранная карта</h5>
                             {% endif %}
                             <p class="card-text">Класс: {{ user_info.profile.current_card.class_card }}</p>
                             <p class="card-text">Редкость: {{ user_info.profile.current_card.rarity }}</p>

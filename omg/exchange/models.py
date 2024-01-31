@@ -71,6 +71,69 @@ class ExperienceItems(models.Model):
         return self.name
 
 
+class AmuletType(models.Model):
+    name = models.CharField(max_length=30, verbose_name='Название')
+    image = models.ImageField(blank=True, null=True, upload_to='image/amulet/', verbose_name='Изображение')
+    rarity = models.CharField(max_length=3, verbose_name='Редкость')
+
+    class Meta:
+        verbose_name_plural = 'Типы амулетов'
+        verbose_name = 'Тип амулета'
+
+    def __str__(self):
+        return self.name
+
+
+class AmuletItem(models.Model):
+    """ Амулеты в инвентаре пользователей """
+
+    amulet_type = models.ForeignKey(AmuletType,
+                                    blank=True,
+                                    null=True,
+                                    on_delete=models.CASCADE,
+                                    verbose_name='Тип амулета')
+    owner = models.ForeignKey(User,
+                              on_delete=models.CASCADE,
+                              verbose_name='Владелец')
+    card = models.ForeignKey(Card,
+                             on_delete=models.CASCADE,
+                             blank=True,
+                             null=True,
+                             verbose_name='Карта')
+    bonus_hp = models.FloatField(verbose_name='Бонус здоровья')
+    bonus_damage = models.FloatField(verbose_name='Бонус урона')
+    sale_status = models.BooleanField(null=True, blank=True, verbose_name='Статус продажи')
+    price = models.IntegerField(null=True, blank=True, verbose_name='Цена')
+
+    class Meta:
+        verbose_name_plural = 'Амулеты'
+        verbose_name = 'Амулет'
+
+    def __str__(self):
+        return f'{self.amulet_type.name} пользователя {self.owner.username}'
+
+
+class AmuletStore(models.Model):
+    """ Магазин амулетов """
+
+    amulet_type = models.ForeignKey(AmuletType,
+                                    blank=True,
+                                    null=True,
+                                    on_delete=models.CASCADE,
+                                    verbose_name='Тип амулета')
+    bonus_hp = models.FloatField(verbose_name='Бонус здоровья')
+    bonus_damage = models.FloatField(verbose_name='Бонус урона')
+    price = models.IntegerField(verbose_name='Цена')
+    sale_now = models.BooleanField(default=True, verbose_name='Продажа')
+
+    class Meta:
+        verbose_name_plural = 'Магазин амулетов'
+        verbose_name = 'Амулет в магазине'
+
+    def __str__(self):
+        return self.amulet_type.name
+
+
 class UsersInventory(models.Model):
     """ Инвентарь всех пользователей """
 
@@ -91,8 +154,8 @@ class UsersInventory(models.Model):
                                  verbose_name='Количество')
 
     class Meta:
-        verbose_name_plural = 'Инвентари'
-        verbose_name = 'Инвентарь'
+        verbose_name_plural = 'Инвентари предметов опыта'
+        verbose_name = 'Инвентарь предметов опыта'
 
     def __str__(self):
         return f'Предмет "{self.item}" пользователя {self.owner.username}'
