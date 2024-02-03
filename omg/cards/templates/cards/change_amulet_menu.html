@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Амулеты</li>
+        </ol>
+    </nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container col-8">
+        <h4 class="text-center">Амулеты</h4><br>
+        <div class="row">
+            {% for amulet in amulets %}
+            <div class="col-6">
+                <div class="card card border-dark" style="width: 23rem;">
+                    <img src="{{ amulet.amulet_type.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <h5 class="card-title" class="card text-center">{{ amulet.amulet_type.name }}</h5>
+                        <p class="card-text">Бонус к здоровью: {{ amulet.bonus_hp }}</p>
+                        <p class="card-text">Бонус к урону: {{ amulet.bonus_damage }}</p>
+                        {% if amulet.card %}
+                            {% if amulet.card == card %}
+                                <p class="card-text">Надето: <a href="{% url 'card' card_id=card.pk %}">Выбранная карта</a></p>
+                                <a href="{% url 'remove_amulet' amulet_id=amulet.pk card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">
+                                    Снять</a>
+                            {% else %}
+                                <p class="card-text">Надето: <a href="{% url 'card' card_id=card.pk %}">{{ amulet.card.id }}</a></p>
+                                <a href="{% url 'change_amulet' amulet_id=amulet.pk card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Надеть
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <p class="card-text">Надето: ______</p>
+                            <a href="{% url 'change_amulet' amulet_id=amulet.pk card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Надеть</a>
+                        {% endif %}
+                    </div>
+                </div>
+                <br>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock content %}

@@ -22,12 +22,39 @@
         <p>Редкость: {{ card.rarity }}</p>
         <p>Класс: {{ card.class_card }}</p>
         <p>Тип: {{ card.type }}</p>
-        <p>Здоровье: {{ card.hp }}</p>
-        <p>Урон: {{ card.damage }}</p>
+        {% if amulet %}
+            {% if amulet.bonus_hp < 0 %}
+                <p>Здоровье: {{ card.hp }} {{ amulet.bonus_hp }}</p>
+            {% else %}
+                <p>Здоровье: {{ card.hp }} +{{ amulet.bonus_hp }}</p>
+            {% endif %}
+            {% if amulet.bonus_damage < 0 %}
+                <p>Урон: {{ card.damage }} {{ amulet.bonus_damage }}</p>
+            {% else %}
+                <p>Урон: {{ card.damage }} +{{ amulet.bonus_damage }}</p>
+            {% endif %}
+        {% else %}
+            <p>Здоровье: {{ card.hp }}</p>
+            <p>Урон: {{ card.damage }}</p>
+        {% endif %}
+        <p>Способность: {{ card.class_card.skill }}</p>
+        <p>Описание: {{ card.class_card.description }}</p>
         <p>Уровень: {{ card.level }}</p>
+        {% if amulet %}
+            <p>Амулет: {{ amulet.amulet_type.name }}</a></p>
+        {% endif %}
         {% if user == card.owner and card.level < card.rarity.max_level %}
             <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
-            <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-6 mx-auto">Улучшить</a>
+            <div class="container text-center">
+                <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Улучшить</a><br><br>
+                <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Амулет</a>
+            </div>
         {% endif %}
+        {% if user == card.owner and card.level == card.rarity.max_level %}
+            <div class="container text-center">
+                <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Амулет</a>
+            </div>
+        {% endif %}
+
     </div>
 {% endblock content %}

@@ -35,13 +35,20 @@
     <br>
 
     <div class="container col-10 text-center">
-        {% if reward_user %}
+        {% if reward_item_user or reward_amulet_user %}
         <h4>Награда за бой:</h4>
         <div class="row">
-            {% for item in reward_user %}
+            {% for item in reward_item_user %}
                 <div class="col">
-                    <p><img width="200" height="200" alt="item_image" src="{{ item.image.url }}"><p>
+                    <p><img width="250" height="250" alt="item_image" src="{{ item.image.url }}"><p>
                     <p>{{ item.name }}</p>
+                </div>
+            {% endfor %}
+            {% for amulet in reward_amulet_user %}
+                <div class="col">
+                    <p><img width="200" height="200" alt="item_image" src="{{ amulet.amulet_type.image.url }}">
+                    <p>
+                    <p>{{ amulet.amulet_type.name }}</p>
                 </div>
             {% endfor %}
         </div>

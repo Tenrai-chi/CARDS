@@ -33,13 +33,13 @@ class HistoryPurchaseItemsAdmin(admin.ModelAdmin):
 
 
 class AmuletTypeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'rarity',)
+    list_display = ('id', 'name', 'rarity', 'chance_drop_on_fight')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name')
 
 
 class AmuletItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'amulet_type', 'owner', 'card', 'bonus_hp', 'bonus_damage', 'sale_status', 'price')
+    list_display = ('id', 'amulet_type', 'owner', 'card', 'bonus_hp', 'bonus_damage', 'price')
     list_display_links = ('id', 'amulet_type',)
     search_fields = ('id', 'amulet_type', 'owner', 'card')
 

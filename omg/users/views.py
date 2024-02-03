@@ -7,8 +7,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.db.models import F, Q
 
-from .models import Profile
+from .models import Profile, Transactions
 from .forms import LoginForm, RegistrationForm, EditProfileForm
+from exchange.models import AmuletItem
 
 from cards.models import FightHistory
 
@@ -18,11 +19,13 @@ def view_profile(request, user_id):
 
     user = get_object_or_404(User, pk=user_id)
     if user == request.user:
-        fight_history = FightHistory.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-id')
+        fight_history = FightHistory.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-id')[:50]
+        amulet = AmuletItem.objects.filter(card=user.profile.current_card).last()
         context = {'title': f'Просмотр профиля {user.username}',
                    'header': f'Просмотр профиля {user.username}',
                    'user_info': user,
                    'fight_history': fight_history,
+                   'amulet': amulet
                    }
     else:
         context = {'title': f'Просмотр профиля {user.username}',
@@ -107,5 +110,24 @@ def edit_profile(request, user_id):
             return render(request, 'users/edit_profile.html', context)
     else:
         messages.error(request, 'Вы не можете редактировать этот профиль!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def view_transactions(request, user_id):
+    """ Выводит историю движений денежных средств пользователя
+    """
+    if request.user.is_authenticated and request.user.id == user_id:
+        transactions = Transactions.objects.filter(user=request.user)
+        context = {'title': f'Транзакции',
+                   'header': f'Транзакции пользователя {request.user.username}',
+                   'transactions': transactions,
+                   'user': request.user,
+                   }
+
+        return render(request, 'users/transactions.html', context)
+
+    else:
+        messages.error(request, 'Произошла ошибка!')
 
         return HttpResponseRedirect(reverse('home'))

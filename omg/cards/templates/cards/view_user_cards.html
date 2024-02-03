@@ -15,11 +15,11 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container col-8">
+    <div class="container col-12">
         <div class="row">
             {% for card in cards %}
-            <div class="col-6">
-                <div class="card card border-dark" style="width: 25rem;">
+            <div class="col-4">
+                <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
                         <h5 class="card-title" class="text-center">ID: <a href="{% url 'card' card_id=card.pk %}">{{ card.pk }}</a>
@@ -33,8 +33,17 @@
                         <p class="card-text">Редкость: {{ card.rarity }}</p>
                         <p class="card-text">Класс: {{ card.class_card }}</p>
                         <p class="card-text">Тип: {{ card.type }}</p>
-                        <p class="card-text">Здоровье: {{ card.hp }}</p>
-                        <p class="card-text">Урон: {{ card.damage }}</p>
+                        {% if card.amulet_card %}
+                            Есть бонусы ТУТ ПОМЕНЯТЬ!
+                            {{ card.amulet_card }}
+                            <p class="card-text">Здоровье: {{ card.hp }} + {{ card.amulet_card.bonus_hp }}</p>
+                            <p class="card-text">Урон: {{ card.damage }} + {{ card.amulet_card.bonus_damage }}</p>
+                        {% else %}
+                            Нет бонусов
+                            <p class="card-text">Здоровье: {{ card.hp }}</p>
+                            <p class="card-text">Урон: {{ card.damage }}</p>
+                        {% endif %}
+                        <p>Способность: {{ card.class_card.skill }}</p>
                         <p class="card-text">Уровень: {{ card.level }}</p>
                         <div class="btn-group-vertical col-12 mx-auto">
                             {% if user.id == card.owner.id %}
@@ -54,47 +63,5 @@
             </div>
             {% endfor %}
         </div>
-    </div>
-
-    <div class="container">
-        {% if page.paginator.num_pages > 1 %}
-            <nav aria-label="...">
-                <ul class="pagination justify-content-center">
-                    {% if page.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page.previous_page_number }}">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">{{ page.previous_page_number }}</a></li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <a class="page-link">
-                            <span aria-hidden="true">&laquo;</span>
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    <li class="page-item active" aria-current="page">
-                        <a class="page-link" href="#">{{ page.number }}</a>
-                    </li>
-
-                    {% if page.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}">{{ page.next_page_number }}</a></li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page.next_page_number }}">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                    {% else %}
-                    <li class="page-item disabled">
-                        <a class="page-link">
-                            <span aria-hidden="true">&raquo;</span>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-        {% endif %}
     </div>
 {% endblock content %}

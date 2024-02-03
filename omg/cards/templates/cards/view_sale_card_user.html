@@ -15,11 +15,11 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container col-8">
+    <div class="container col-md-12">
         <div class="row">
             {% for card in cards %}
-            <div class="col-6">
-                <div class="card card border-dark" style="width: 25rem;">
+            <div class="col-md-4">
+                <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
                         <h5 class="card-title" class="text-center">ID: <a href="{% url 'card' card_id=card.pk %}">{{ card.pk }}</a></h5>
@@ -28,6 +28,7 @@
                         <p class="card-text">Тип: {{ card.type }}</p>
                         <p class="card-text">Здоровье: {{ card.hp }}</p>
                         <p class="card-text">Урон: {{ card.damage }}</p>
+                        <p>Способность: {{ card.class_card.skill }}</p>
                         <p class="card-text">Уровень: {{ card.level }}</p>
 
                         {% if user.id != card.owner.id and user.is_authenticated %}

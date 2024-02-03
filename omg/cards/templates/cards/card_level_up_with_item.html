@@ -25,7 +25,9 @@
                     <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
                         <p class="card-text">Уровень: {{ card.level }}</p>
-                        <p class="card-text">Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
+                        {% if card.level < card.rarity.max_level %}
+                            <p class="card-text">Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
+                        {% endif %}
                     </div>
                 </div>
             </div>

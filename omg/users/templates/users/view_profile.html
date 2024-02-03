@@ -27,8 +27,11 @@
                 <p style="color:#008000">Победы: {{ user_info.profile.win }}</p>
                 <p style="color:#ff0000">Поражения: {{ user_info.profile.lose }}</p>
                 {% if user == user_info %}
+                <a href="{% url 'view_transactions' user_id=user_info.id %}" class="btn btn-primary">Транзакции</a>
                 <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
                 <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
+                {% else %}
+                <a href="#" class="btn btn-primary">В избранное</a>
                 {% endif %}
             </div>
 
@@ -47,9 +50,25 @@
                             <p class="card-text">Класс: {{ user_info.profile.current_card.class_card }}</p>
                             <p class="card-text">Редкость: {{ user_info.profile.current_card.rarity }}</p>
                             <p class="card-text">Тип: {{ user_info.profile.current_card.type }}</p>
-                            <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }}</p>
-                            <p class="card-text">Урон: {{ user_info.profile.current_card.damage }}</p>
+                            {% if amulet %}
+                                {% if amulet.bonus_hp < 0 %}
+                                    <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }} {{ amulet.bonus_hp }}</p>
+                                {% else %}
+                                    <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }} +{{ amulet.bonus_hp }}</p>
+                                {% endif %}
+                                {% if amulet.bonus_damage < 0 %}
+                                    <p class="card-text">Урон: {{ user_info.profile.current_card.damage }} {{ amulet.bonus_damage }}</p>
+                                {% else %}
+                                    <p class="card-text">Урон: {{ user_info.profile.current_card.damage }} +{{ amulet.bonus_damage }}</p>
+                                {% endif %}
+                                <p>Амулет: {{ amulet.amulet_type.name }}</a></p>
+                            {% else %}
+                                <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }}</p>
+                                <p class="card-text">Урон: {{ user_info.profile.current_card.damage }}</p>
+                            {% endif %}
+                            <p>Способность: {{ user_info.profile.current_card.class_card.skill }}</p>
                             <p class="card-text">Уровень: {{ user_info.profile.current_card.level }}</p>
+
                         </div>
                     </div>
                 {% else %}
@@ -57,17 +76,14 @@
                     <p>У пользователя нет избранной карты</p>
                 {% endif %}
                 <br>
-
                     <a href="{% url 'user_cards' user_id=user_info.id %}" class="btn btn-primary">Все карты</a>
                     {% if user.is_authenticated %}
-                    <a href="{% url 'user_cards_sale' user_id=user_info.id %}" class="btn btn-primary">Обмен</a>
-                    {% if user.id != user_info.id %}
-                    {% if user_info.profile.current_card %}
+                        <a href="{% url 'user_cards_sale' user_id=user_info.id %}" class="btn btn-primary">Обмен</a>
+                    {% if user.id != user_info.id and user_info.profile.current_card %}
                     <a href="{% url 'fight' protector_id=user_info.id %}" class="btn btn-primary">Бой</a>
                     {% endif %}
                     {% else %}
                     <a href="{% url 'inventory_user' user_id=user.id %}" class="btn btn-primary">Инвентарь</a>
-                    {% endif %}
                     {% endif %}
 
             </div>

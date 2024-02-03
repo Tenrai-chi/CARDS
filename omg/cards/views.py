@@ -1,4 +1,5 @@
 from random import randint
+from math import ceil
 
 from django.contrib import messages
 from django.urls import reverse
@@ -11,19 +12,17 @@ from django.shortcuts import render
 
 from .models import Card, ClassCard, Type, Rarity, CardStore, HistoryReceivingCards, FightHistory
 from .forms import SaleCardForm, UseItemForm
-from .functions import date_time_now
+from .functions import date_time_now, accrue_experience
 
 from users.models import Transactions, Profile, SaleStoreCards
-from exchange.models import SaleUserCards, UsersInventory, ExperienceItems
+from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletStore
 
 
 def view_cards(request):
     """ Вывод всех существующих карт """
 
-    #sort = request.GET.getlist('sort')
     cards = Card.objects.all().order_by('-pk')
-    #cards = Card.objects.all().order_by(*sort)
-    paginator = Paginator(cards, 10)
+    paginator = Paginator(cards, 21)
     if 'page' in request.GET:
         page_num = request.GET['page']
     else:
@@ -261,17 +260,16 @@ def view_user_cards(request, user_id):
     user = User.objects.get(pk=user_id)
 
     cards = Card.objects.filter(owner=user).order_by('rarity', 'class_card', 'id')
-    paginator = Paginator(cards, 10)
-    if 'page' in request.GET:
-        page_num = request.GET['page']
-    else:
-        page_num = 1
-    page = paginator.get_page(page_num)
+    # paginator = Paginator(cards, 15)
+    # if 'page' in request.GET:
+    #     page_num = request.GET['page']
+    # else:
+    #     page_num = 1
+    # page = paginator.get_page(page_num)
 
     context = {'title': 'Карты пользователя',
                'header': f'Карты пользователя {user.username}',
                'cards': cards,
-               'page': page,
                'user_info': user
                }
 
@@ -282,12 +280,14 @@ def view_card(request, card_id):
     """ Просмотр выбранной карты """
 
     card = Card.objects.get(pk=card_id)
+    amulet = AmuletItem.objects.filter(card=card).last()
     need_exp = 1000 + 100 * 1.15 ** card.level
     need_exp = round(need_exp, 2)
     context = {'title': 'Выбранная карта',
                'header': 'Выбранная карта',
                'card': card,
-               'need_exp': need_exp
+               'need_exp': need_exp,
+               'amulet': amulet
                }
 
     return render(request, 'cards/card.html', context)
@@ -349,7 +349,7 @@ def fight(request, protector_id):
 
             return HttpResponseRedirect(reverse('home'))
 
-        # Если все проверки ранее пройдены, то идет бой и пределение победителя (вынести)
+        # Если все проверки ранее пройдены, то идет бой и определение победителя (вынести)
         if protector.profile.current_card.type != attacker.profile.current_card.type:
             if protector.profile.current_card.type.better == attacker.profile.current_card.type:
                 # Если защита лучше нападения
@@ -367,6 +367,17 @@ def fight(request, protector_id):
         # Статы хп всегда одинаковы
         protector_hp = protector.profile.current_card.hp
         attacker_hp = attacker.profile.current_card.hp
+
+        # Начисление статов от амулета карте защиты
+        amulet_protector = AmuletItem.objects.filter(card=protector.profile.current_card).last()
+        if amulet_protector:
+            protector_damage += amulet_protector.bonus_damage
+            protector_hp += amulet_protector.bonus_hp
+        # Начисление статов от амулета карте нападения
+        amulet_attacker = AmuletItem.objects.filter(card=attacker.profile.current_card).last()
+        if amulet_attacker:
+            attacker_damage += amulet_attacker.bonus_damage
+            attacker_hp += amulet_attacker.bonus_hp
 
         fight_now = True
         while fight_now:
@@ -451,7 +462,9 @@ def fight(request, protector_id):
 
         # Предметы падают только нападавшему
         items = ExperienceItems.objects.all()
-        reward_user = []
+        amulets = AmuletStore.objects.all()
+        reward_item_user = []
+        reward_amulet_user = []
         for item in items:
             # Проверка выпадения предмета
             chance = randint(1, 100)
@@ -462,20 +475,33 @@ def fight(request, protector_id):
                                                             )
                     items_user.amount += 1
                     items_user.save()
-                    reward_user.append(item)
+                    reward_item_user.append(item)
                 except UsersInventory.DoesNotExist:
                     new_record_inventory = UsersInventory.objects.create(owner=request.user,
                                                                          item=item,
                                                                          amount=1
                                                                          )
                     new_record_inventory.save()
-                    reward_user.append(item)
+                    reward_item_user.append(item)
+
+        for amulet in amulets:
+            # Проверка выпадения амулета
+            chance = randint(1, 100)
+            if chance <= amulet.amulet_type.chance_drop_on_fight:
+                new_amulet = AmuletItem.objects.create(amulet_type=amulet.amulet_type,
+                                                       owner=attacker,
+                                                       bonus_hp=amulet.bonus_hp,
+                                                       bonus_damage=amulet.bonus_damage,
+                                                       price=round(0.7 * amulet.price))
+                new_amulet.save()
+                reward_amulet_user.append(amulet)
 
         context = {'title': 'Битва',
                    'header': f'Итог битвы между {attacker.username} и {protector.username}!',
                    'winner': winner,
                    'loser': loser,
-                   'reward_user': reward_user,
+                   'reward_item_user': reward_item_user,
+                   'reward_amulet_user': reward_amulet_user
                    }
 
         return render(request, 'cards/fight.html', context)
@@ -551,6 +577,11 @@ def buy_card_user(request, card_id):
             card.price = 0
             card.sale_status = False
             card.save()
+
+            amulet = AmuletItem.objects.filter(card=card).last()
+            if amulet:
+                amulet.card = None
+                amulet.save()
 
             if card == salesman_profile.current_card:
                 salesman_profile.current_card = None
@@ -646,6 +677,7 @@ def level_up_with_item(request, card_id, item_id):
     """ Увеличение уровня с помощью предмета.
         Если у пользователя хватает денег для использования предметов,
         то увеличивает опыт карты, и изменяет ее уровень, если необходимо.
+        Использует только необходимое количество книг опыта.
         В Profile пользователя уменьшается gold.
         Создается транзакция.
     """
@@ -688,24 +720,35 @@ def level_up_with_item(request, card_id, item_id):
 
                 return render(request, 'cards/card_level_up_with_item.html', context)
 
-            item.amount -= inventory_change.amount
-            item.save()
+            accrued_experience = inventory_change.amount * item.item.experience_amount
+
+            answer = accrue_experience(accrued_experience=accrued_experience,
+                                       current_level=card.level,
+                                       max_level=card.rarity.max_level,
+                                       current_exp=card.experience_bar)
+
+            card.experience_bar = answer[0]
+            expended_experience = answer[2]
+
+            new_levels = answer[1] - card.level
+            card.hp += card.rarity.coefficient_hp_for_level * new_levels
+            card.damage += card.rarity.coefficient_damage_for_level * new_levels
+            card.level = answer[1]
+
+            expended_items = ceil(expended_experience // item.item.experience_amount)
+
             transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
                                                       before=profile.gold,
-                                                      after=profile.gold-inventory_change.amount*item.item.gold_for_use,
+                                                      after=profile.gold - expended_items * item.item.gold_for_use,
                                                       comment='Улучшение карты'
                                                       )
             transaction.save()
-            profile.gold -= inventory_change.amount * item.item.gold_for_use
-            profile.save()
+            profile.gold -= expended_items * item.item.gold_for_use
+            item.amount -= expended_items
 
-            card.experience_bar += inventory_change.amount * item.item.experience_amount
-            if card.experience_bar >= need_exp:
-                card.experience_bar -= need_exp
-                card.level += 1
-                card.hp += card.rarity.coefficient_hp_for_level
-                card.damage += card.rarity.coefficient_damage_for_level
+            profile.save()
+            item.save()
             card.save()
 
             return HttpResponseRedirect(f'/cards/card-{card.id}/level_up/')

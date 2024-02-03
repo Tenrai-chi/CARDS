@@ -3,6 +3,8 @@ from .views import view_cards, view_user_cards, view_card, card_store
 from .views import buy_card, get_card, create_card, card_sale, buy_card_user, view_user_cards_for_sale
 from .views import select_favorite_card, fight, card_level_up, level_up_with_item, remove_from_sale_card
 
+from exchange.views import change_amulet_menu, remove_amulet, change_amulet
+
 urlpatterns = [
     path('card_store/', card_store, name='card_store'),
     path('get_card/', get_card, name='get_card'),
@@ -17,6 +19,9 @@ urlpatterns = [
     path('card_sale-<int:card_id>/buy/', buy_card_user, name='buy_card_user'),
 
     path('card-<int:card_id>/', view_card, name='card'),
+    path('card-<int:card_id>/amulets', change_amulet_menu, name='change_amulet_menu'),
+    path('card-<int:card_id>/amulets/remove-<int:amulet_id>', remove_amulet, name='remove_amulet'),
+    path('card-<int:card_id>/amulets/change-<int:amulet_id>', change_amulet, name='change_amulet'),
     path('card-<int:card_id>/level_up/', card_level_up, name='level_up'),
     path('card-<int:card_id>/level_up/<int:item_id>/', level_up_with_item, name='level_up_with_item'),
 

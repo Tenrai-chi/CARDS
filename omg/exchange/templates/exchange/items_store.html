@@ -14,11 +14,11 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container col-8">
+    <div class="container col-md-12">
         <h4 class="text-center">Книги опыта</h4><br>
         <div class="row">
             {% for item in items %}
-            <div class="col-6">
+            <div class="col-md-4">
                 <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ item.image.url }}" class="card-img-top" alt="item_image">
                     <div class="card-body">
@@ -46,11 +46,11 @@
         </div>
     </div>
 
-    <div class="container col-8">
+    <div class="container col-md-12">
         <h4 class="text-center">Амулеты</h4><br>
         <div class="row">
             {% for amulet in amulets %}
-            <div class="col-6">
+            <div class="col-md-4">
                 <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ amulet.amulet_type.image.url }}" class="card-img-top" alt="amulet_image">
                     <div class="card-body">

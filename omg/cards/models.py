@@ -7,6 +7,9 @@ class ClassCard(models.Model):
 
     name = models.CharField(max_length=50, verbose_name='Класс')
     skill = models.CharField(max_length=200, blank=True, verbose_name='Навык')
+    description = models.CharField(max_length=500, blank=True, null=True, verbose_name='Описание')
+    numeric_value = models.FloatField(null=True, blank=True, verbose_name='Числовое значение')
+    chance_use = models.IntegerField(null=True, blank=True, verbose_name='Шанс использования')
     image = models.ImageField(null=True, blank=True, upload_to='image/class/', verbose_name='Изображение')
 
     def __str__(self):

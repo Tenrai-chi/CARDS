@@ -30,7 +30,7 @@ class RarityAdmin(admin.ModelAdmin):
 
 
 class ClassCardAdmin(admin.ModelAdmin):
-    list_display = ('name', 'skill')
+    list_display = ('name', 'skill', 'description', 'numeric_value', 'chance_use')
 
 
 class CardStoreAdmin(admin.ModelAdmin):

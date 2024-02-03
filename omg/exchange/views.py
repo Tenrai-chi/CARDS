@@ -10,6 +10,7 @@ from .models import ExperienceItems, UsersInventory, AmuletStore, AmuletItem
 from .forms import BuyItemForm
 
 from users.models import Transactions, Profile
+from cards.models import Card
 
 
 def view_inventory_user(request, user_id):
@@ -55,7 +56,7 @@ def buy_amulet(request, amulet_id):
         Создает запись в Transactions.
         Изменяет gold в Profile текущего пользователя.
     """
-    transactions = 1
+
     if request.user.is_authenticated:
         profile_user = Profile.objects.get(user=request.user)
         current_amulet = get_object_or_404(AmuletStore, pk=amulet_id)
@@ -69,7 +70,7 @@ def buy_amulet(request, amulet_id):
                                                       owner=request.user,
                                                       bonus_hp=current_amulet.bonus_hp,
                                                       bonus_damage=current_amulet.bonus_damage,
-                                                      sale_status=False)
+                                                      price=round(0.7*current_amulet.price))
             bought_amulet.save()
             new_record_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
                                                                  user=request.user,
@@ -166,3 +167,99 @@ def buy_item(request, item_id):
                    }
 
         return render(request, 'exchange/buy_item.html', context)
+
+
+def change_amulet_menu(request, card_id):
+    """ Меню смены амулеты у выбранной карты.
+        Выводит список доступных амулетов.
+    """
+    # Проверка того что пользователь хозяин карты и он авторизован
+    card = Card.objects.get(pk=card_id)
+    available_amulets = AmuletItem.objects.filter(owner=request.user)
+    context = {'title': 'Выбор амулета',
+               'header': 'Выбрать амулет',
+               'card': card,
+               'amulets': available_amulets}
+    return render(request, 'cards/change_amulet_menu.html', context)
+
+
+def change_amulet(request, card_id, amulet_id):
+    """ Устанавливает выбранный амулет на выбранную карту.
+        Если у карты был установлен амулет, то отвязывает его.
+    """
+    if request.user.is_authenticated:
+        current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
+        card = get_object_or_404(Card, pk=card_id)
+        if current_amulet.owner == request.user:
+            card_with_current_amulet = AmuletItem.objects.filter(card=card)
+            for elem in card_with_current_amulet:
+                elem.card = None
+                elem.save()
+            current_amulet.card = card
+            current_amulet.save()
+
+            messages.success(request, 'Вы успешно надели амулет!')
+
+            return HttpResponseRedirect(f'/cards/card-{card_id}')
+        else:
+            messages.error(request, 'Вы не можете поменять у карты амулет!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Вы не можете поменять у карты амулет!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def remove_amulet(request, card_id, amulet_id):
+    """ Удаляет у выбранного амулета карту
+    """
+    if request.user.is_authenticated:
+        current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
+        if current_amulet.owner == request.user:
+            current_amulet.card = None
+            current_amulet.save()
+            messages.success(request, 'Вы успешно сняли амулет!')
+
+            return HttpResponseRedirect(f'/cards/card-{card_id}')
+        else:
+            messages.error(request, 'Вы не можете пользоваться этим амулетом!')
+
+            return HttpResponseRedirect(reverse('home'))
+    else:
+        messages.error(request, 'Для данных действий нужно авторизироваться!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def sale_amulet(request, user_id, amulet_id):
+    """ Продажа пользователем амулета внутриигровому магазину.
+        Амулет удаляется из инвенторя и запись о нем так же удаляется.
+        Пользователь получает деньги за продажу.
+        Создается запись в Transactions.
+    """
+    if request.user.is_authenticated and request.user.id == user_id:
+        amulet = get_object_or_404(AmuletItem, pk=amulet_id)
+        profile = Profile.objects.get(pk=request.user.id)
+        if amulet.owner == request.user:
+            transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                                                      user=request.user,
+                                                      before=profile.gold,
+                                                      after=profile.gold+amulet.price,
+                                                      comment='Продажа амулета')
+            profile.gold += amulet.price
+            amulet.delete()
+            profile.save()
+            transaction.save()
+
+            return HttpResponseRedirect(f'/inventory/{user_id}')
+        else:
+            messages.error(request, 'Произошла ошибка!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Произошла ошибка!')
+
+        return HttpResponseRedirect(reverse('home'))

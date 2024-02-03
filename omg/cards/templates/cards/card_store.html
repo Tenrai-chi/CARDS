@@ -27,6 +27,7 @@
                         <p class="card-text">Тип: {{ card.type }}</p>
                         <p class="card-text">Здоровье: {{ card.hp }}</p>
                         <p class="card-text">Урон: {{ card.damage }}</p>
+                        <p>Способность: {{ card.class_card.skill }}</p>
 
                         {% if user.profile.gold < card.price %}
                             <p class="card-text">Цена: <span style="color:#ff0000">{{ card.price }}</span></p>

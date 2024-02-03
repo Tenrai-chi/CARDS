@@ -72,9 +72,12 @@ class ExperienceItems(models.Model):
 
 
 class AmuletType(models.Model):
+    """ Типы амулетов
+    """
     name = models.CharField(max_length=30, verbose_name='Название')
     image = models.ImageField(blank=True, null=True, upload_to='image/amulet/', verbose_name='Изображение')
     rarity = models.CharField(max_length=3, verbose_name='Редкость')
+    chance_drop_on_fight = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения после битвы')
 
     class Meta:
         verbose_name_plural = 'Типы амулетов'
@@ -99,11 +102,11 @@ class AmuletItem(models.Model):
                              on_delete=models.CASCADE,
                              blank=True,
                              null=True,
-                             verbose_name='Карта')
+                             verbose_name='Карта',
+                             related_name='amulet_card')
     bonus_hp = models.FloatField(verbose_name='Бонус здоровья')
     bonus_damage = models.FloatField(verbose_name='Бонус урона')
-    sale_status = models.BooleanField(null=True, blank=True, verbose_name='Статус продажи')
-    price = models.IntegerField(null=True, blank=True, verbose_name='Цена')
+    price = models.IntegerField(null=True, blank=True, verbose_name='Цена продажи')
 
     class Meta:
         verbose_name_plural = 'Амулеты'
@@ -135,7 +138,7 @@ class AmuletStore(models.Model):
 
 
 class UsersInventory(models.Model):
-    """ Инвентарь всех пользователей """
+    """ Инвентарь предметов опыта всех пользователей """
 
     owner = models.ForeignKey(User,
                               on_delete=models.CASCADE,

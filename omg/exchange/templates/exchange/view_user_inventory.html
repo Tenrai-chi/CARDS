@@ -15,11 +15,11 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container col-8">
+    <div class="container col-12">
         <h4 class="text-center">Книги опыта</h4><br>
         <div class="row">
             {% for item in user_items %}
-            <div class="col-6">
+            <div class="col-4">
                 <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ item.item.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
@@ -34,17 +34,24 @@
         </div>
     </div>
 
-    <div class="container col-8">
+    <div class="container col-12">
         <h4 class="text-center">Амулеты</h4><br>
         <div class="row">
             {% for amulet in user_amulets %}
-            <div class="col-6">
+            <div class="col-4">
                 <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ amulet.amulet_type.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
                         <h5 class="card-title" class="card text-center">{{ amulet.amulet_type.name }}</h5>
                         <p class="card-text">Бонус к здоровью: {{ amulet.bonus_hp }}</p>
                         <p class="card-text">Бонус к урону: {{ amulet.bonus_damage }}</p>
+                        {% if amulet.card != None %}
+                            <p class="card-text">Надето: <a href="#">{{ amulet.card }}</a></p>
+                        {% else %}
+                            <p class="card-text">Надето: ______</p>
+                        {% endif %}
+                        <p class="card-text">Цена продажи: {{ amulet.price }}</p>
+                        <a href="{% url 'sale_amulet' user_id=user.id amulet_id=amulet.id %}" class="btn btn-primary col-12 mx-auto">Продать</a>
                     </div>
                 </div>
                 <br>
