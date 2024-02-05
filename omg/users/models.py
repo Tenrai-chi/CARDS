@@ -66,3 +66,24 @@ class SaleStoreCards(models.Model):
 
     def __str__(self):
         return f'Покупка пользователя {self.transaction.user.username} от {self.date_and_time}'
+
+
+class FavoriteUsers(models.Model):
+    """ Список избранных пользователей у пользователей.
+    """
+
+    user = models.ForeignKey(User,
+                             on_delete=models.CASCADE,
+                             verbose_name='Пользователь',
+                             related_name='user')
+    favorite_user = models.ForeignKey(User,
+                                      on_delete=models.CASCADE,
+                                      verbose_name='Избранный',
+                                      related_name='favorite_user')
+
+    class Meta:
+        verbose_name_plural = 'Избранные пользователи'
+        verbose_name = 'Избранный пользователь'
+
+    def __str__(self):
+        return f'Избранный {self.favorite_user.username} пользователя {self.user.username}'

@@ -33,16 +33,8 @@
                         <p class="card-text">Редкость: {{ card.rarity }}</p>
                         <p class="card-text">Класс: {{ card.class_card }}</p>
                         <p class="card-text">Тип: {{ card.type }}</p>
-                        {% if card.amulet_card %}
-                            Есть бонусы ТУТ ПОМЕНЯТЬ!
-                            {{ card.amulet_card }}
-                            <p class="card-text">Здоровье: {{ card.hp }} + {{ card.amulet_card.bonus_hp }}</p>
-                            <p class="card-text">Урон: {{ card.damage }} + {{ card.amulet_card.bonus_damage }}</p>
-                        {% else %}
-                            Нет бонусов
-                            <p class="card-text">Здоровье: {{ card.hp }}</p>
-                            <p class="card-text">Урон: {{ card.damage }}</p>
-                        {% endif %}
+                        <p class="card-text">Здоровье: {{ card.hp }}</p>
+                        <p class="card-text">Урон: {{ card.damage }}</p>
                         <p>Способность: {{ card.class_card.skill }}</p>
                         <p class="card-text">Уровень: {{ card.level }}</p>
                         <div class="btn-group-vertical col-12 mx-auto">

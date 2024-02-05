@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.db.models import F, Q
 
-from .models import Profile, Transactions
+from .models import Profile, Transactions, FavoriteUsers
 from .forms import LoginForm, RegistrationForm, EditProfileForm
 from exchange.models import AmuletItem
 
@@ -21,6 +21,7 @@ def view_profile(request, user_id):
     if user == request.user:
         fight_history = FightHistory.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-id')[:50]
         amulet = AmuletItem.objects.filter(card=user.profile.current_card).last()
+
         context = {'title': f'Просмотр профиля {user.username}',
                    'header': f'Просмотр профиля {user.username}',
                    'user_info': user,
@@ -28,9 +29,15 @@ def view_profile(request, user_id):
                    'amulet': amulet
                    }
     else:
+        favorite_user = FavoriteUsers.objects.filter(user=request.user, favorite_user=user_id).last()
+        wins_vs_users = FightHistory.objects.filter(winner=request.user, loser=user).count()
+        losses_vs_users = FightHistory.objects.filter(winner=user, loser=request.user).count()
         context = {'title': f'Просмотр профиля {user.username}',
                    'header': f'Просмотр профиля {user.username}',
-                   'user_info': user
+                   'user_info': user,
+                   'favorite_user': favorite_user,
+                   'wins_vs_users': wins_vs_users,
+                   'losses_vs_users': losses_vs_users,
                    }
 
     return render(request, 'users/view_profile.html', context)
@@ -131,3 +138,73 @@ def view_transactions(request, user_id):
         messages.error(request, 'Произошла ошибка!')
 
         return HttpResponseRedirect(reverse('home'))
+
+
+def add_favorite_user(request, user_id: int):
+    """ Добавляет в избранное выбранного пользователя
+    """
+    if request.user.id != user_id:
+        try:
+            record = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
+            messages.error(request, 'Произошла ошибка!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+        except FavoriteUsers.DoesNotExist:
+            user = User.objects.filter(pk=user_id).last()
+            favorite_users_count = FavoriteUsers.objects.filter(user=request.user).count()
+            if favorite_users_count == 50:
+                message = 'Достигнут предел избранных пользователей! Для добавления новых освободите место'
+                messages.error(request, message)
+
+                return HttpResponseRedirect(f'/users/{user_id}')
+            if user:
+                new_favorite_user = FavoriteUsers.objects.create(user=request.user,
+                                                                 favorite_user=user)
+                new_favorite_user.save()
+
+                return HttpResponseRedirect(f'/users/{user_id}')
+            else:
+                messages.error(request, 'Произошла ошибка!')
+
+                return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Произошла ошибка!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def delete_favorite_user(request, user_id):
+    """ Удаляет пользователя из списка избранных
+    """
+
+    if request.user.id != user_id:
+        try:
+            record = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
+            record.delete()
+
+            return HttpResponseRedirect(f'/users/{user_id}')
+
+        except FavoriteUsers.DoesNotExist:
+            messages.error(request, 'Произошла ошибка!')
+
+            return HttpResponseRedirect(reverse('home'))
+    else:
+        messages.error(request, 'Произошла ошибка!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def view_favorite_users(request):
+    """ Выводит список избранных пользователей.
+    """
+
+    favorite_users = FavoriteUsers.objects.filter(user=request.user)
+    context = {'title': f'Избранные пользователи',
+               'header': f'Избранные пользователи {request.user.username}',
+               'favorite_users': favorite_users,
+               }
+
+    return render(request, 'users/favorite_users.html', context)
+

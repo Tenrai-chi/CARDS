@@ -26,12 +26,21 @@
                 {% endif %}
                 <p style="color:#008000">Победы: {{ user_info.profile.win }}</p>
                 <p style="color:#ff0000">Поражения: {{ user_info.profile.lose }}</p>
+                {% if user.id != user_info.pk %}
+                    <p style="color:#008000">Победы против: {{ wins_vs_users }}</p>
+                    <p style="color:#ff0000">Поражения против: {{ losses_vs_users }}</p>
+                {% endif %}
                 {% if user == user_info %}
-                <a href="{% url 'view_transactions' user_id=user_info.id %}" class="btn btn-primary">Транзакции</a>
-                <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
-                <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
-                {% else %}
-                <a href="#" class="btn btn-primary">В избранное</a>
+                    <a href="{% url 'view_favorite_users' %}" class="btn btn-primary">Избранные</a>
+                    <a href="{% url 'view_transactions' user_id=user_info.id %}" class="btn btn-primary">Транзакции</a>
+                    <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
+                    <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
+                    {% else %}
+                        {% if favorite_user %}
+                            <a href="{% url 'delete_favorite_user' user_id=user_info.id %}" class="btn btn-primary">Убрать из избранного</a>
+                        {% else %}
+                            <a href="{% url 'add_favorite_user' user_id=user_info.id %}" class="btn btn-primary">В избранное</a>
+                    {% endif %}
                 {% endif %}
             </div>
 
@@ -76,15 +85,16 @@
                     <p>У пользователя нет избранной карты</p>
                 {% endif %}
                 <br>
-                    <a href="{% url 'user_cards' user_id=user_info.id %}" class="btn btn-primary">Все карты</a>
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'user_cards_sale' user_id=user_info.id %}" class="btn btn-primary">Обмен</a>
+                <a href="{% url 'user_cards' user_id=user_info.id %}" class="btn btn-primary">Все карты</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'user_cards_sale' user_id=user_info.id %}" class="btn btn-primary">Обмен</a>
                     {% if user.id != user_info.id and user_info.profile.current_card %}
-                    <a href="{% url 'fight' protector_id=user_info.id %}" class="btn btn-primary">Бой</a>
+                        <a href="{% url 'fight' protector_id=user_info.id %}" class="btn btn-primary">Бой</a>
                     {% endif %}
-                    {% else %}
-                    <a href="{% url 'inventory_user' user_id=user.id %}" class="btn btn-primary">Инвентарь</a>
+                    {% if user.id == user_info.id %}
+                        <a href="{% url 'inventory_user' user_id=user.id %}" class="btn btn-primary">Инвентарь</a>
                     {% endif %}
+                {% endif %}
 
             </div>
         </div>

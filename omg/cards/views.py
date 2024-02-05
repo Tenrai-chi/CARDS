@@ -352,6 +352,7 @@ def fight(request, protector_id):
         # Если все проверки ранее пройдены, то идет бой и определение победителя (вынести)
         if protector.profile.current_card.type != attacker.profile.current_card.type:
             if protector.profile.current_card.type.better == attacker.profile.current_card.type:
+
                 # Если защита лучше нападения
                 protector_damage = protector.profile.current_card.damage * 1.2
                 attacker_damage = attacker.profile.current_card.damage * 0.8
@@ -373,21 +374,88 @@ def fight(request, protector_id):
         if amulet_protector:
             protector_damage += amulet_protector.bonus_damage
             protector_hp += amulet_protector.bonus_hp
+
         # Начисление статов от амулета карте нападения
         amulet_attacker = AmuletItem.objects.filter(card=attacker.profile.current_card).last()
         if amulet_attacker:
             attacker_damage += amulet_attacker.bonus_damage
             attacker_hp += amulet_attacker.bonus_hp
 
+        #  Пошаговая битва
         fight_now = True
         while fight_now:
+            # Ход нападающего
+
+            # Использование способности дриады
+            if attacker.profile.current_card.class_card.name == 'Дриада':
+                attacker_hp += attacker.profile.current_card.class_card.numeric_value
+
+            # Нанесение урона
             protector_hp -= attacker_damage
+
+            #  Использование способности Демона
+            if attacker.profile.current_card.class_card.name == 'Демон':
+                chance = randint(1, 100)
+                if chance <= attacker.profile.current_card.class_card.chance_use:
+                    protector_hp -= round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
+
+
+            # Использование способности оборотня
+            if attacker.profile.current_card.class_card.name == 'Оборотень':
+                chance = randint(1, 100)
+
+
+                if chance <= attacker.profile.current_card.class_card.chance_use:
+                    attacker_hp += round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
+
+            #  Использование способности Призрака
+            if protector.profile.current_card.class_card.name == 'Призрак':
+                chance = randint(1, 100)
+                if chance <= protector.profile.current_card.class_card.chance_use:
+                    protector_hp += attacker_damage
+
+
+            #  Использование способности Бога Императора
+            if protector.profile.current_card.class_card.name == 'Бог Император':
+                attacker_hp -= round(attacker.profile.current_card.class_card.numeric_value * attacker_damage / 100)
+
             if protector_hp <= 0:
                 winner = attacker
                 loser = protector
                 fight_now = False
+
             else:
+                # Ход защищающегося
+
+                # Использование способности дриады
+                if protector.profile.current_card.class_card.name == 'Дриада':
+                    protector_hp += protector.profile.current_card.class_card.numeric_value
+
+                # Нанесение урона
                 attacker_hp -= protector_damage
+
+                #  Использование способности Демона
+                if protector.profile.current_card.class_card.name == 'Демон':
+                    chance = randint(1, 100)
+                    if chance <= protector.profile.current_card.class_card.chance_use:
+                        attacker_hp -= round(protector_damage * protector.profile.current_card.class_card.numeric_value / 100)
+
+                # Использование способности оборотня
+                if protector.profile.current_card.class_card.name == 'Оборотень':
+                    chance = randint(1, 100)
+                    if chance <= protector.profile.current_card.class_card.chance_use:
+                        protector_hp += round(protector_damage * protector.profile.current_card.class_card.numeric_value / 100)
+
+                #  Использование способности Призрака
+                if attacker.profile.current_card.class_card.name == 'Призрак':
+                    chance = randint(1, 100)
+                    if chance <= attacker.profile.current_card.class_card.chance_use:
+                        attacker_hp += protector_damage
+
+                #  Использование способности Бога Императора
+                if attacker.profile.current_card.class_card.name == 'Бог Император':
+                    protector_hp -= round(protector.profile.current_card.class_card.numeric_value * protector_damage / 100)
+
                 if attacker_hp <= 0:
                     winner = protector
                     loser = attacker
@@ -423,6 +491,7 @@ def fight(request, protector_id):
         if winner.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** winner.profile.current_card.level:
             winner.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** winner.profile.current_card.level
             winner.profile.current_card.level += 1
+
             # Если достигнут максимальный уровень, прогресс опыта обнуляется
             if winner.profile.current_card.level == winner.profile.current_card.rarity.max_level:
                 winner.profile.current_card.experience_bar = 0
@@ -435,6 +504,7 @@ def fight(request, protector_id):
         if loser.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** loser.profile.current_card.level:
             loser.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** loser.profile.current_card.level
             loser.profile.current_card.level += 1
+
             # Если достигнут максимальный уровень, прогресс опыта обнуляется
             if loser.profile.current_card.level == loser.profile.current_card.rarity.max_level:
                 loser.profile.current_card.experience_bar = 0
@@ -465,10 +535,17 @@ def fight(request, protector_id):
         amulets = AmuletStore.objects.all()
         reward_item_user = []
         reward_amulet_user = []
-        for item in items:
-            # Проверка выпадения предмета
+        for item in items:  # Проверка выпадения предмета
             chance = randint(1, 100)
-            if chance <= item.chance_drop_on_fight:
+
+            # Использование способности эльфа
+            if attacker.profile.current_card.class_card.name == 'Эльф':
+                print('спел эльфа')
+                chance_drop = item.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
+            else:
+                chance_drop = item.chance_drop_on_fight
+
+            if chance <= chance_drop:
                 try:
                     items_user = UsersInventory.objects.get(owner=request.user,
                                                             item=item
@@ -484,10 +561,17 @@ def fight(request, protector_id):
                     new_record_inventory.save()
                     reward_item_user.append(item)
 
-        for amulet in amulets:
-            # Проверка выпадения амулета
+        for amulet in amulets:  # Проверка выпадения амулета
+
+            # Использование способности эльфа
+            if attacker.profile.current_card.class_card.name == 'Эльф':
+                print('спел эльфа')
+                chance_drop = amulet.amulet_type.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
+            else:
+                chance_drop = amulet.amulet_type.chance_drop_on_fight
+
             chance = randint(1, 100)
-            if chance <= amulet.amulet_type.chance_drop_on_fight:
+            if chance <= chance_drop:
                 new_amulet = AmuletItem.objects.create(amulet_type=amulet.amulet_type,
                                                        owner=attacker,
                                                        bonus_hp=amulet.bonus_hp,

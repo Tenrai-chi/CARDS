@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Избранные</li>
+    </ol>
+</nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container col-md-7 text-center">
+        <table class="table">
+            <thead>
+            <tr class="table-primary">
+                <th scope="col">ID</th>
+                <th scope="col">Пользователь</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for user_info in favorite_users %}
+                <tr>
+                    <td>{{ user_info.id }}</td>
+                    <td><a href="{% url 'view_profile' user_id=user_info.id %}">{{ user_info.favorite_user.username }}</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}
