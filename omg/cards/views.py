@@ -783,7 +783,7 @@ def level_up_with_item(request, card_id, item_id):
             transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
                                                       before=profile.gold,
-                                                      after=profile.gold - expended_items * item.item.gold_for_use,
+                                                      after=profile.gold-expended_items*item.item.gold_for_use,
                                                       comment='Улучшение карты'
                                                       )
             profile.gold -= expended_items * item.item.gold_for_use
