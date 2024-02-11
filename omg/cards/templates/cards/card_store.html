@@ -15,11 +15,11 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container col-8">
+    <div class="container col-12">
         <div class="row">
             {% for card in cards %}
-            <div class="col-6">
-                <div class="card card border-dark" style="width: 25rem;">
+            <div class="col-4">
+                <div class="card card border-dark" style="width: 23rem;">
                     <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
                         <h5 class="card-title">{{ card.class_card }}</h5>
