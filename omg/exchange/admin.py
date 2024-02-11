@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import SaleUserCards, ExperienceItems, UsersInventory
-from .models import HistoryPurchaseItems, AmuletItem, AmuletStore, AmuletType
+from .models import HistoryPurchaseItems, AmuletItem, AmuletType
 
 
 class SaleUserCardsAdmin(admin.ModelAdmin):
@@ -15,7 +15,8 @@ class SaleUserCardsAdmin(admin.ModelAdmin):
 
 
 class ExperienceItemsAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'experience_amount', 'price', 'gold_for_use', 'chance_drop_on_fight', 'sale_now')
+    list_display = ('id', 'name', 'rarity', 'experience_amount', 'price', 'gold_for_use',
+                    'chance_drop_on_fight', 'chance_drop_on_box', 'sale_now')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name')
 
@@ -33,26 +34,20 @@ class HistoryPurchaseItemsAdmin(admin.ModelAdmin):
 
 
 class AmuletTypeAdmin(admin.ModelAdmin):
-    list_display = ('id', 'name', 'rarity', 'chance_drop_on_fight')
+    list_display = ('id', 'name', 'rarity', 'bonus_hp', 'bonus_damage', 'price',
+                    'sale_now', 'chance_drop_on_fight', 'chance_drop_on_box')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name')
 
 
 class AmuletItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'amulet_type', 'owner', 'card', 'bonus_hp', 'bonus_damage', 'price')
+    list_display = ('id', 'amulet_type', 'owner', 'card')
     list_display_links = ('id', 'amulet_type',)
     search_fields = ('id', 'amulet_type', 'owner', 'card')
 
 
-class AmuletStoreAdmin(admin.ModelAdmin):
-    list_display = ('id', 'amulet_type', 'bonus_hp', 'bonus_damage', 'price', 'sale_now',)
-    list_display_links = ('id', 'amulet_type')
-    search_fields = ('id', 'amulet_type', 'price')
-
-
 admin.site.register(AmuletType, AmuletTypeAdmin)
 admin.site.register(AmuletItem, AmuletItemAdmin)
-admin.site.register(AmuletStore, AmuletStoreAdmin)
 admin.site.register(SaleUserCards, SaleUserCardsAdmin)
 admin.site.register(ExperienceItems, ExperienceItemsAdmin)
 admin.site.register(UsersInventory, UsersInventoryAdmin)

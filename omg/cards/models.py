@@ -79,7 +79,7 @@ class Card(models.Model):
     type = models.ForeignKey(Type, on_delete=models.SET_NULL, null=True, verbose_name='Тип')
     hp = models.FloatField(verbose_name='Здоровье')
     damage = models.FloatField(verbose_name='Урон')
-    level = models.IntegerField(default=0, verbose_name='Уровень')
+    level = models.IntegerField(default=1, verbose_name='Уровень')
     experience_bar = models.IntegerField(default=0, blank=True, null=True, verbose_name='Опыт')
     rarity = models.ForeignKey(Rarity, on_delete=models.SET_NULL, null=True, verbose_name='Редкость')
     sale_status = models.BooleanField(default=False, blank=True, null=True, verbose_name='Продажа')

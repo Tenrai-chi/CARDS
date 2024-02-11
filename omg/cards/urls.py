@@ -2,13 +2,14 @@ from django.urls import path
 from .views import (view_cards, view_user_cards, view_card, card_store, buy_card, get_card,
                     create_card, card_sale, buy_card_user, view_user_cards_for_sale,
                     select_favorite_card, fight, card_level_up, level_up_with_item,
-                    remove_from_sale_card)
+                    remove_from_sale_card, view_all_sale_card)
 
 from exchange.views import change_amulet_menu, remove_amulet, change_amulet
 
 urlpatterns = [
     path('card_store/', card_store, name='card_store'),
     path('get_card/', get_card, name='get_card'),
+    path('all_sale_cards/', view_all_sale_card, name='view_all_sale_card'),
     path('fight-<int:protector_id>/', fight, name='fight'),
     path('<int:card_id>-buy/', buy_card, name='buy_card'),
 

@@ -1,21 +1,20 @@
-from random import randint
 from math import ceil
+from random import randint, choice
 
 from django.contrib import messages
-from django.urls import reverse
-from django.shortcuts import get_object_or_404
-from django.db.models import Q
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
+from django.db.models import Q
 from django.http import HttpResponseRedirect
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, render
+from django.urls import reverse
 
-from .models import Card, ClassCard, Type, Rarity, CardStore, HistoryReceivingCards, FightHistory
 from .forms import SaleCardForm, UseItemForm
 from .functions import date_time_now, accrue_experience
+from .models import Card, ClassCard, Type, Rarity, CardStore, HistoryReceivingCards, FightHistory
 
+from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletType
 from users.models import Transactions, Profile, SaleStoreCards
-from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletStore
 
 
 def view_cards(request):
@@ -43,13 +42,11 @@ def home(request):
     """
 
     if request.user.is_authenticated:
-        try:
-            user_profile = Profile.objects.get(user=request.user)
-        except Profile.DoesNotExist:
-            user_profile = Profile.objects.create(user=request.user,
-                                                  receiving_timer=date_time_now(),
-                                                  )
-            user_profile.save()
+        user_profile = Profile.objects.get_or_create(user=request.user,
+                                                     defaults={'user': request.user,
+                                                               'receiving_timer': date_time_now()},
+                                                     )
+
     context = {'title': 'Домашняя',
                'header': 'Стартовая страница'
                }
@@ -64,8 +61,7 @@ def buy_card(request, card_id):
     """
 
     if request.user.is_authenticated:
-        user = User.objects.get(pk=request.user.id)
-        user_profile = Profile.objects.get(user=user.pk)
+        user_profile = Profile.objects.get(user=request.user)
         selected_card = CardStore.objects.get(pk=card_id)
 
         if user_profile.gold < selected_card.price:
@@ -73,22 +69,20 @@ def buy_card(request, card_id):
 
             return HttpResponseRedirect(reverse('card_store'))
         else:
-            user_gold_before = user_profile.gold
-            user_profile.gold -= selected_card.price
-            user_profile.save()
-            user_gold_after = user_profile.gold
             transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
-                                                      before=user_gold_before,
-                                                      after=user_gold_after,
+                                                      before=user_profile.gold,
+                                                      after=user_profile.gold-selected_card.price,
                                                       comment='Покупка в магазине карт'
                                                       )
-            transaction.save()
+
+            user_profile.gold -= selected_card.price
+            user_profile.save()
+
             sale_card = SaleStoreCards.objects.create(date_and_time=date_time_now(),
                                                       sold_card=selected_card,
                                                       transaction=transaction
                                                       )
-            sale_card.save()
 
             new_card = Card.objects.create(owner=request.user,
                                            level=1,
@@ -98,19 +92,16 @@ def buy_card(request, card_id):
                                            hp=selected_card.hp,
                                            damage=selected_card.damage
                                            )
-            new_card.save()
 
             new_record = HistoryReceivingCards.objects.create(date_and_time=date_time_now(),
                                                               method_receiving='Покупка в магазине',
                                                               card=new_card,
                                                               user=request.user
                                                               )
-            new_record.save()
 
-            new_card_id = new_card.id
             messages.success(request, 'Вы успешно совершили покупку!')
 
-            return HttpResponseRedirect(f'/cards/card-{new_card_id}')
+            return HttpResponseRedirect(f'/cards/card-{new_card.id}')
 
     else:
         messages.error(request, 'Для покупки необходимо авторизироваться!')
@@ -127,18 +118,18 @@ def get_card(request):
 
     if request.user.is_authenticated:
         try:
-            user_profile = Profile.objects.get(user=request.user.id)
+            user_profile = Profile.objects.get(user=request.user)
 
             difference = date_time_now() - user_profile.receiving_timer
             seconds = difference.total_seconds()
             hours = seconds // 3600
 
-            if hours >= 6:
+            if hours >= 6 or request.user.id == 1:  # Если админ, то можно без кд
                 take_card = True
             else:
                 take_card = False
 
-            rarity_chance_drop = Rarity.objects.all()
+            rarity_chance_drop = Rarity.objects.values('name', 'drop_chance')
             context = {'title': 'Получить карту',
                        'header': 'Получить бесплатную карту',
                        'rarity_chance_drop': rarity_chance_drop,
@@ -150,9 +141,8 @@ def get_card(request):
             new_profile = Profile.objects.create(user=request.user,
                                                  receiving_timer=date_time_now()
                                                  )
-            new_profile.save()
             take_card = True
-            rarity_chance_drop = Rarity.objects.all()
+            rarity_chance_drop = Rarity.objects.values('name', 'drop_chance')
             context = {'title': 'Получить карту',
                        'header': 'Получить бесплатную карту',
                        'rarity_chance_drop': rarity_chance_drop,
@@ -173,7 +163,7 @@ def create_card(request):
 
     if request.user.is_authenticated:
         try:
-            user_profile = Profile.objects.get(user=request.user.id)
+            user_profile = Profile.objects.get(user=request.user)
 
             difference = date_time_now() - user_profile.receiving_timer
             seconds = difference.total_seconds()
@@ -182,17 +172,11 @@ def create_card(request):
             new_profile = Profile.objects.create(user=request.user,
                                                  receiving_timer=date_time_now()
                                                  )
-            new_profile.save()
             return HttpResponseRedirect(reverse('get_card'))
 
-        if hours >= 6:
-            count_class_card = ClassCard.objects.all().count()
-            random_class_card = randint(1, count_class_card)
-            class_card = ClassCard.objects.get(pk=random_class_card)
-
-            count_type_card = Type.objects.all().count()
-            random_type_card = randint(1, count_type_card)
-            type_card = Type.objects.get(pk=random_type_card)
+        if hours >= 6 or request.user.id == 1:  # Если пользователь admin, то нет кд
+            class_card = choice(ClassCard.objects.all())
+            type_card = choice(Type.objects.all())
 
             r = Rarity.objects.get(name='R')
             sr = Rarity.objects.get(name='SR')
@@ -201,7 +185,7 @@ def create_card(request):
 
             if random_rarity <= r.drop_chance:
                 rarity_card = r
-            elif r.drop_chance < random_rarity <= (r.drop_chance + sr.drop_chance):
+            elif random_rarity <= (r.drop_chance + sr.drop_chance):
                 rarity_card = sr
             else:
                 rarity_card = ur
@@ -217,20 +201,17 @@ def create_card(request):
                                            hp=hp,
                                            damage=damage
                                            )
-            new_card.save()
 
             new_record = HistoryReceivingCards.objects.create(date_and_time=date_time_now(),
                                                               method_receiving='Бесплатная генерация',
                                                               card=new_card,
                                                               user=request.user
                                                               )
-            new_record.save()
 
-            new_card_id = new_card.id
             user_profile.receiving_timer = date_time_now()
             user_profile.save()
 
-            return HttpResponseRedirect(f'/cards/card-{new_card_id}')
+            return HttpResponseRedirect(f'/cards/card-{new_card.id}')
         else:
             messages.error(request, 'Вы пока не можете получить бесплатную карту')
 
@@ -260,12 +241,6 @@ def view_user_cards(request, user_id):
     user = User.objects.get(pk=user_id)
 
     cards = Card.objects.filter(owner=user).order_by('rarity', 'class_card', 'id')
-    # paginator = Paginator(cards, 15)
-    # if 'page' in request.GET:
-    #     page_num = request.GET['page']
-    # else:
-    #     page_num = 1
-    # page = paginator.get_page(page_num)
 
     context = {'title': 'Карты пользователя',
                'header': f'Карты пользователя {user.username}',
@@ -309,7 +284,7 @@ def select_favorite_card(request, selected_card):
 def fight(request, protector_id):
     """ Бой.
         Проверяет есть ли у обоих пользователей выбранная карта.
-        Проверяет время последнего боя между двумя пользователями, если прошло больше 6 часов, происходит битва.
+        Проверяет время последнего боя между двумя пользователями. Если прошло больше 6 часов, происходит битва.
         После битвы начисляются опыт в experience_bar карт.
         Если опыта достаточно, то увеличивается уровень карты и ее характеристики.
         В Profile пользователей увеличиваются gold, win, lose в зависимости от победителя.
@@ -319,7 +294,6 @@ def fight(request, protector_id):
         если прокнул шанс, то книги появляются в инвентаре.
     """
 
-    # Проверка пользователя на авторизованность
     if request.user.is_authenticated:
         protector = User.objects.get(pk=protector_id)
         attacker = User.objects.get(pk=request.user.id)
@@ -339,7 +313,7 @@ def fight(request, protector_id):
             hours = seconds // 3600
 
             # Если бой есть и прошло менее 6 часов, то нельзя
-            if hours < 6:
+            if hours < 6 and request.user.id != 1:  # Админ может драться без кд
                 messages.error(request, f'Вы пока не можете бросить вызов этому пользователю! Осталось времени: {6-hours} часов')
 
                 return HttpResponseRedirect(reverse('home'))
@@ -399,12 +373,9 @@ def fight(request, protector_id):
                 if chance <= attacker.profile.current_card.class_card.chance_use:
                     protector_hp -= round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
 
-
             # Использование способности оборотня
             if attacker.profile.current_card.class_card.name == 'Оборотень':
                 chance = randint(1, 100)
-
-
                 if chance <= attacker.profile.current_card.class_card.chance_use:
                     attacker_hp += round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
 
@@ -413,7 +384,6 @@ def fight(request, protector_id):
                 chance = randint(1, 100)
                 if chance <= protector.profile.current_card.class_card.chance_use:
                     protector_hp += attacker_damage
-
 
             #  Использование способности Бога Императора
             if protector.profile.current_card.class_card.name == 'Бог Император':
@@ -474,8 +444,6 @@ def fight(request, protector_id):
                                                         after=loser.profile.gold+25,
                                                         comment='Награда за проигрыш в битве'
                                                         )
-        transaction_winner.save()
-        transaction_loser.save()
 
         # Начисление золота (вынести)
         winner.profile.gold += 100
@@ -528,11 +496,10 @@ def fight(request, protector_id):
                                                  card_winner=winner.profile.current_card,
                                                  card_loser=loser.profile.current_card
                                                  )
-        new_record.save()
 
         # Предметы падают только нападавшему
         items = ExperienceItems.objects.all()
-        amulets = AmuletStore.objects.all()
+        amulets = AmuletType.objects.exclude(chance_drop_on_fight=0)
         reward_item_user = []
         reward_amulet_user = []
         for item in items:  # Проверка выпадения предмета
@@ -558,7 +525,6 @@ def fight(request, protector_id):
                                                                          item=item,
                                                                          amount=1
                                                                          )
-                    new_record_inventory.save()
                     reward_item_user.append(item)
 
         for amulet in amulets:  # Проверка выпадения амулета
@@ -566,18 +532,14 @@ def fight(request, protector_id):
             # Использование способности эльфа
             if attacker.profile.current_card.class_card.name == 'Эльф':
                 print('спел эльфа')
-                chance_drop = amulet.amulet_type.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
+                chance_drop = amulet.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
             else:
-                chance_drop = amulet.amulet_type.chance_drop_on_fight
+                chance_drop = amulet.chance_drop_on_fight
 
             chance = randint(1, 100)
             if chance <= chance_drop:
-                new_amulet = AmuletItem.objects.create(amulet_type=amulet.amulet_type,
-                                                       owner=attacker,
-                                                       bonus_hp=amulet.bonus_hp,
-                                                       bonus_damage=amulet.bonus_damage,
-                                                       price=round(0.7 * amulet.price))
-                new_amulet.save()
+                new_amulet = AmuletItem.objects.create(amulet_type=amulet,
+                                                       owner=attacker)
                 reward_amulet_user.append(amulet)
 
         context = {'title': 'Битва',
@@ -632,7 +594,6 @@ def buy_card_user(request, card_id):
                                                        after=buyer_profile.gold-card.price,
                                                        comment='Покупка карты у пользователя'
                                                        )
-            transaction1.save()
             buyer_profile.gold = buyer_profile.gold - card.price
             buyer_profile.save()
 
@@ -643,7 +604,6 @@ def buy_card_user(request, card_id):
                                                        after=salesman_profile.gold + card.price,
                                                        comment='Продажа карты пользователю'
                                                        )
-            transaction2.save()
             salesman_profile.gold = salesman_profile.gold + card.price
             salesman_profile.save()
 
@@ -655,7 +615,6 @@ def buy_card_user(request, card_id):
                                                           transaction_buyer=transaction1,
                                                           transaction_salesman=transaction2
                                                           )
-            sale_user_card.save()
 
             card.owner = request.user
             card.price = 0
@@ -827,7 +786,6 @@ def level_up_with_item(request, card_id, item_id):
                                                       after=profile.gold - expended_items * item.item.gold_for_use,
                                                       comment='Улучшение карты'
                                                       )
-            transaction.save()
             profile.gold -= expended_items * item.item.gold_for_use
             item.amount -= expended_items
 
@@ -859,3 +817,17 @@ def level_up_with_item(request, card_id, item_id):
                    }
 
         return render(request, 'cards/card_level_up_with_item.html', context)
+
+
+def view_all_sale_card(request):
+    """ Вывод всех продаваемых карт.
+    """
+
+    sale_cards = Card.objects.exclude(Q(sale_status=False) | Q(owner=request.user))
+
+    context = {'title': 'Улучшение карты',
+               'header': 'Торговая площадка',
+               'cards': sale_cards,
+               }
+
+    return render(request, 'cards/all_sale_card.html', context)

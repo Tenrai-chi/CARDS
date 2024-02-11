@@ -27,7 +27,7 @@
                                 <span class="text-right" style="color:#ff5c77">Избранная карта</span>
                             {% endif %}
                             {% if user.id == card.owner.id and card.sale_status == True %}
-                                <span class="card-text" style="color:#42b85c">Продается: {{ card.price }}</span>
+                                <span class="card-text" style="color:#42b85c">{{ card.price }}</span>
                         {% endif %}
                         </h5>
                         <p class="card-text">Редкость: {{ card.rarity }}</p>

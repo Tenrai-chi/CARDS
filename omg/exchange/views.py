@@ -1,16 +1,18 @@
-from datetime import datetime
 import pytz
 
-from django.shortcuts import render, get_object_or_404
-from django.urls import reverse
+from datetime import datetime
+from random import randint, choice
+
 from django.contrib import messages
 from django.http import HttpResponseRedirect
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 
-from .models import ExperienceItems, UsersInventory, AmuletStore, AmuletItem
 from .forms import BuyItemForm
+from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType
 
+from cards.models import Card, HistoryReceivingCards, ClassCard, Type, Rarity
 from users.models import Transactions, Profile
-from cards.models import Card
 
 
 def view_inventory_user(request, user_id):
@@ -39,7 +41,7 @@ def item_store(request):
     """ Вывод ассортимента магазина предметов """
 
     items_on_sale = ExperienceItems.objects.filter(sale_now=True).order_by('experience_amount')
-    amulets_on_sale = AmuletStore.objects.filter(sale_now=True)
+    amulets_on_sale = AmuletType.objects.filter(sale_now=True)
 
     context = {'title': 'Магазин предметов',
                'header': 'Магазин предметов',
@@ -59,18 +61,16 @@ def buy_amulet(request, amulet_id):
 
     if request.user.is_authenticated:
         profile_user = Profile.objects.get(user=request.user)
-        current_amulet = get_object_or_404(AmuletStore, pk=amulet_id)
+        current_amulet = get_object_or_404(AmuletType, pk=amulet_id)
         if profile_user.gold < current_amulet.price:
             messages.error(request, 'Для покупки вам не хватает денег!')
 
             return HttpResponseRedirect(reverse('items_store'))
 
         else:
-            bought_amulet = AmuletItem.objects.create(amulet_type=current_amulet.amulet_type,
-                                                      owner=request.user,
-                                                      bonus_hp=current_amulet.bonus_hp,
-                                                      bonus_damage=current_amulet.bonus_damage,
-                                                      price=round(0.7*current_amulet.price))
+            bought_amulet = AmuletItem.objects.create(amulet_type=current_amulet,
+                                                      owner=request.user)
+
             bought_amulet.save()
             new_record_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
                                                                  user=request.user,
@@ -173,6 +173,7 @@ def change_amulet_menu(request, card_id):
     """ Меню смены амулеты у выбранной карты.
         Выводит список доступных амулетов.
     """
+
     # Проверка того что пользователь хозяин карты и он авторизован
     card = Card.objects.get(pk=card_id)
     available_amulets = AmuletItem.objects.filter(owner=request.user)
@@ -187,6 +188,7 @@ def change_amulet(request, card_id, amulet_id):
     """ Устанавливает выбранный амулет на выбранную карту.
         Если у карты был установлен амулет, то отвязывает его.
     """
+
     if request.user.is_authenticated:
         current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
         card = get_object_or_404(Card, pk=card_id)
@@ -235,10 +237,11 @@ def remove_amulet(request, card_id, amulet_id):
 
 def sale_amulet(request, user_id, amulet_id):
     """ Продажа пользователем амулета внутриигровому магазину.
-        Амулет удаляется из инвенторя и запись о нем так же удаляется.
+        Амулет удаляется из инвентаря и запись о нем так же удаляется.
         Пользователь получает деньги за продажу.
         Создается запись в Transactions.
     """
+
     if request.user.is_authenticated and request.user.id == user_id:
         amulet = get_object_or_404(AmuletItem, pk=amulet_id)
         profile = Profile.objects.get(pk=request.user.id)
@@ -246,9 +249,9 @@ def sale_amulet(request, user_id, amulet_id):
             transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
                                                       user=request.user,
                                                       before=profile.gold,
-                                                      after=profile.gold+amulet.price,
+                                                      after=profile.gold+round(amulet.amulet_type.price),
                                                       comment='Продажа амулета')
-            profile.gold += amulet.price
+            profile.gold += round(amulet.amulet_type.price)
             amulet.delete()
             profile.save()
             transaction.save()
@@ -261,5 +264,244 @@ def sale_amulet(request, user_id, amulet_id):
 
     else:
         messages.error(request, 'Произошла ошибка!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def buy_box_amulet(request):
+    """ Покупка и открытие пользователем сундука с амулетами стоимостью 15 000.
+        Случайно выбирает 5 амулетов и помещает в инвентарь пользователя.
+        У пользователя снимаются деньги.
+        Создается запись в Transaction.
+    """
+
+    if request.user.is_authenticated:
+        profile_user = Profile.objects.get(user=request.user)
+        if profile_user.gold >= 15000:
+
+            amulets_ur = AmuletType.objects.filter(rarity='UR')
+            amulets_ur_count = AmuletType.objects.filter(rarity='UR').count()
+
+            amulets_sr = AmuletType.objects.filter(rarity='SR')
+            amulets_sr_count = AmuletType.objects.filter(rarity='SR').count()
+
+            amulets_r = AmuletType.objects.filter(rarity='R')
+            amulets_r_count = AmuletType.objects.filter(rarity='R').count()
+
+            amulet_reward = []
+            for _ in range(5):
+                chance = randint(1, 100)
+                if chance <= amulets_r[1].chance_drop_on_box:  # Если выпал R
+                    random_amulet = randint(0, amulets_r_count-1)
+                    new_amulet = AmuletItem.objects.create(amulet_type=amulets_r[random_amulet],
+                                                           owner=request.user)
+                    amulet_reward.append(amulets_r[random_amulet])
+                    new_amulet.save()
+
+                elif chance <= (amulets_sr[1].chance_drop_on_box + amulets_r[1].chance_drop_on_box):  # Если выпал SR
+
+                    random_amulet = randint(0, amulets_sr_count-1)
+                    new_amulet = AmuletItem.objects.create(amulet_type=amulets_sr[random_amulet],
+                                                           owner=request.user)
+                    amulet_reward.append(amulets_sr[random_amulet])
+                    new_amulet.save()
+
+                else:  # Если выпал UR
+
+                    random_amulet = randint(0, amulets_ur_count-1)
+                    new_amulet = AmuletItem.objects.create(amulet_type=amulets_ur[random_amulet],
+                                                           owner=request.user)
+                    amulet_reward.append(amulets_ur[random_amulet])
+                    new_amulet.save()
+
+            new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                                                          user=request.user,
+                                                          before=profile_user.gold,
+                                                          after=profile_user.gold - 15000,
+                                                          comment='Покупка в магазине предметов'
+                                                          )
+            new_transaction.save()
+            profile_user.gold -= 15000
+            profile_user.save()
+
+            context = {'title': 'Открытие сундука с амулетами',
+                       'header': 'Открытие сундука с амулетами',
+                       'amulets': amulet_reward
+                       }
+
+            return render(request, 'exchange/open_box_amulet.html', context)
+
+        else:
+
+            messages.error(request, 'Вам не хватает денег!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Произошла ошибка!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def buy_box_book(request):
+    """ Покупка и открытие пользователем сундука с книгами опыта стоимостью 1 600.
+        Случайно генерирует 9 книг и создает 1 книгу UR редкости.
+        У пользователя снимаются деньги.
+        Создается запись в Transaction.
+    """
+
+    if request.user.is_authenticated:
+        profile_user = Profile.objects.get(user=request.user)
+        if profile_user.gold >= 1600:
+            all_items = ExperienceItems.objects.all().order_by('rarity')
+            item_reward = []
+
+            for _ in range(9):  # Переделать. Сначала рандом, потом запись количества 1 вызовом
+                chance = randint(1, 100)
+                if chance <= all_items[0].chance_drop_on_box:
+                    item_reward.append(all_items[0])
+                    try:
+                        items_user = UsersInventory.objects.get(owner=request.user,
+                                                                item=all_items[0])
+                        items_user.amount += 1
+                        items_user.save()
+
+                    except UsersInventory.DoesNotExist:
+                        new_item_user = UsersInventory.objects.create(owner=request.user,
+                                                                      item=all_items[0],
+                                                                      amount=1)
+                        new_item_user.save()
+
+                elif all_items[0].chance_drop_on_box <= (all_items[0].chance_drop_on_box + all_items[1].chance_drop_on_box):
+                    item_reward.append(all_items[1])
+                    try:
+                        items_user = UsersInventory.objects.get(owner=request.user,
+                                                                item=all_items[1])
+                        items_user.amount += 1
+                        items_user.save()
+
+                    except UsersInventory.DoesNotExist:
+                        new_item_user = UsersInventory.objects.create(owner=request.user,
+                                                                      item=all_items[1],
+                                                                      amount=1)
+                        new_item_user.save()
+
+                else:
+                    item_reward.append(all_items[2])
+                    try:
+                        items_user = UsersInventory.objects.get(owner=request.user,
+                                                                item=all_items[2])
+                        items_user.amount += 1
+                        items_user.save()
+
+                    except UsersInventory.DoesNotExist:
+                        new_item_user = UsersInventory.objects.create(owner=request.user,
+                                                                      item=all_items[0],
+                                                                      amount=2)
+                        new_item_user.save()
+
+            item_reward.append(all_items[2])
+            try:
+                items_user = UsersInventory.objects.get(owner=request.user,
+                                                        item=all_items[2])
+                items_user.amount += 1
+                items_user.save()
+
+            except UsersInventory.DoesNotExist:
+                new_item_user = UsersInventory.objects.create(owner=request.user,
+                                                              item=all_items[2],
+                                                              amount=1)
+                new_item_user.save()
+
+            new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                                                          user=request.user,
+                                                          before=profile_user.gold,
+                                                          after=profile_user.gold - 1600,
+                                                          comment='Покупка в магазине предметов'
+                                                          )
+            new_transaction.save()
+            profile_user.gold -= 1600
+            profile_user.save()
+
+            context = {'title': 'Открытие сундука с книгами',
+                       'header': 'Открытие сундука с книгами',
+                       'items': item_reward
+                       }
+
+            return render(request, 'exchange/open_box_item.html', context)
+        else:
+            messages.error(request, 'Вам не хватает денег!')
+
+            return HttpResponseRedirect(reverse('home'))
+    else:
+        messages.error(request, 'Произошла ошибка!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def buy_box_card(request):
+    """ Покупка и открытие пользователем сундука с UR картой стоимостью 20 000.
+        Создает карту UR редкости с максимальным значение начального здоровья или урона.
+        У пользователя снимаются деньги.
+        Создается запись в Transaction.
+        Создается новая запись в HistoryReceivingCards.
+    """
+
+    if request.user.is_authenticated:
+        profile_user = Profile.objects.get(user=request.user)
+        if profile_user.gold >= 20000:
+            type_card = choice(Type.objects.all())
+            rarity_card = Rarity.objects.get(name='UR')
+            class_card = choice(ClassCard.objects.all())
+            max_attribute = randint(1, 2)
+
+            if max_attribute == 1:
+                # Максимальное здоровье
+                new_card_damage = randint(rarity_card.min_damage, rarity_card.max_damage,)
+                new_card = Card.objects.create(owner=request.user,
+                                               class_card=class_card,
+                                               type=type_card,
+                                               hp=rarity_card.max_hp,
+                                               damage=new_card_damage,
+                                               rarity=rarity_card,
+                                               )
+            else:
+                # Максимальный урон
+                new_card_hp = randint(rarity_card.min_hp, rarity_card.max_hp,)
+                new_card = Card.objects.create(owner=request.user,
+                                               class_card=class_card,
+                                               type=type_card,
+                                               hp=rarity_card.max_damage,
+                                               damage=new_card_hp,
+                                               rarity=rarity_card,
+                                               )
+
+            new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                                                          user=request.user,
+                                                          before=profile_user.gold,
+                                                          after=profile_user.gold-20000,
+                                                          comment='Покупка в магазине предметов'
+                                                          )
+            profile_user.gold -= 20000
+            new_card.save()
+
+            new_record_history_receiving_cards = HistoryReceivingCards.objects.create(card=new_card,
+                                                                                      date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                                                                                      user=request.user,
+                                                                                      method_receiving='Покупка сундука'
+                                                                                      )
+
+            new_transaction.save()
+            new_record_history_receiving_cards.save()
+
+            return HttpResponseRedirect(f'/cards/card-{new_card.id}')
+
+        else:
+            messages.error(request, 'Вам не хватает денег!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Для покупки необходимо авторизироваться!')
 
         return HttpResponseRedirect(reverse('home'))
