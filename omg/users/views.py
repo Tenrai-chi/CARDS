@@ -1,3 +1,7 @@
+import pytz
+
+from datetime import datetime
+
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
@@ -7,8 +11,8 @@ from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 
-from .forms import LoginForm, RegistrationForm, EditProfileForm
-from .models import Profile, Transactions, FavoriteUsers
+from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm
+from .models import Profile, Transactions, FavoriteUsers, Guild
 
 from exchange.models import AmuletItem
 from cards.models import FightHistory
@@ -208,3 +212,175 @@ def view_favorite_users(request):
 
     return render(request, 'users/favorite_users.html', context)
 
+
+def view_guild(request, guild_id):
+    """ Просмотр гильдии.
+    """
+
+    guild_info = get_object_or_404(Guild, pk=guild_id)
+    guild_participants = Profile.objects.filter(guild=guild_id).order_by('-guild_point')
+
+    context = {'title': f'Избранные пользователи',
+               'header': f'Избранные пользователи {request.user.username}',
+               'guild_info': guild_info,
+               'guild_participants': guild_participants
+               }
+
+    return render(request, 'users/view_guild.html', context)
+
+
+def view_all_guilds(request):
+    """ Просмотр всех гильдий.
+    """
+
+    guilds = Guild.objects.all().order_by('-rating')
+
+    context = {'title': f'Избранные пользователи',
+               'header': f'Избранные пользователи {request.user.username}',
+               'guilds': guilds,
+               }
+
+    return render(request, 'users/view_all_guilds.html', context)
+
+
+def create_guild(request):
+    """ Создание гильдии.
+        Создается запись в Transaction.
+        Лидером становится создатель.
+    """
+
+    if request.user.is_authenticated:
+        user_profile = Profile.objects.get(user=request.user)
+        if user_profile.guild:
+
+            messages.error(request, 'Для создания гильдии покиньте текущую!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+        if user_profile.gold < 50000:
+            messages.error(request, 'Вам не хватает денег!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+        if request.method == 'POST':
+            new_guild_form = CreateGuildForm(request.POST, request.FILES)
+            if new_guild_form.is_valid():
+                new_guild_info = new_guild_form.save(commit=False)
+                new_guild_info.leader = request.user
+                new_guild_info.date_create = datetime.now(pytz.timezone('Europe/Moscow'))
+                new_guild_info.date_last_change_buff = datetime.now(pytz.timezone('Europe/Moscow'))
+                new_guild_info.rating = 1
+                new_guild_info.save()
+
+                new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                                                              user=request.user,
+                                                              before=user_profile.gold,
+                                                              after=user_profile.gold-50000,
+                                                              comment='Создание гильдии'
+                                                              )
+                user_profile.gold -= 50000
+                user_profile.guild = new_guild_info
+                user_profile.guild_point = 0
+                user_profile.date_guild_accession = datetime.now(pytz.timezone('Europe/Moscow'))
+                user_profile.save()
+
+                return HttpResponseRedirect(f'/users/guilds/{new_guild_info.id}')
+            else:
+                context = {'title': f'Создание гильдии',
+                           'header': f'Создание гильдии',
+                           'form': new_guild_form,
+                           }
+                print(new_guild_form.errors)
+                messages.error(request, 'Произошла ошибка')
+
+                return render(request, 'users/create_guild.html', context)
+
+        else:
+            form = CreateGuildForm()
+            context = {'title': f'Создание гильдии',
+                       'header': f'Создание гильдии',
+                       'form': form,
+                       }
+
+            return render(request, 'users/create_guild.html', context)
+
+    else:
+        messages.error(request, 'Для создания гильдии необходимо зарегистрироваться!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def change_buff_guild(request):
+    """ Смена усиления гильдии.
+    """
+
+    pass
+
+
+def delete_member_guild(request, member_id, guild_id):
+    """ Удалить пользователя из гильдии.
+        Вычитает очки гильдии пользователя из общего показателя гильдии.
+        У пользователя обнуляются очки гильдии.
+    """
+
+    if not request.user.is_authenticated:
+        messages.error(request, 'Авторизируйтесь"!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+    profile_user = get_object_or_404(Profile, user=member_id)
+    guild = get_object_or_404(Guild, pk=guild_id)
+
+    if guild.leader == request.user:
+        if profile_user == request.user.profile:
+            if guild.number_of_participants == 1:
+                profile_user.guild = None
+                profile_user.date_guild_accession = None
+                profile_user.guild_point = 0
+
+                guild.delete()
+                profile_user.save()
+
+                return HttpResponseRedirect(reverse('view_all_guilds'))
+            else:
+                messages.error(request, 'Сначала передайте лидерство другому члену гильдии!')
+
+                return HttpResponseRedirect(reverse('home'))
+
+        else:
+            guild.rating -= profile_user.guild_point
+            guild.number_of_participants -= 1
+
+            profile_user.guild = None
+            profile_user.date_guild_accession = None
+            profile_user.guild_point = 0
+
+            guild.save()
+            profile_user.save()
+
+            return HttpResponseRedirect(f'/users/guilds/{guild.id}')
+
+    elif request.user.id == member_id: 
+        guild.rating -= profile_user.guild_point
+        guild.number_of_participants -= 1
+
+        profile_user.guild = None
+        profile_user.date_guild_accession = None
+        profile_user.guild_point = 0
+
+        guild.save()
+        profile_user.save()
+
+        return HttpResponseRedirect(reverse('view_all_guilds'))
+
+    else:
+        messages.error(request, 'Вы должны быть лидером!')
+
+        return HttpResponseRedirect(reverse('home'))
+
+
+def add_member_guild(request):
+    """ Добавить пользователя из гильдии.
+    """
+
+    pass

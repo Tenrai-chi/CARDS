@@ -507,7 +507,6 @@ def fight(request, protector_id):
 
             # Использование способности эльфа
             if attacker.profile.current_card.class_card.name == 'Эльф':
-                print('спел эльфа')
                 chance_drop = item.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
             else:
                 chance_drop = item.chance_drop_on_fight
@@ -531,7 +530,6 @@ def fight(request, protector_id):
 
             # Использование способности эльфа
             if attacker.profile.current_card.class_card.name == 'Эльф':
-                print('спел эльфа')
                 chance_drop = amulet.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
             else:
                 chance_drop = amulet.chance_drop_on_fight
@@ -575,7 +573,7 @@ def view_user_cards_for_sale(request, user_id):
 def buy_card_user(request, card_id):
     """ Покупка карты у пользователя.
         Изменение владельца карты на текущего пользователя.
-        Уменьшение/увеличение gold у покупателя/продавца.
+        Увеличение/уменьшение gold у покупателя/продавца.
         Создание 2 записей в Transaction.
     """
 

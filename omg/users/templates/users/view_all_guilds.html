@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Гильдия</li>
+    </ol>
+</nav>
+{% endblock navigation %}
+
+{% block content %}
+    {% if user.profile.guild is None and user.profile %}
+        <div class="container col-md-8 text-center">
+            <td><a href="{% url 'create_guild' %}" class="btn btn-primary">Создать</a></td>
+        </div>
+    {% endif %}
+    <br>
+    <div class="container col-md-12 text-center">
+        <table class="table">
+            <thead>
+            <tr class="table-primary">
+                <th scope="col">Название</th>
+                <th scope="col">Лидер</th>
+                <th scope="col">Очки</th>
+                <th scope="col">Усиление</th>
+                {% if user.profile.guild == None %}
+                    <th scope="col">Действие</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
+            {% for guild in guilds %}
+                <tr>
+                    <td><a href="{% url 'view_guild' guild_id=guild.id %}">{{ guild.name }}</a></td>
+                    <td><a href="{% url 'view_profile' user_id=guild.leader.id %}">{{ guild.leader }}</a></td>
+                    <td>{{ guild.rating }}</td>
+                    <td>{{ guild.buff.name }}</td>
+                    {% if user.profile.guild == None %}
+                        <td><a href="#" class="btn btn-primary">Вступить</a></td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}

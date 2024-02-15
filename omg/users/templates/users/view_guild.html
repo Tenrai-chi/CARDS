@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Гильдия</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ guild_info.name }}</li>
+    </ol>
+</nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container col-md-12">
+        <h3 class="text-center">{{ guild_info.name }}</h3>
+        <br>
+        <div class="row">
+            <div class="col">
+                <p><img width="500" height="500" alt="guild_image" src="{{ guild_info.guild_pic.url }}"></p>
+            </div>
+
+            <div class="col">
+                <p>Лидер: <a href="{% url 'view_profile' user_id=guild_info.leader.id %}">{{ guild_info.leader.username }}</a></p>
+                <p>Количество участников: {{ guild_info.number_of_participants }} </p>
+                <p>Рейтинг: {{ guild_info.rating }} </p>
+                <p>Усиление: {{ guild_info.buff.name }} </p>
+                <p>Описание: {{ guild_info.buff.description }} </p>
+                <p>Дата создания: {{ guild_info.date_create }} </p>
+
+                {% if user == guild_info.leader %}
+                    <a href="#" class="btn btn-primary">Редактировать</a>
+                    <a href="#" class="btn btn-primary">Передать управление</a>
+                    <a href="#" class="btn btn-primary">Расформировать</a>
+
+                {% elif user.profile.guild == guild_info %}
+                    <a href="{% url 'remove_member_guild' member_id=user.id guild_id=guild_info.id %}" class="btn btn-primary">Покинуть</a>
+
+                {% elif user.profile.guild == None %}
+                    <a href="#" class="btn btn-primary">Вступить</a>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+    <br>
+
+    <div class="container col-md-12">
+        <h4 class="text-center">Участники</h4>
+        <br>
+
+        <table class="table">
+            <thead>
+            <tr class="table-primary">
+                <th scope="col">ID</th>
+                <th scope="col">Участник</th>
+                <th scope="col">Победы</th>
+                <th scope="col">Поражения</th>
+                <th scope="col">Очки гильдии</th>
+                <th scope="col">Дата присоединения</th>
+                {% if user == guild_info.leader %}
+                    <th scope="col">Действие</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
+                {% for participant in guild_participants %}
+                <tr>
+                    <th scope="row">{{ participant.id }}</th>
+                    <td><a href="{% url 'view_profile' user_id=participant.user.id %}">{{ participant.user.username }}</a></td>
+                    <td>{{ participant.win }}</td>
+                    <td>{{ participant.lose }}</td>
+                    <td>{{ participant.guild_point }}</td>
+                    <td>{{ participant.date_guild_accession }}</td>
+                    {% if user == guild_info.leader %}
+                        <td><a href="{% url 'remove_member_guild' member_id=participant.id guild_id=guild_info.id %}" class="btn btn-primary">Удалить
+                        </a></td>
+                    {% endif %}
+
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}

@@ -3,6 +3,46 @@ from django.contrib.auth.models import User
 from cards.models import Card, CardStore
 
 
+class GuildBuff(models.Model):
+    """ Все доступные усиления гильдии.
+    """
+    name = models.CharField(max_length=50, verbose_name='Название')
+    description = models.CharField(max_length=200, verbose_name='Описание')
+    numeric_value = models.FloatField(verbose_name='Числовое значение')
+
+    class Meta:
+        verbose_name = 'Усиление гильдии'
+        verbose_name_plural = 'Усиления гильдии'
+
+    def __str__(self):
+        return self.name
+
+
+class Guild(models.Model):
+    """ Гильдия пользователей.
+    """
+
+    name = models.CharField(max_length=50, verbose_name='Название')
+    leader = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Лидер')
+    number_of_participants = models.IntegerField(default=1, verbose_name='Количество участников')
+    guild_pic = models.ImageField(null=True,
+                                  blank=True,
+                                  default='image/guild/avatar.png',
+                                  upload_to='image/guild/',
+                                  verbose_name='Аватарка')
+    date_create = models.DateTimeField(blank=True, null=True, verbose_name='Дата создания')
+    rating = models.IntegerField(verbose_name='Рейтинг')
+    buff = models.ForeignKey(GuildBuff, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Усиление гильдии')
+    date_last_change_buff = models.DateTimeField(blank=True, null=True, verbose_name='Дата и время смены усиления')
+
+    class Meta:
+        verbose_name = 'Гильдия'
+        verbose_name_plural = 'Гильдии'
+
+    def __str__(self):
+        return self.name
+
+
 class Profile(models.Model):
     """ Профиль """
 
@@ -19,6 +59,9 @@ class Profile(models.Model):
                                     default='image/profile/avatar.jpg',
                                     upload_to='image/profile/',
                                     verbose_name='Аватарка')
+    guild = models.ForeignKey(Guild, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Гильдия')
+    date_guild_accession = models.DateField(blank=True, null=True, verbose_name='Дата присоединения к гильдии')
+    guild_point = models.IntegerField(blank=True, null=True, default=0, verbose_name='Очки гильдии')
 
     class Meta:
         verbose_name_plural = 'Профили'

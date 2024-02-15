@@ -1,11 +1,12 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
-from .models import Profile
+from .models import Profile, Guild, GuildBuff
 
 
 class LoginForm(AuthenticationForm):
-    """ Форма авторизации """
+    """ Форма авторизации.
+    """
 
     username = forms.CharField(max_length=150,
                                label='Имя пользователя',
@@ -26,7 +27,8 @@ class LoginForm(AuthenticationForm):
 
 
 class RegistrationForm(UserCreationForm):
-    """ Форма регистрации """
+    """ Форма регистрации.
+    """
 
     username = forms.CharField(max_length=150,
                                label='Имя пользователя',
@@ -53,7 +55,8 @@ class RegistrationForm(UserCreationForm):
 
 
 class EditProfileForm(forms.ModelForm):
-    """ Форма редактирования профиля """
+    """ Форма редактирования профиля.
+    """
 
     about_user = forms.CharField(label='Обо мне:', widget=forms.Textarea)
     profile_pic = forms.ImageField(label='Аватарка')
@@ -61,3 +64,19 @@ class EditProfileForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = ['about_user', 'profile_pic']
+
+
+class CreateGuildForm(forms.ModelForm):
+    """ Форма создания гильдии.
+    """
+
+    name = forms.CharField(label='Название')
+    guild_pic = forms.ImageField(label='Аватарка')
+    buff = forms.ModelChoiceField(queryset=GuildBuff.objects.all(),
+                                  label='Усиление',
+                                  empty_label='---------------',
+                                  )
+
+    class Meta:
+        model = Guild
+        fields = ['name', 'guild_pic', 'buff']

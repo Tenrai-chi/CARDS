@@ -24,6 +24,9 @@
                 {% else %}
                     <p>Обо мне: </p>
                 {% endif %}
+                {% if user_info.profile.guild %}
+                <p>Гильдия: <a href="{% url 'view_guild' guild_id=user_info.profile.guild.id %}">{{ user_info.profile.guild.name }}</a></p>
+                {% endif %}
                 <p style="color:#008000">Победы: {{ user_info.profile.win }}</p>
                 <p style="color:#ff0000">Поражения: {{ user_info.profile.lose }}</p>
                 {% if user.id != user_info.pk %}
