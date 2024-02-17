@@ -17,6 +17,8 @@ from .models import Profile, Transactions, FavoriteUsers, Guild
 from exchange.models import AmuletItem
 from cards.models import FightHistory
 
+from .functions import new_size
+
 
 def view_profile(request, user_id):
     """ Просмотр профиля пользователя """
@@ -349,7 +351,6 @@ def edit_guild_info(request, guild_id):
                 # Пофиксить несохранение изменения даты последнего обновления усиления
                 current_update_guild_info = Guild.objects.get(pk=guild_id)
                 if old_buff != current_update_guild_info.buff:
-
                     difference = datetime.now(pytz.timezone('Europe/Moscow')) - current_update_guild_info.date_last_change_buff
                     seconds = difference.total_seconds()
                     hours = seconds // 3600

@@ -135,7 +135,9 @@
                         {% if user.is_authenticated %}
                         {% if user.profile.gold < amulet.price %}
                         <p class="card-text">Цена: <span style="color:#ff0000">{{ amulet.price }}</span></p>
-                        <a href="{% url 'buy_item' item_id=item.pk %}" class="btn btn-primary">Купить</a>
+                        <div class="btn-group-vertical col-12 mx-auto">
+                        <a href="{% url 'buy_amulet' amulet_id=amulet.pk %}" class="btn btn-primary">Купить</a>
+                        </div>
                         {% else %}
                         <p class="card-text">Цена: <span style="color:#009933">{{ amulet.price }}</span></p>
                         <div class="btn-group-vertical col-12 mx-auto">

@@ -1,6 +1,11 @@
+from PIL import Image
+from os import path
+
 from django.db import models
 from django.contrib.auth.models import User
 from cards.models import Card, CardStore
+
+from .functions import new_size
 
 
 class GuildBuff(models.Model):
@@ -42,6 +47,13 @@ class Guild(models.Model):
     def __str__(self):
         return self.name
 
+    def save(self, *args, **kwargs):
+        super().save()
+        img = Image.open(self.guild_pic.path)
+        if img.width != img.height:
+            img = new_size(img)
+            img.save(self.guild_pic.path)
+
 
 class Profile(models.Model):
     """ Профиль """
@@ -69,6 +81,13 @@ class Profile(models.Model):
 
     def __str__(self):
         return f'Профиль пользователя {self.user.username}'
+
+    def save(self, *args, **kwargs):
+        super().save()
+        img = Image.open(self.profile_pic.path)
+        if img.width != img.height:
+            img = new_size(img)
+            img.save(self.profile_pic.path)
 
 
 class Transactions(models.Model):
