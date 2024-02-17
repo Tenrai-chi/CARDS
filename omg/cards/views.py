@@ -431,23 +431,30 @@ def fight(request, protector_id):
                     loser = attacker
                     fight_now = False
 
+        old_winner_gold = winner.profile.gold
+        old_loser_gold = loser.profile.gold
+
+        # Начисление золота (вынести)
+        if winner.profile.guild.buff.name == 'Бандитский улов':
+            winner.profile.gold += round(100 * winner.profile.guild.buff.numeric_value / 100)
+        else:
+            winner.profile.gold += 100
+
+        loser.profile.gold += 25
+
         # Создание записи в Transaction
         transaction_winner = Transactions.objects.create(date_and_time=date_time_now(),
                                                          user=winner,
-                                                         before=winner.profile.gold,
-                                                         after=winner.profile.gold+100,
+                                                         before=old_winner_gold,
+                                                         after=winner.profile.gold,
                                                          comment='Награда за победу в битве'
                                                          )
         transaction_loser = Transactions.objects.create(date_and_time=date_time_now(),
                                                         user=loser,
-                                                        before=loser.profile.gold,
-                                                        after=loser.profile.gold+25,
+                                                        before=old_loser_gold,
+                                                        after=loser.profile.gold,
                                                         comment='Награда за проигрыш в битве'
                                                         )
-
-        # Начисление золота (вынести)
-        winner.profile.gold += 100
-        loser.profile.gold += 25
 
         # Начисление опыта, если не достигнут максимальный уровень карты (вынести)
         if winner.profile.current_card.level < winner.profile.current_card.rarity.max_level:
@@ -483,6 +490,16 @@ def fight(request, protector_id):
 
         winner.profile.win += 1
         loser.profile.lose += 1
+
+        if winner.profile.guild is not None:
+            winner.profile.guild.rating += 30
+            winner.profile.guild_point += 30
+            winner.profile.guild.save()
+
+        if loser.profile.guild is not None:
+            loser.profile.guild.rating += 6
+            loser.profile.guild_point += 6
+            loser.profile.guild.save()
 
         winner.profile.save()
         loser.profile.save()
@@ -724,6 +741,11 @@ def level_up_with_item(request, card_id, item_id):
     """
 
     card = get_object_or_404(Card, pk=card_id)
+    if request.user != card.owner:
+        messages.error(request, 'Вы не можете усиливать эту карту!')
+
+        return HttpResponseRedirect(reverse('home'))
+
     if card.level >= card.rarity.max_level:
         messages.error(request, 'Эту карту больше нельзя улучшить!')
 
@@ -762,6 +784,8 @@ def level_up_with_item(request, card_id, item_id):
                 return render(request, 'cards/card_level_up_with_item.html', context)
 
             accrued_experience = inventory_change.amount * item.item.experience_amount
+            if profile.guild.buff.name == 'Пытливый ум':
+                accrued_experience = round(accrued_experience * profile.guild.buff.numeric_value / 100)
 
             answer = accrue_experience(accrued_experience=accrued_experience,
                                        current_level=card.level,

@@ -66,6 +66,22 @@ class EditProfileForm(forms.ModelForm):
         fields = ['about_user', 'profile_pic']
 
 
+class EditGuildInfoForm(forms.ModelForm):
+    """ Форма редактирования информации о гильдии.
+    """
+
+    name = forms.CharField(label='Название')
+    guild_pic = forms.ImageField(label='Аватарка')
+    buff = forms.ModelChoiceField(queryset=GuildBuff.objects.all(),
+                                  label='Усиление',
+                                  empty_label='---------------',
+                                  )
+
+    class Meta:
+        model = Guild
+        fields = ['name', 'guild_pic', 'buff']
+
+
 class CreateGuildForm(forms.ModelForm):
     """ Форма создания гильдии.
     """

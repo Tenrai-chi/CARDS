@@ -9,7 +9,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'home' %}">Гильдия</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'view_all_guilds' %}">Гильдия</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ guild_info.name }}</li>
     </ol>
 </nav>
@@ -33,15 +33,15 @@
                 <p>Дата создания: {{ guild_info.date_create }} </p>
 
                 {% if user == guild_info.leader %}
-                    <a href="#" class="btn btn-primary">Редактировать</a>
-                    <a href="#" class="btn btn-primary">Передать управление</a>
-                    <a href="#" class="btn btn-primary">Расформировать</a>
+                    <a href="{% url 'edit_guild_info' guild_id=guild_info.pk %}" class="btn btn-primary">Редактировать</a>
+                    <a href="{% url 'change_leader_guild_choice' guild_id=guild_info.pk %}" class="btn btn-primary">Передать управление</a>
+                    <a href="{% url 'delete_guild' guild_id=guild_info.pk %}" class="btn btn-primary">Расформировать</a>
 
                 {% elif user.profile.guild == guild_info %}
                     <a href="{% url 'remove_member_guild' member_id=user.id guild_id=guild_info.id %}" class="btn btn-primary">Покинуть</a>
 
                 {% elif user.profile.guild == None %}
-                    <a href="#" class="btn btn-primary">Вступить</a>
+                    <a href="{% url 'add_member_guild' guild_id=guild_info.id %}" class="btn btn-primary">Вступить</a>
                 {% endif %}
 
             </div>

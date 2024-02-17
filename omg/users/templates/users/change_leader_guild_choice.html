@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'view_all_guilds' %}">Гильдия</a>
+        <li class="breadcrumb-item"><a href="{% url 'view_guild' guild_id=guild_info.pk %}">{{ guild_info.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Сменить лидера</li>
+    </ol>
+</nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container col-md-12">
+        <h3 class="text-center">Участники {{ guild_info.name }}</h3>
+        <br>
+
+        <table class="table">
+            <thead>
+            <tr class="table-primary">
+                <th scope="col">ID</th>
+                <th scope="col">Участник</th>
+                <th scope="col">Победы</th>
+                <th scope="col">Поражения</th>
+                <th scope="col">Очки гильдии</th>
+                <th scope="col">Дата присоединения</th>
+                {% if user == guild_info.leader %}
+                    <th scope="col">Действие</th>
+                {% endif %}
+            </tr>
+            </thead>
+            <tbody>
+                {% for member in guild_members %}
+                <tr>
+                    <th scope="row">{{ member.id }}</th>
+                    <td><a href="{% url 'view_profile' user_id=member.user.id %}">{{ member.user.username }}</a></td>
+                    <td>{{ member.win }}</td>
+                    <td>{{ member.lose }}</td>
+                    <td>{{ member.guild_point }}</td>
+                    <td>{{ member.date_guild_accession }}</td>
+                    {% if user == guild_info.leader %}
+                        <td><a href="{% url 'change_leader_guild' guild_id=guild_info.pk user_id=member.user.pk %}"
+                               class="btn btn-primary">Назначить
+                        </a></td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock content %}

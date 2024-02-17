@@ -3,7 +3,8 @@ from django.contrib.auth import views
 
 from .views import (view_profile, CustomLoginView, CustomRegistrationView, view_rating, edit_profile,
                     view_transactions, add_favorite_user, delete_favorite_user, view_favorite_users,
-                    create_guild, view_guild, view_all_guilds, delete_member_guild)
+                    create_guild, view_guild, view_all_guilds, delete_member_guild, add_member_guild,
+                    change_leader_guild_choice, change_leader_guild, edit_guild_info, delete_guild)
 
 urlpatterns = [
     path('<int:user_id>/', view_profile, name='view_profile'),
@@ -15,7 +16,12 @@ urlpatterns = [
     path('guilds/', view_all_guilds, name='view_all_guilds'),
     path('guilds/create/', create_guild, name='create_guild'),
     path('guilds/<int:guild_id>/', view_guild, name='view_guild'),
-    path('guilds/<int:guild_id>-<int:member_id>', delete_member_guild, name='remove_member_guild'),
+    path('guilds/<int:guild_id>/delete', delete_guild, name='delete_guild'),
+    path('guilds/<int:guild_id>/edit/', edit_guild_info, name='edit_guild_info'),
+    path('guilds/<int:guild_id>/change_leader_guild_choice/', change_leader_guild_choice, name='change_leader_guild_choice'),
+    path('guilds/<int:guild_id>/<int:user_id>/change_leader_guild/', change_leader_guild, name='change_leader_guild'),
+    path('guilds/<int:guild_id>/join/', add_member_guild, name='add_member_guild'),
+    path('guilds/<int:guild_id>-<int:member_id>/', delete_member_guild, name='remove_member_guild'),
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
     path('signup/', CustomRegistrationView.as_view(), name='signup'),

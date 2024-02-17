@@ -25,6 +25,7 @@
                 <th scope="col">Дата и время</th>
                 <th scope="col">До</th>
                 <th scope="col">После</th>
+                <th scope="col">Итог</th>
                 <th scope="col">Комментарий</th>
             </tr>
             </thead>
@@ -32,9 +33,14 @@
             {% for transaction in transactions %}
                 <tr>
                     <th scope="row">{{ transaction.id }}</th>
-                    <td>{{ fight.date_and_time }}</td>
+                    <td>{{ transaction.date_and_time }}</td>
                     <td>{{ transaction.before }}</td>
                     <td>{{ transaction.after }}</td>
+                    {% if transaction.result > 0 %}
+                    <td><span style="color:#009933">{{ transaction.result }}</span></td>
+                    {% else %}
+                    <td><span style="color:#ff0000">{{ transaction.result }}</span></td>
+                    {% endif %}
                     <td>{{ transaction.comment }}</td>
                 </tr>
             {% endfor %}

@@ -33,10 +33,14 @@ class FavoriteUsersAdmin(admin.ModelAdmin):
 
 class GuildBuffAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'description', 'numeric_value')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name')
 
 
 class GuildAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'leader', 'number_of_participants', 'guild_pic', 'date_create', 'rating', 'buff', 'date_last_change_buff')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name')
 
 
 admin.site.register(FavoriteUsers, FavoriteUsersAdmin)

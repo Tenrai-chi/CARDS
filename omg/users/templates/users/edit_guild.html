@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'view_all_guilds' %}">Гильдия</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'view_guild' guild_id=guild_info.pk %}">{{ guild_info.name }}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Редактирование</li>
+    </ol>
+</nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container col-md-10">
+        <li>Стоимость смены названия 30 000</li>
+        <li>Усиление гильдии можно менять не чаще 1 раза в 2 недели</li>
+        <br>
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="submit" value="Сохранить">
+        </form>
+    </div>
+{% endblock content %}
+
