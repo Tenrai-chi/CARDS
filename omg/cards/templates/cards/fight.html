@@ -54,4 +54,17 @@
         </div>
         {% endif %}
     </div>
+
+<div class="container col-md-5">
+    <h4 class="text-center">История боя</h4>
+    <br>
+    {% for turn in history_fight %}
+        {% for action in turn %}
+            {% if action %}
+                <li>{{ action }}</li>
+            {% endif %}
+        {% endfor %}
+        ------------------------<br>
+    {% endfor %}
+</div>
 {% endblock content %}

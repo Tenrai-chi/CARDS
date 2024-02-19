@@ -328,16 +328,16 @@ def fight(request, protector_id):
             if protector.profile.current_card.type.better == attacker.profile.current_card.type:
 
                 # Если защита лучше нападения
-                protector_damage = protector.profile.current_card.damage * 1.2
-                attacker_damage = attacker.profile.current_card.damage * 0.8
+                protector_damage = round(protector.profile.current_card.damage * 1.2)
+                attacker_damage = round(attacker.profile.current_card.damage * 0.8)
             else:
                 # Если нападение лучше защиты
-                attacker_damage = attacker.profile.current_card.damage * 1.2
-                protector_damage = protector.profile.current_card.damage * 0.8
+                attacker_damage = round(attacker.profile.current_card.damage * 1.2)
+                protector_damage = round(protector.profile.current_card.damage * 0.8)
         else:
             # Стандартные статы урона
-            protector_damage = protector.profile.current_card.damage
-            attacker_damage = attacker.profile.current_card.damage
+            protector_damage = round(protector.profile.current_card.damage)
+            attacker_damage = round(attacker.profile.current_card.damage)
 
         # Статы хп всегда одинаковы
         protector_hp = protector.profile.current_card.hp
@@ -357,37 +357,74 @@ def fight(request, protector_id):
 
         #  Пошаговая битва
         fight_now = True
+        history_fight = []
+        turn = -1
         while fight_now:
             # Ход нападающего
+            turn += 1
+            history_fight.append([None for _ in range(6)])
+            history_fight[turn][0] = f'Ход {turn+1} {attacker.username}'
 
             # Использование способности дриады
             if attacker.profile.current_card.class_card.name == 'Дриада':
                 attacker_hp += attacker.profile.current_card.class_card.numeric_value
+                history_fight[turn][2] = (f'Используется способность {attacker.username}-' +
+                                          f'{attacker.profile.current_card.class_card.name} ' +
+                                          f'"{attacker.profile.current_card.class_card.skill}" и ' +
+                                          f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
+                                          f'{attacker.profile.current_card.class_card.numeric_value}')
 
             # Нанесение урона
             protector_hp -= attacker_damage
+            history_fight[turn][1] = f'{attacker.username} наносит {attacker_damage} урона'
 
             #  Использование способности Демона
             if attacker.profile.current_card.class_card.name == 'Демон':
                 chance = randint(1, 100)
                 if chance <= attacker.profile.current_card.class_card.chance_use:
-                    protector_hp -= round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
+                    damage = round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
+                    protector_hp -= damage
+                    history_fight[turn][2] = (f'Используется способность {attacker.username}-' +
+                                              f'{attacker.profile.current_card.class_card.name} ' +
+                                              f'"{attacker.profile.current_card.class_card.skill}" и ' +
+                                              f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
+                                              f'{damage}')
 
             # Использование способности оборотня
             if attacker.profile.current_card.class_card.name == 'Оборотень':
                 chance = randint(1, 100)
                 if chance <= attacker.profile.current_card.class_card.chance_use:
-                    attacker_hp += round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
+                    regen_hp = round(attacker_damage * attacker.profile.current_card.class_card.numeric_value / 100)
+                    attacker_hp += regen_hp
+                    history_fight[turn][2] = (f'Используется способность {attacker.username}-' +
+                                              f'{attacker.profile.current_card.class_card.name} ' +
+                                              f'"{attacker.profile.current_card.class_card.skill}" и ' +
+                                              f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
+                                              f'{regen_hp}')
 
             #  Использование способности Призрака
             if protector.profile.current_card.class_card.name == 'Призрак':
                 chance = randint(1, 100)
                 if chance <= protector.profile.current_card.class_card.chance_use:
                     protector_hp += attacker_damage
+                    history_fight[turn][3] = (f'Используется способность {protector.username}-' +
+                                              f'{protector.profile.current_card.class_card.name} ' +
+                                              f'"{protector.profile.current_card.class_card.skill}" и ' +
+                                              f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
+                                              f'{attacker_damage}')
 
             #  Использование способности Бога Императора
             if protector.profile.current_card.class_card.name == 'Бог Император':
-                attacker_hp -= round(attacker.profile.current_card.class_card.numeric_value * attacker_damage / 100)
+                return_damage = round(attacker.profile.current_card.class_card.numeric_value * attacker_damage / 100)
+                attacker_hp -= return_damage
+                history_fight[turn][3] = (f'Используется способность {protector.username}-' +
+                                          f'{protector.profile.current_card.class_card.name} ' +
+                                          f'"{protector.profile.current_card.class_card.skill}" и ' +
+                                          f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
+                                          f'{return_damage}')
+
+            history_fight[turn][4] = f'Здоровье {attacker.username} {attacker_hp}'
+            history_fight[turn][5] = f'Здоровье {protector.username} {protector_hp}'
 
             if protector_hp <= 0:
                 winner = attacker
@@ -396,35 +433,70 @@ def fight(request, protector_id):
 
             else:
                 # Ход защищающегося
+                turn += 1
+                history_fight.append([None for _ in range(6)])
+                history_fight[turn][0] = f'Ход {turn+1} {protector.username}'
 
                 # Использование способности дриады
                 if protector.profile.current_card.class_card.name == 'Дриада':
                     protector_hp += protector.profile.current_card.class_card.numeric_value
+                    history_fight[turn][2] = (f'Используется способность {protector.username}-' +
+                                              f'{protector.profile.current_card.class_card.name} ' +
+                                              f'"{protector.profile.current_card.class_card.skill}" и ' +
+                                              f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
+                                              f'{protector.profile.current_card.class_card.numeric_value}')
 
                 # Нанесение урона
                 attacker_hp -= protector_damage
+                history_fight[turn][1] = f'{protector.username} наносит {protector_damage} урона'
 
                 #  Использование способности Демона
                 if protector.profile.current_card.class_card.name == 'Демон':
                     chance = randint(1, 100)
                     if chance <= protector.profile.current_card.class_card.chance_use:
-                        attacker_hp -= round(protector_damage * protector.profile.current_card.class_card.numeric_value / 100)
+                        damage = round(protector_damage * protector.profile.current_card.class_card.numeric_value / 100)
+                        attacker_hp -= damage
+                        history_fight[turn][2] = (f'Используется способность {protector.username}-' +
+                                                  f'{protector.profile.current_card.class_card.name} ' +
+                                                  f'"{protector.profile.current_card.class_card.skill}" и ' +
+                                                  f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
+                                                  f'{damage}')
 
                 # Использование способности оборотня
                 if protector.profile.current_card.class_card.name == 'Оборотень':
                     chance = randint(1, 100)
                     if chance <= protector.profile.current_card.class_card.chance_use:
-                        protector_hp += round(protector_damage * protector.profile.current_card.class_card.numeric_value / 100)
+                        regen_hp = round(protector_damage * protector.profile.current_card.class_card.numeric_value / 100)
+                        protector_hp += regen_hp
+                        history_fight[turn][2] = (f'Используется способность {protector.username}-' +
+                                                  f'{protector.profile.current_card.class_card.name} ' +
+                                                  f'"{protector.profile.current_card.class_card.skill}" и ' +
+                                                  f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
+                                                  f'{regen_hp}')
 
                 #  Использование способности Призрака
                 if attacker.profile.current_card.class_card.name == 'Призрак':
                     chance = randint(1, 100)
                     if chance <= attacker.profile.current_card.class_card.chance_use:
                         attacker_hp += protector_damage
+                        history_fight[turn][3] = (f'Используется способность {attacker.username}-' +
+                                                  f'{attacker.profile.current_card.class_card.name} ' +
+                                                  f'"{attacker.profile.current_card.class_card.skill}" и ' +
+                                                  f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
+                                                  f'{protector_damage}')
 
                 #  Использование способности Бога Императора
                 if attacker.profile.current_card.class_card.name == 'Бог Император':
-                    protector_hp -= round(protector.profile.current_card.class_card.numeric_value * protector_damage / 100)
+                    return_damage = round(protector.profile.current_card.class_card.numeric_value * protector_damage / 100)
+                    protector_hp -= return_damage
+                    history_fight[turn][3] = (f'Используется способность {attacker.username}-' +
+                                              f'{attacker.profile.current_card.class_card.name} ' +
+                                              f'"{attacker.profile.current_card.class_card.skill}" и ' +
+                                              f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
+                                              f'{return_damage}')
+
+                history_fight[turn][4] = f'Здоровье {protector.username} {protector_hp}'
+                history_fight[turn][5] = f'Здоровье {attacker.username} {attacker_hp}'
 
                 if attacker_hp <= 0:
                     winner = protector
@@ -562,7 +634,8 @@ def fight(request, protector_id):
                    'winner': winner,
                    'loser': loser,
                    'reward_item_user': reward_item_user,
-                   'reward_amulet_user': reward_amulet_user
+                   'reward_amulet_user': reward_amulet_user,
+                   'history_fight': history_fight
                    }
 
         return render(request, 'cards/fight.html', context)

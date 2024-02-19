@@ -50,7 +50,7 @@
                 <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Амулет</a>
             </div>
         {% endif %}
-        {% if user == card.owner and card.level == card.rarity.max_level %}
+        {% if user == card.owner and card.level >= card.rarity.max_level %}
             <div class="container text-center">
                 <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Амулет</a>
             </div>

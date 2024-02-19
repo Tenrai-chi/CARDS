@@ -26,8 +26,8 @@
                     <img src="{{ amulet.amulet_type.image.url }}" class="card-img-top" alt="card_image">
                     <div class="card-body">
                         <h5 class="card-title" class="card text-center">{{ amulet.amulet_type.name }}</h5>
-                        <p class="card-text">Бонус к здоровью: {{ amulet.bonus_hp }}</p>
-                        <p class="card-text">Бонус к урону: {{ amulet.bonus_damage }}</p>
+                        <p class="card-text">Бонус к здоровью: {{ amulet.amulet_type.bonus_hp }}</p>
+                        <p class="card-text">Бонус к урону: {{ amulet.amulet_type.bonus_damage }}</p>
                         {% if amulet.card %}
                             {% if amulet.card == card %}
                                 <p class="card-text">Надето: <a href="{% url 'card' card_id=card.pk %}">Выбранная карта</a></p>

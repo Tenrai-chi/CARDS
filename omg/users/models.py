@@ -27,7 +27,7 @@ class Guild(models.Model):
     """ Гильдия пользователей.
     """
 
-    name = models.CharField(max_length=50, verbose_name='Название')
+    name = models.CharField(unique=True, max_length=50, verbose_name='Название')
     leader = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Лидер')
     number_of_participants = models.IntegerField(default=1, verbose_name='Количество участников')
     guild_pic = models.ImageField(null=True,
