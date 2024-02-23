@@ -1,7 +1,10 @@
-from cards.models import Card, CardStore, HistoryReceivingCards
-from django.contrib.auth.models import User
-from datetime import datetime
 import pytz
+
+from datetime import datetime
+
+from django.contrib.auth.models import User
+
+from cards.models import Card, CardStore, HistoryReceivingCards
 
 
 def fight_now(attacker_hp, attacker_damage, protector_hp, protector_damage: int) -> str:
@@ -23,7 +26,8 @@ def fight_now(attacker_hp, attacker_damage, protector_hp, protector_damage: int)
 
 
 def filling_missing_data():
-    """ Заполнение данных о создании карты у карт, созданных изначально """
+    """ Заполнение данных о создании карты у карт, созданных изначально.
+    """
 
     date_and_time = datetime(year=2023, month=11, day=5, hour=13, minute=30, tzinfo=pytz.timezone('Europe/Moscow'))
     cards = Card.objects.all()
@@ -55,28 +59,24 @@ def filling_missing_data():
 
 
 def delete_all_record():
-    """ Удаление всех записей в таблице с историей получения карт """
+    """ Удаление всех записей в таблице с историей получения карт.
+    """
 
     table = HistoryReceivingCards.objects.all()
     for a in table:
         a.delete()
 
 
-def date_time_now():
-    date_time = datetime.now(pytz.timezone('Europe/Moscow'))
-
-    return date_time
-
-
 def accrue_experience(accrued_experience, current_level, max_level, expended_experience=0, current_exp=0):
+    """ Вычисляет итоговый уровень карты, текущее значение опыта и общий затраченный опыт.
+        :param accrued_experience: Полученный опыт
+        :param current_level: Текущий уровень
+        :param max_level: Максимально доступный уровень
+        :param expended_experience: Потраченный опыт
+        :param current_exp: Текущий опыт
+        :return: Текущее значение опыта, текущий уровень карты, затраченный опыт в целом
     """
-    :param accrued_experience: Полученный опыт
-    :param current_level: Текущий уровень
-    :param max_level: Максимально доступный уровень
-    :param expended_experience: Потраченный опыт
-    :param current_exp: Текущий опыт
-    :return: Текущее значение опыта, текущий уровень карты, затраченный опыт в целом
-    """
+
     need_exp = 1000 + 100 * 1.15 ** current_level
     need_exp = round(need_exp)
 

@@ -18,7 +18,7 @@
     <div class="container col-md-12">
         <div class="row">
             <div class="col">
-                <p><img width="400" height="400" alt="profile_image" src="{{ user_info.profile.profile_pic.url }}"></p>
+                <p><img width="450" height="450" alt="profile_image" src="{{ user_info.profile.profile_pic.url }}"></p>
                 {% if user_info.profile.about_user %}
                     <p>Обо мне: {{ user_info.profile.about_user }}</p>
                 {% else %}
@@ -29,20 +29,22 @@
                 {% endif %}
                 <p style="color:#008000">Победы: {{ user_info.profile.win }}</p>
                 <p style="color:#ff0000">Поражения: {{ user_info.profile.lose }}</p>
-                {% if user.id != user_info.pk %}
+                {% if user.is_authenticated and user.id != user_info.pk %}
                     <p style="color:#008000">Победы против: {{ wins_vs_users }}</p>
                     <p style="color:#ff0000">Поражения против: {{ losses_vs_users }}</p>
                 {% endif %}
+
+
                 {% if user == user_info %}
                     <a href="{% url 'view_favorite_users' %}" class="btn btn-primary">Избранные</a>
                     <a href="{% url 'view_transactions' user_id=user_info.id %}" class="btn btn-primary">Транзакции</a>
                     <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
                     <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
+                {% elif user.is_authenticated %}
+                    {% if favorite_user %}
+                        <a href="{% url 'delete_favorite_user' user_id=user_info.id %}" class="btn btn-primary">Убрать из избранного</a>
                     {% else %}
-                        {% if favorite_user %}
-                            <a href="{% url 'delete_favorite_user' user_id=user_info.id %}" class="btn btn-primary">Убрать из избранного</a>
-                        {% else %}
-                            <a href="{% url 'add_favorite_user' user_id=user_info.id %}" class="btn btn-primary">В избранное</a>
+                        <a href="{% url 'add_favorite_user' user_id=user_info.id %}" class="btn btn-primary">В избранное</a>
                     {% endif %}
                 {% endif %}
             </div>

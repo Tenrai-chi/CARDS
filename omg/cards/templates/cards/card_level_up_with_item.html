@@ -9,7 +9,7 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
             <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }}</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'level_up' card_id=card.pk %}">Карта {{ card.pk }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'level_up' card_id=card.pk %}">Улучшение</a></li>
             <li class="breadcrumb-item active" aria-current="page">Предмет {{ item.item.name }}</li>
         </ol>
@@ -26,7 +26,7 @@
                     <div class="card-body">
                         <p class="card-text">Уровень: {{ card.level }}</p>
                         {% if card.level < card.rarity.max_level %}
-                            <p class="card-text">Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
+                        <p class="card-text">Прогресс: {{ card.experience_bar }} / {{ need_exp }}</p>
                         {% endif %}
                     </div>
                 </div>

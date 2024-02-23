@@ -16,8 +16,8 @@
 {% endblock navigation %}
 
 {% block content %}
-    <div class="container col-md-3 mx-auto">
-        <p><img width="320" height="320" alt="card_image" src="{{ card.class_card.image.url }}"><p>
+    <div class="container col-md-4">
+        <p><img width="400" height="400" alt="card_image" src="{{ card.class_card.image.url }}"><p>
         <p>Владелец: <a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner }}</a></p>
         <p>Редкость: {{ card.rarity }}</p>
         <p>Класс: {{ card.class_card }}</p>
@@ -52,7 +52,7 @@
         {% endif %}
         {% if user == card.owner and card.level >= card.rarity.max_level %}
             <div class="container text-center">
-                <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Амулет</a>
+                <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-md-12">Амулет</a>
             </div>
         {% endif %}
 

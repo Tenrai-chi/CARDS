@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="container col-8">
+    <div class="container col-md-6">
         <form method="post">
             {% csrf_token %}
             {% if form.non_field_errors %}
@@ -18,7 +18,9 @@
                     </ul>
                 {% endif %}
             {% endfor %}
-            <button type="submit" class="btn btn-outline-success">Зарегистрироваться</button>
+            <div class="text-center">
+                 <button type="submit" class="btn btn-outline-success">Зарегистрироваться</button>
+            </div>
         </form>
     </div>
 {% endblock content %}

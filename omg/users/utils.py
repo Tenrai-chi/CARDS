@@ -1,8 +1,8 @@
-from PIL import Image
-
-
 def new_size(image):
+    """ Преобразование изображение в квадратное.
+    """
     wight, height = image.size
+    print(type(image))
 
     if wight >= height:  # Если ширина больше высоты
         x1 = round((wight - height) / 2)
@@ -12,7 +12,6 @@ def new_size(image):
         img_area = (x1, y1, x2, y2)
 
         image = image.crop(img_area)
-        #image.save('new/new_img.jpg')
 
     else:  # Если высота больше ширины
         x1 = 0
@@ -23,6 +22,5 @@ def new_size(image):
         img_area = (x1, y1, x2, y2)
 
         image = image.crop(img_area)
-        #image.save('new/new_img.jpg')
 
     return image

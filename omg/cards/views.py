@@ -10,9 +10,10 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .forms import SaleCardForm, UseItemForm
-from .functions import date_time_now, accrue_experience
 from .models import Card, ClassCard, Type, Rarity, CardStore, HistoryReceivingCards, FightHistory
+from .utils import accrue_experience
 
+from common.utils import date_time_now
 from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletType
 from users.models import Transactions, Profile, SaleStoreCards
 
@@ -37,15 +38,8 @@ def view_cards(request):
 
 
 def home(request):
-    """ Домашняя страница.
-        Проверяет наличие Profile у пользователя и при его отсутствии создает
+    """ Домашняя пустая страница.
     """
-
-    if request.user.is_authenticated:
-        user_profile = Profile.objects.get_or_create(user=request.user,
-                                                     defaults={'user': request.user,
-                                                               'receiving_timer': date_time_now()},
-                                                     )
 
     context = {'title': 'Домашняя',
                'header': 'Стартовая страница'
@@ -917,8 +911,10 @@ def level_up_with_item(request, card_id, item_id):
 def view_all_sale_card(request):
     """ Вывод всех продаваемых карт.
     """
-
-    sale_cards = Card.objects.exclude(Q(sale_status=False) | Q(owner=request.user))
+    if request.user.is_authenticated:
+        sale_cards = Card.objects.exclude(Q(sale_status=False) | Q(owner=request.user))
+    else:
+        sale_cards = Card.objects.filter(sale_status=True)
 
     context = {'title': 'Улучшение карты',
                'header': 'Торговая площадка',

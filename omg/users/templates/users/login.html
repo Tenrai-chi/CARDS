@@ -13,11 +13,13 @@
                     {{ form.non_field_errors }}
                 </div>
             {% endif %}
-            {% for field in form %}
+            <div class="container col-md-6">
+                {% for field in form %}
                 <p class="form-label">{{ field.label }}</p>
                 <p>{{ field }}</p>
-            {% endfor %}
-            <button type="submit" class="btn btn-online-success">Войти</button>
+                {% endfor %}
+                <div class="text-center col-md-12-fluid"><input type="submit" value="Войти"></div>
+            </div>
         </form>
     </div>
 {% endblock content %}

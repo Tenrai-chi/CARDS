@@ -5,7 +5,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from cards.models import Card, CardStore
 
-from .functions import new_size
+from .utils import new_size
 
 
 class GuildBuff(models.Model):

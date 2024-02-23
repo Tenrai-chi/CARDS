@@ -1,11 +1,9 @@
-import pytz
-
-from datetime import datetime
-
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.db.models import F, Q
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.http import HttpResponseRedirect
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
@@ -14,14 +12,14 @@ from django.views.generic import CreateView
 from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm, EditGuildInfoForm
 from .models import Profile, Transactions, FavoriteUsers, Guild
 
-from exchange.models import AmuletItem
 from cards.models import FightHistory
-
-from .functions import new_size
+from common.utils import date_time_now
+from exchange.models import AmuletItem
 
 
 def view_profile(request, user_id):
-    """ Просмотр профиля пользователя """
+    """ Просмотр профиля пользователя.
+    """
 
     user = get_object_or_404(User, pk=user_id)
     if user == request.user:
@@ -35,22 +33,29 @@ def view_profile(request, user_id):
                    'amulet': amulet
                    }
     else:
-        favorite_user = FavoriteUsers.objects.filter(user=request.user, favorite_user=user_id).last()
-        wins_vs_users = FightHistory.objects.filter(winner=request.user, loser=user).count()
-        losses_vs_users = FightHistory.objects.filter(winner=user, loser=request.user).count()
-        context = {'title': f'Просмотр профиля {user.username}',
-                   'header': f'Просмотр профиля {user.username}',
-                   'user_info': user,
-                   'favorite_user': favorite_user,
-                   'wins_vs_users': wins_vs_users,
-                   'losses_vs_users': losses_vs_users,
-                   }
+        if request.user.is_authenticated:
+            favorite_user = FavoriteUsers.objects.filter(user=request.user.id, favorite_user=user_id).last()
+            wins_vs_users = FightHistory.objects.filter(winner=request.user, loser=user).count()
+            losses_vs_users = FightHistory.objects.filter(winner=user, loser=request.user).count()
+            context = {'title': f'Просмотр профиля {user.username}',
+                       'header': f'Просмотр профиля {user.username}',
+                       'user_info': user,
+                       'favorite_user': favorite_user,
+                       'wins_vs_users': wins_vs_users,
+                       'losses_vs_users': losses_vs_users,
+                       }
+        else:
+            context = {'title': f'Просмотр профиля {user.username}',
+                       'header': f'Просмотр профиля {user.username}',
+                       'user_info': user,
+                       }
 
     return render(request, 'users/view_profile.html', context)
 
 
 class CustomLoginView(LoginView):
-    """ Авторизация пользователя """
+    """ Авторизация пользователя.
+    """
 
     authentication_form = LoginForm
     template_name = 'users/login.html'
@@ -63,7 +68,8 @@ class CustomLoginView(LoginView):
 
 
 class CustomRegistrationView(CreateView):
-    """ Регистрация пользователя """
+    """ Регистрация пользователя.
+    """
 
     form_class = RegistrationForm
     template_name = 'users/signup.html'
@@ -79,8 +85,20 @@ class CustomRegistrationView(CreateView):
         return super().form_valid(form)
 
 
+@receiver(post_save, sender=User)
+def create_profile_user(sender, instance, created, **kwargs):
+    """ Создание профиля пользователя.
+    """
+
+    if created and not Profile.objects.filter(user=instance).exists():
+        Profile.objects.create(user=instance,
+                               receiving_timer=date_time_now()
+                               )
+
+
 def view_rating(request):
-    """ Просмотр таблицы рейтинга пользователей """
+    """ Просмотр таблицы рейтинга пользователей.
+    """
 
     users = User.objects.all().annotate(rating=500 + F('profile__win') * 25 - F('profile__lose') * 20).order_by('-rating')
     context = {'title': 'Таблица рейтинга',
@@ -92,6 +110,9 @@ def view_rating(request):
 
 
 def edit_profile(request, user_id):
+    """ Изменение информации в профиле пользователя.
+    """
+
     if user_id == request.user.id:
         profile = Profile.objects.get(user=request.user)
 
@@ -128,10 +149,12 @@ def edit_profile(request, user_id):
 
 
 def view_transactions(request, user_id):
-    """ Выводит историю движений денежных средств пользователя
+    """ Выводит историю движений денежных средств пользователя.
     """
+
     if request.user.is_authenticated and request.user.id == user_id:
         transactions = Transactions.objects.filter(user=request.user).order_by('-date_and_time').annotate(result=F('after')-F('before'))[:250]
+
         context = {'title': f'Транзакции',
                    'header': f'Транзакции пользователя {request.user.username}',
                    'transactions': transactions,
@@ -147,12 +170,13 @@ def view_transactions(request, user_id):
 
 
 def add_favorite_user(request, user_id: int):
-    """ Добавляет в избранное выбранного пользователя
+    """ Добавляет в избранное выбранного пользователя.
     """
-    if request.user.id != user_id:
+
+    if request.user.is_authenticated and request.user.id != user_id:
         try:
             record = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
-            messages.error(request, 'Произошла ошибка!')
+            messages.error(request, 'Этот пользователь уже в избранном!')
 
             return HttpResponseRedirect(reverse('home'))
 
@@ -182,7 +206,7 @@ def add_favorite_user(request, user_id: int):
 
 
 def delete_favorite_user(request, user_id):
-    """ Удаляет пользователя из списка избранных
+    """ Удаляет пользователя из списка избранных.
     """
 
     if request.user.id != user_id:
@@ -203,7 +227,7 @@ def delete_favorite_user(request, user_id):
 
 
 def view_favorite_users(request):
-    """ Выводит список избранных пользователей.
+    """ Список избранных пользователей.
     """
 
     favorite_users = FavoriteUsers.objects.filter(user=request.user)
@@ -216,7 +240,7 @@ def view_favorite_users(request):
 
 
 def view_guild(request, guild_id):
-    """ Просмотр гильдии.
+    """ Просмотр информации о выбранной гильдии.
     """
 
     guild_info = get_object_or_404(Guild, pk=guild_id)
@@ -268,21 +292,23 @@ def create_guild(request):
             if new_guild_form.is_valid():
                 new_guild_info = new_guild_form.save(commit=False)
                 new_guild_info.leader = request.user
-                new_guild_info.date_create = datetime.now(pytz.timezone('Europe/Moscow'))
-                new_guild_info.date_last_change_buff = datetime.now(pytz.timezone('Europe/Moscow'))
+                new_guild_info.date_create = date_time_now()
+                new_guild_info.date_last_change_buff = date_time_now()
                 new_guild_info.rating = 1
                 new_guild_info.save()
 
-                new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                user_gold_before = user_profile.gold
+                user_gold_after = user_gold_before - 50000
+                new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                               user=request.user,
-                                                              before=user_profile.gold,
-                                                              after=user_profile.gold - 50000,
+                                                              before=user_gold_before,
+                                                              after=user_gold_after,
                                                               comment='Создание гильдии'
                                                               )
                 user_profile.gold -= 50000
                 user_profile.guild = new_guild_info
                 user_profile.guild_point = 0
-                user_profile.date_guild_accession = datetime.now(pytz.timezone('Europe/Moscow'))
+                user_profile.date_guild_accession = date_time_now()
                 user_profile.save()
 
                 return HttpResponseRedirect(f'/users/guilds/{new_guild_info.id}')
@@ -313,7 +339,7 @@ def create_guild(request):
 
 def edit_guild_info(request, guild_id):
     """ Редактирование информации о гильдии.
-        Страница с формой для смены названия, картинки и усиления гильдии.
+        Выводит страницу с формой для смены названия, картинки и усиления гильдии.
         Если было изменено название, то с лидера гильдии снимается 30 000.
         Если было изменено усиление, то обновляется дата последнего изменения усиления.
         Поменять усиление можно раз в 2 недели.
@@ -337,26 +363,28 @@ def edit_guild_info(request, guild_id):
 
                 if old_name != new_name:
                     profile_leader = Profile.objects.get(user=request.user)
-                    profile_leader.gold -= 30000
+                    profile_gold_before = profile_leader.gold
+                    profile_gold_after = profile_gold_before - 30000
+                    profile_leader.gold = profile_gold_after
+                    profile_leader.save()
 
-                    new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+                    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                                   user=request.user,
-                                                                  before=profile_leader.gold + 30000,
-                                                                  after=profile_leader.gold,
+                                                                  before=profile_gold_before,
+                                                                  after=profile_gold_after,
                                                                   comment='Смена названия гильдии'
                                                                   )
-                    profile_leader.save()
 
                 edit_guild_info_form.save()
                 # Пофиксить несохранение изменения даты последнего обновления усиления
                 current_update_guild_info = Guild.objects.get(pk=guild_id)
                 if old_buff != current_update_guild_info.buff:
-                    difference = datetime.now(pytz.timezone('Europe/Moscow')) - current_update_guild_info.date_last_change_buff
+                    difference = date_time_now() - current_update_guild_info.date_last_change_buff
                     seconds = difference.total_seconds()
                     hours = seconds // 3600
                     days = hours // 24
                     if days >= 14:
-                        current_update_guild_info.date_last_change_buff = datetime.now(pytz.timezone('Europe/Moscow'))
+                        current_update_guild_info.date_last_change_buff = date_time_now()
                         current_update_guild_info.save()
                     else:
                         current_update_guild_info.buff = old_buff
@@ -386,7 +414,8 @@ def edit_guild_info(request, guild_id):
 
 
 def change_leader_guild_choice(request, guild_id):
-    """ Меню смены лидера гильдии
+    """ Меню смены лидера гильдии.
+        Выводит всех доступных для передачи лидерства участников гильдии.
     """
 
     if not request.user.is_authenticated:
@@ -412,7 +441,7 @@ def change_leader_guild_choice(request, guild_id):
 
 
 def change_leader_guild(request, guild_id, user_id):
-    """ Смена лидера гильдии на выбранного пользователя
+    """ Смена лидера гильдии на выбранного пользователя.
     """
 
     if not request.user.is_authenticated:
@@ -498,6 +527,8 @@ def delete_member_guild(request, member_id, guild_id):
 
 def add_member_guild(request, guild_id):
     """ Вступление в гильдию текущим пользователем.
+        В profile пользователя устанавливается выбранная гильдия.
+        Количество участников гильдии увеличивается на 1.
     """
 
     if not request.user.is_authenticated:
@@ -515,7 +546,7 @@ def add_member_guild(request, guild_id):
 
     if user_profile.guild is None:
         user_profile.guild = guild_info
-        user_profile.date_guild_accession = datetime.now(pytz.timezone('Europe/Moscow'))
+        user_profile.date_guild_accession = date_time_now()
         user_profile.guild_point = 0
 
         guild_info.number_of_participants += 1

@@ -1,6 +1,3 @@
-import pytz
-
-from datetime import datetime
 from random import randint, choice
 
 from django.contrib import messages
@@ -12,6 +9,7 @@ from .forms import BuyItemForm
 from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType
 
 from cards.models import Card, HistoryReceivingCards, ClassCard, Type, Rarity
+from common.utils import date_time_now
 from users.models import Transactions, Profile
 
 
@@ -72,7 +70,7 @@ def buy_amulet(request, amulet_id):
                                                       owner=request.user)
 
             bought_amulet.save()
-            new_record_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+            new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                                  user=request.user,
                                                                  before=profile_user.gold,
                                                                  after=profile_user.gold - current_amulet.price,
@@ -115,19 +113,19 @@ def buy_item(request, item_id):
 
                 return render(request, 'exchange/buy_item.html', context)
 
-            new_record_history.date_and_time = datetime.now(pytz.timezone('Europe/Moscow'))
+            new_record_history.date_and_time = date_time_now()
             new_record_history.user = request.user
             new_record_history.item = item
 
-            new_record_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+            profile_gold_after = profile.gold-item.price*new_record_history.amount
+            new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                                  user=request.user,
                                                                  before=profile.gold,
-                                                                 after=profile.gold-item.price*new_record_history.amount,
+                                                                 after=profile_gold_after,
                                                                  comment='Покупка в магазине предметов'
                                                                  )
-            new_record_transaction.save()
             new_record_history.transaction = new_record_transaction
-            profile.gold = profile.gold - item.price*new_record_history.amount
+            profile.gold = profile_gold_after
             profile.save()
             # Увеличить количество предмета у данного пользователя, если записи нет, то создать
             try:
@@ -246,7 +244,7 @@ def sale_amulet(request, user_id, amulet_id):
         amulet = get_object_or_404(AmuletItem, pk=amulet_id)
         profile = Profile.objects.get(pk=request.user.id)
         if amulet.owner == request.user:
-            transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+            transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
                                                       before=profile.gold,
                                                       after=profile.gold+round(amulet.amulet_type.price),
@@ -255,6 +253,7 @@ def sale_amulet(request, user_id, amulet_id):
             amulet.delete()
             profile.save()
             transaction.save()
+            messages.success(request, 'Вы успешно продали амулет!')
 
             return HttpResponseRedirect(f'/inventory/{user_id}')
         else:
@@ -314,7 +313,7 @@ def buy_box_amulet(request):
                     amulet_reward.append(amulets_ur[random_amulet])
                     new_amulet.save()
 
-            new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+            new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                           user=request.user,
                                                           before=profile_user.gold,
                                                           after=profile_user.gold - 15000,
@@ -413,7 +412,7 @@ def buy_box_book(request):
                                                               amount=1)
                 new_item_user.save()
 
-            new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+            new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                           user=request.user,
                                                           before=profile_user.gold,
                                                           after=profile_user.gold - 1600,
@@ -476,23 +475,20 @@ def buy_box_card(request):
                                                rarity=rarity_card,
                                                )
 
-            new_transaction = Transactions.objects.create(date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
+            new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                           user=request.user,
                                                           before=profile_user.gold,
                                                           after=profile_user.gold-20000,
                                                           comment='Покупка в магазине предметов'
                                                           )
             profile_user.gold -= 20000
-            new_card.save()
+            profile_user.save()
 
-            new_record_history_receiving_cards = HistoryReceivingCards.objects.create(card=new_card,
-                                                                                      date_and_time=datetime.now(pytz.timezone('Europe/Moscow')),
-                                                                                      user=request.user,
-                                                                                      method_receiving='Покупка сундука'
-                                                                                      )
-
-            new_transaction.save()
-            new_record_history_receiving_cards.save()
+            new_history_receiving_cards = HistoryReceivingCards.objects.create(card=new_card,
+                                                                               date_and_time=date_time_now(),
+                                                                               user=request.user,
+                                                                               method_receiving='Покупка сундука'
+                                                                               )
 
             return HttpResponseRedirect(f'/cards/card-{new_card.id}')
 

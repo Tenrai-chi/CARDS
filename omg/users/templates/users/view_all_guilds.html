@@ -30,7 +30,7 @@
                 <th scope="col">Очки</th>
                 <th scope="col">Участников</th>
                 <th scope="col">Усиление</th>
-                {% if user.profile.guild == None %}
+                {% if user.is_authenticated and user.profile.guild == None %}
                     <th scope="col">Действие</th>
                 {% endif %}
             </tr>
@@ -43,7 +43,7 @@
                     <td>{{ guild.rating }}</td>
                     <td>{{ guild.number_of_participants }}</td>
                     <td>{{ guild.buff.name }}</td>
-                    {% if user.profile.guild == None %}
+                    {% if user.is_authenticated and user.profile.guild == None %}
                         <td><a href="{% url 'add_member_guild' guild_id=guild.id %}" class="btn btn-primary">Вступить</a></td>
                     {% endif %}
                 </tr>
