@@ -75,7 +75,7 @@ class Rarity(models.Model):
 class Card(models.Model):
     """ Карта """
 
-    owner = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Владелец')
+    owner = models.ForeignKey(User, blank=True, null=True, on_delete=models.CASCADE, verbose_name='Владелец')
     class_card = models.ForeignKey(ClassCard, on_delete=models.SET_NULL, null=True, verbose_name='Класс')
     type = models.ForeignKey(Type, on_delete=models.SET_NULL, null=True, verbose_name='Тип')
     hp = models.FloatField(verbose_name='Здоровье')

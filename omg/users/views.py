@@ -13,7 +13,7 @@ from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm
 from .models import Profile, Transactions, FavoriteUsers, Guild
 
 from cards.models import FightHistory
-from common.utils import date_time_now
+from common.utils import date_time_now, time_difference_check
 from exchange.models import AmuletItem
 
 
@@ -379,11 +379,13 @@ def edit_guild_info(request, guild_id):
                 # Пофиксить несохранение изменения даты последнего обновления усиления
                 current_update_guild_info = Guild.objects.get(pk=guild_id)
                 if old_buff != current_update_guild_info.buff:
-                    difference = date_time_now() - current_update_guild_info.date_last_change_buff
-                    seconds = difference.total_seconds()
-                    hours = seconds // 3600
+                    # difference = date_time_now() - current_update_guild_info.date_last_change_buff
+                    # seconds = difference.total_seconds()
+                    # hours = seconds // 3600
+                    can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
                     days = hours // 24
-                    if days >= 14:
+
+                    if can_edit_buff:
                         current_update_guild_info.date_last_change_buff = date_time_now()
                         current_update_guild_info.save()
                     else:
@@ -426,8 +428,8 @@ def change_leader_guild_choice(request, guild_id):
     guild_info = Guild.objects.get(pk=guild_id)
     if request.user == guild_info.leader:
         guild_members = Profile.objects.exclude(user=request.user).filter(guild=guild_id)
-        context = {'title': f'Сменить лидера',
-                   'header': f'Сменить лидера',
+        context = {'title': f'Смена лидера',
+                   'header': f'Смена лидера',
                    'guild_members': guild_members,
                    'guild_info': guild_info,
                    }

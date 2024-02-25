@@ -4,7 +4,7 @@ from datetime import datetime
 
 from django.contrib.auth.models import User
 
-from cards.models import Card, CardStore, HistoryReceivingCards
+from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
 
 
 def fight_now(attacker_hp, attacker_damage, protector_hp, protector_damage: int) -> str:
@@ -77,22 +77,19 @@ def accrue_experience(accrued_experience, current_level, max_level, expended_exp
         :return: Текущее значение опыта, текущий уровень карты, затраченный опыт в целом
     """
 
-    need_exp = 1000 + 100 * 1.15 ** current_level
-    need_exp = round(need_exp)
+    need_exp = calculate_need_exp(current_level)
 
-    if need_exp - current_exp > accrued_experience:  # Если до апа уровня не хватает полученного опыта
+    if need_exp - current_exp > accrued_experience:  # Если ддя достижения следующего уровня не хватает полученного опыта
         current_exp += accrued_experience  # Текущий опыт
         expended_experience += accrued_experience  # Затраченный опыт
-        print(current_exp, current_level, expended_experience)
 
         return current_exp, current_level, expended_experience
 
     else:
-        if max_level - current_level == 1:  # Если карта апается до максимального уровня
+        if max_level - current_level == 1:  # Если достигает максимального уровня
             expended_experience += need_exp - current_exp  # Затраченный опыт
             current_level = max_level
             current_exp = 0
-            print(current_exp, current_level, expended_experience)
 
             return current_exp, current_level, expended_experience
 
@@ -103,3 +100,10 @@ def accrue_experience(accrued_experience, current_level, max_level, expended_exp
             current_exp = 0
 
             return accrue_experience(accrued_experience, current_level, max_level, expended_experience, current_exp)
+
+
+def calculate_need_exp(level):
+    """ Вычисление необходимого уровня для получения следующего уровня.
+    """
+
+    return round(1000 + 100 * 1.15 ** level, 2)

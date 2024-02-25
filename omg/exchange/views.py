@@ -9,7 +9,7 @@ from .forms import BuyItemForm
 from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType
 
 from cards.models import Card, HistoryReceivingCards, ClassCard, Type, Rarity
-from common.utils import date_time_now
+from common.utils import date_time_now, create_new_card
 from users.models import Transactions, Profile
 
 
@@ -179,6 +179,7 @@ def change_amulet_menu(request, card_id):
                'header': 'Выбрать амулет',
                'card': card,
                'amulets': available_amulets}
+
     return render(request, 'cards/change_amulet_menu.html', context)
 
 
@@ -449,31 +450,10 @@ def buy_box_card(request):
     if request.user.is_authenticated:
         profile_user = Profile.objects.get(user=request.user)
         if profile_user.gold >= 20000:
-            type_card = choice(Type.objects.all())
-            rarity_card = Rarity.objects.get(name='UR')
-            class_card = choice(ClassCard.objects.all())
-            max_attribute = randint(1, 2)
+            attributes = ('damage', 'hp')
+            max_attribute = choice(attributes)
 
-            if max_attribute == 1:
-                # Максимальное здоровье
-                new_card_damage = randint(rarity_card.min_damage, rarity_card.max_damage,)
-                new_card = Card.objects.create(owner=request.user,
-                                               class_card=class_card,
-                                               type=type_card,
-                                               hp=rarity_card.max_hp,
-                                               damage=new_card_damage,
-                                               rarity=rarity_card,
-                                               )
-            else:
-                # Максимальный урон
-                new_card_hp = randint(rarity_card.min_hp, rarity_card.max_hp,)
-                new_card = Card.objects.create(owner=request.user,
-                                               class_card=class_card,
-                                               type=type_card,
-                                               hp=rarity_card.max_damage,
-                                               damage=new_card_hp,
-                                               rarity=rarity_card,
-                                               )
+            new_card = create_new_card(request.user, True, max_attribute)
 
             new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                           user=request.user,

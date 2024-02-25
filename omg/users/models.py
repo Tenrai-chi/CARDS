@@ -3,7 +3,9 @@ from os import path
 
 from django.db import models
 from django.contrib.auth.models import User
+
 from cards.models import Card, CardStore
+from common.utils import date_time_now
 
 from .utils import new_size
 
@@ -88,6 +90,10 @@ class Profile(models.Model):
         if img.width != img.height:
             img = new_size(img)
             img.save(self.profile_pic.path)
+
+    def update_receiving_timer(self):
+        self.receiving_timer = date_time_now()
+        self.save()
 
 
 class Transactions(models.Model):
