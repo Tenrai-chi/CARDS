@@ -448,9 +448,11 @@ def fight(request, protector_id):
 
         # Начисление золота (вынести)
         if winner.profile.guild.buff.name == 'Бандитский улов':
-            winner.profile.gold += round(100 * winner.profile.guild.buff.numeric_value / 100)
+            #winner.profile.gold += round(100 * winner.profile.guild.buff.numeric_value / 100)
+            winner.profile.get_gold(200)
         else:
-            winner.profile.gold += 100
+            # winner.profile.gold += 100
+            winner.profile.get_gold(100)
 
         loser.profile.gold += 25
 
@@ -503,14 +505,16 @@ def fight(request, protector_id):
         loser.profile.lose += 1
 
         if winner.profile.guild is not None:
-            winner.profile.guild.rating += 30
-            winner.profile.guild_point += 30
-            winner.profile.guild.save()
+            # winner.profile.guild.rating += 30
+            # winner.profile.guild_point += 30
+            # winner.profile.guild.save()
+            winner.profile.get_guild_point('win')
 
         if loser.profile.guild is not None:
-            loser.profile.guild.rating += 6
-            loser.profile.guild_point += 6
-            loser.profile.guild.save()
+            # loser.profile.guild.rating += 6
+            # loser.profile.guild_point += 6
+            # loser.profile.guild.save()
+            loser.profile.get_guild_point('lose')
 
         winner.profile.save()
         loser.profile.save()

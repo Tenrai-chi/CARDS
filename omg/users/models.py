@@ -95,6 +95,32 @@ class Profile(models.Model):
         self.receiving_timer = date_time_now()
         self.save()
 
+    def get_gold(self, gold):
+        """ Начисление золота.
+        """
+
+        self.gold += gold
+        self.save()
+
+    def spend_gold(self, gold):
+        """ Вычитание золота.
+        """
+
+        self.gold -= gold
+        self.save()
+
+    def get_guild_point(self, win_or_lose):
+        """ Начисление очков рейтинга гильдии
+        """
+
+        if win_or_lose == 'win':
+            self.guild_point += 30
+        elif win_or_lose == 'lose':
+            self.guild_point += 6
+        else:
+            pass
+
+        self.save()
 
 class Transactions(models.Model):
     """ Транзакции пользователей """
