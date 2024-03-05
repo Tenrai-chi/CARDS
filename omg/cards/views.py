@@ -298,8 +298,8 @@ def fight(request, protector_id):
             loser.profile.current_card.experience_bar += 25
 
         # Увеличение уровня карты победителя при достижении определенного опыта (вынести)
-        if winner.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** winner.profile.current_card.level:
-            winner.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** winner.profile.current_card.level
+        if winner.profile.current_card.experience_bar >= calculate_need_exp(winner.profile.current_card.level):
+            winner.profile.current_card.experience_bar -= calculate_need_exp(winner.profile.current_card.level)
             winner.profile.current_card.level += 1
 
             # Если достигнут максимальный уровень, прогресс опыта обнуляется
@@ -307,12 +307,12 @@ def fight(request, protector_id):
                 winner.profile.current_card.experience_bar = 0
 
             # Увеличение характеристик карты победителя (вынести)
-            winner.profile.current_card.hp += winner.profile.current_card.rarity.coefficient_hp_for_level
-            winner.profile.current_card.damage += winner.profile.current_card.rarity.coefficient_damage_for_level
+            winner.profile.current_card.increase_stats()
+
 
         # Увеличение уровня карты проигравшего при достижении определенного опыта (вынести)
-        if loser.profile.current_card.experience_bar >= 1000 + 100 * 1.15 ** loser.profile.current_card.level:
-            loser.profile.current_card.experience_bar -= 1000 + 100 * 1.15 ** loser.profile.current_card.level
+        if loser.profile.current_card.experience_bar >= calculate_need_exp(loser.profile.current_card.level):
+            loser.profile.current_card.experience_bar -= calculate_need_exp(loser.profile.current_card.level)
             loser.profile.current_card.level += 1
 
             # Если достигнут максимальный уровень, прогресс опыта обнуляется
@@ -320,8 +320,7 @@ def fight(request, protector_id):
                 loser.profile.current_card.experience_bar = 0
 
             # Увеличение характеристик карты проигравшего (вынести)
-            loser.profile.current_card.hp += loser.profile.current_card.rarity.coefficient_hp_for_level
-            loser.profile.current_card.damage += loser.profile.current_card.rarity.coefficient_damage_for_level
+            loser.profile.current_card.increase_stats()
 
         winner.profile.win += 1
         loser.profile.lose += 1
@@ -627,8 +626,7 @@ def level_up_with_item(request, card_id, item_id):
             expended_experience = answer[2]
 
             new_levels = answer[1] - card.level
-            card.hp += card.rarity.coefficient_hp_for_level * new_levels
-            card.damage += card.rarity.coefficient_damage_for_level * new_levels
+            card.increase_stats(new_levels)
             card.level = answer[1]
 
             expended_items = ceil(expended_experience / item.item.experience_amount)

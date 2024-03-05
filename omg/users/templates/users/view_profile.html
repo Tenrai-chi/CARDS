@@ -66,14 +66,14 @@
                             <p class="card-text">Тип: {{ user_info.profile.current_card.type }}</p>
                             {% if amulet %}
                                 {% if amulet.bonus_hp < 0 %}
-                                    <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }} {{ amulet.bonus_hp }}</p>
+                                    <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }} {{ amulet.amulet_type.bonus_hp }}</p>
                                 {% else %}
-                                    <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }} +{{ amulet.bonus_hp }}</p>
+                                    <p class="card-text">Здоровье: {{ user_info.profile.current_card.hp }} +{{ amulet.amulet_type.bonus_hp }}</p>
                                 {% endif %}
                                 {% if amulet.bonus_damage < 0 %}
-                                    <p class="card-text">Урон: {{ user_info.profile.current_card.damage }} {{ amulet.bonus_damage }}</p>
+                                    <p class="card-text">Урон: {{ user_info.profile.current_card.damage }} {{ amulet.amulet_type.bonus_damage }}</p>
                                 {% else %}
-                                    <p class="card-text">Урон: {{ user_info.profile.current_card.damage }} +{{ amulet.bonus_damage }}</p>
+                                    <p class="card-text">Урон: {{ user_info.profile.current_card.damage }} +{{ amulet.amulet_type.bonus_damage }}</p>
                                 {% endif %}
                                 <p>Амулет: {{ amulet.amulet_type.name }}</a></p>
                             {% else %}

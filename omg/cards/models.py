@@ -93,12 +93,12 @@ class Card(models.Model):
     def __str__(self):
         return f'Карта пользователя {self.owner.username} ID {self.id}'
 
-    def increase_stats(self):
+    def increase_stats(self, new_level=1):
         """ Увеличение характеристик карты с повышением уровня.
         """
 
-        self.damage += self.rarity.coefficient_damage_for_level
-        self.hp += self.rarity.coefficient_hp_for_level
+        self.damage += self.rarity.coefficient_damage_for_level * new_level
+        self.hp += self.rarity.coefficient_hp_for_level * new_level
 
         self.save()
 

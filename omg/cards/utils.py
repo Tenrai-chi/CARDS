@@ -11,7 +11,9 @@ from exchange.models import AmuletItem
 
 
 def fight_now(attacker, protector):
-    """ Битва """
+    """ Битва.
+        Возвращает победителя, проигравшего и историю боя
+    """
 
     attacker_damage, protector_damage, attacker_hp, protector_hp = stats_calculation(attacker, protector)
 
@@ -240,13 +242,6 @@ def get_exp_card_after_fight(user_info):
 
     pass
 
-def accrual_stats_with_level_up_card(user_info):
-    """ Увеличение характеристики карт с повышением уровня.
-        Возвращает новые значения hp и damage карты.
-    """
-
-    pass
-
 
 def stats_calculation(attacker, protector):
     """ Вычисление первоначальных статов пользователей.
@@ -279,8 +274,8 @@ def stat_amulet_calculation(user_amulet, user_hp, user_damage):
         Возвращает итоговые значения здоровья и урона карты пользователя с амулетом.
     """
 
-    user_damage += user_amulet.bonus_damage
-    user_hp += user_amulet.bonus_hp
+    user_damage += user_amulet.amulet_type.bonus_damage
+    user_hp += user_amulet.amulet_type.bonus_hp
 
     return user_hp, user_damage
 
