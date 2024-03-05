@@ -118,7 +118,7 @@ class Profile(models.Model):
         elif win_or_lose == 'lose':
             self.guild_point += 6
         else:
-            pass
+            print('Неверные данные')  # Написать обработчик ошибки
 
         self.save()
 

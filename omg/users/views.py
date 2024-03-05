@@ -379,9 +379,6 @@ def edit_guild_info(request, guild_id):
                 # Пофиксить несохранение изменения даты последнего обновления усиления
                 current_update_guild_info = Guild.objects.get(pk=guild_id)
                 if old_buff != current_update_guild_info.buff:
-                    # difference = date_time_now() - current_update_guild_info.date_last_change_buff
-                    # seconds = difference.total_seconds()
-                    # hours = seconds // 3600
                     can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
                     days = hours // 24
 
@@ -399,9 +396,11 @@ def edit_guild_info(request, guild_id):
 
                 return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
         else:
-            edit_guild_info_form = EditGuildInfoForm(instance=guild_info, initial={'name': guild_info.name,
-                                                                                   'guild_pic': guild_info.guild_pic,
-                                                                                   'buff': guild_info.buff})
+            edit_guild_info_form = EditGuildInfoForm(instance=guild_info,
+                                                     initial={'name': guild_info.name,
+                                                              'guild_pic': guild_info.guild_pic,
+                                                              'buff': guild_info.buff})
+
             context = {'title': f'Редактирование гильдии {old_name}',
                        'header': f'Редактирование гильдии {old_name}',
                        'guild_info': guild_info,

@@ -453,7 +453,9 @@ def buy_box_card(request):
             attributes = ('damage', 'hp')
             max_attribute = choice(attributes)
 
-            new_card = create_new_card(request.user, True, max_attribute)
+            new_card = create_new_card(user=request.user,
+                                       ur_box=True,
+                                       max_attribute=max_attribute)
 
             new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                           user=request.user,
