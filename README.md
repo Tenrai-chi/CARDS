@@ -86,14 +86,20 @@ docker run -p 8000:8000  docker_card
 
 ## Административная панель
 Зайти в административную панель вы можете [здесь](http://127.0.0.1:8000/admin/)
-| Пользователь  | Логин   |      Пароль      |
-|---------------|---------|------------------|
-| Администратор | admin   |     password     |
-|      users    | Niko    | passwordpassword |
-|               | tenrai  | passwordpassword |
-|               | oiiii   | passwordpassword |
-|               | Niko    | passwordpassword |
-|               | Niko    | passwordpassword |
+| Пользователь  |           Логин   |      Пароль      |
+|---------------|-------------------|------------------|
+| Администратор | admin             |     password     |
+|      users    | mewmew            | passwordpassword |
+|               | aaaaaaaaaaaaaaaa  | passwordpassword |
+|               | test              | passwordpassword |
+|               | user1             | passwordpassword |
+|               | tenrai            | passwordpassword |
+|               | mimimi            | passwordpassword |
+|               | new_user          | passwordpassword |
+|               | molodec           | passwordpassword |
+|               | Niko              | passwordpassword |
+|               | user2Twoooooooo   | passwordpassword |
+|               | NewNew            | passwordpassword |
 
-Python 3.9, Django 4.2.7, Pillow 10.1
+Python 3.9, Django 4.2.7, Pillow 10.1.0, pytz 2023.3.post1, sqlparse 0.4.4, tzdata 2023.3
 
