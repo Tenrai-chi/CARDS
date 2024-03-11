@@ -72,11 +72,11 @@ git clone https://github.com/Tenrai-chi/CARDS.git
 ```
 Перейдите в папку omg внутри проекта
 ```bash
-cd omg
+cd CARDS\omg
 ```
 Теперь вы можете создать образ. Вместо docker_card можете указать свое собственное имя образа.
 ```bash
-docker build . --tag docker_t_card
+docker build . --tag docker_card
 ```
 Запустите контейнер на основе созданного образа.
 ```bash
