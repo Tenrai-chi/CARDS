@@ -68,7 +68,7 @@ docker version
 Если Docker отсутствует, установите его.
 Клонируйте рипозиторий на свое устройство:
 ```bash
-git clone https://github.com/Tenrai-chi/test_repo.git
+git clone https://github.com/Tenrai-chi/CARDS.git
 ```
 Перейдите в папку omg внутри проекта
 ```bash
