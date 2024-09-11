@@ -62,6 +62,10 @@ def buy_card(request, card_id):
             messages.error(request, 'У вас не хватает средств для покупки!')
 
             return HttpResponseRedirect(reverse('card_store'))
+        elif Card.objects.filter(owner=request.user.id).count() == user_profile.card_slots:
+            messages.error(request, 'У вас не хватает места для покупки новой карты!')
+
+            return HttpResponseRedirect(reverse('card_store'))
         else:
             transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
@@ -110,7 +114,7 @@ def get_card(request):
         то перенаправляет на страницу создания новой карты.
     """
 
-    if  not request.user.is_authenticated:
+    if not request.user.is_authenticated:
         context = {'title': 'Получить карту', 'header': 'Получить бесплатную карту'}
 
         return render(request, 'cards/get_card.html', context)
@@ -141,6 +145,11 @@ def create_card(request):
 
         return HttpResponseRedirect(reverse('home'))
 
+    if Card.objects.filter(owner=request.user.id).count() == request.user.profile.card_slots:
+        messages.error(request, 'У вас не хватает места для получения новой карты!')
+
+        return HttpResponseRedirect(reverse('card_store'))
+
     user_profile = Profile.objects.get(user=request.user)
     take_card, hours = time_difference_check(user_profile.receiving_timer, 6)
 
@@ -163,7 +172,6 @@ def create_card(request):
         return HttpResponseRedirect(reverse('home'))
 
 
-
 def card_store(request):
     """ Вывод ассортимента магазина карт """
 
@@ -183,11 +191,15 @@ def view_user_cards(request, user_id):
     user = User.objects.get(pk=user_id)
 
     cards = Card.objects.filter(owner=user).order_by('rarity', 'class_card', 'id')
+    count_cards = Card.objects.filter(owner=user).count()
+    max_count_cards = Profile.objects.get(pk=user_id).card_slots
 
     context = {'title': 'Карты пользователя',
                'header': f'Карты пользователя {user.username}',
                'cards': cards,
-               'user_info': user
+               'user_info': user,
+               'count_cards': count_cards,
+               'max_count_cards': max_count_cards
                }
 
     return render(request, 'cards/view_user_cards.html', context)
@@ -270,7 +282,7 @@ def fight(request, protector_id):
         old_loser_gold = loser.profile.gold
 
         # Начисление золота (вынести)
-        if winner.profile.guild.buff.name == 'Бандитский улов':
+        if winner.profile.guild and winner.profile.guild.buff.name == 'Бандитский улов':
             winner.profile.get_gold(200)
 
         else:
@@ -309,7 +321,6 @@ def fight(request, protector_id):
             # Увеличение характеристик карты победителя (вынести)
             winner.profile.current_card.increase_stats()
 
-
         # Увеличение уровня карты проигравшего при достижении определенного опыта (вынести)
         if loser.profile.current_card.experience_bar >= calculate_need_exp(loser.profile.current_card.level):
             loser.profile.current_card.experience_bar -= calculate_need_exp(loser.profile.current_card.level)
@@ -346,7 +357,7 @@ def fight(request, protector_id):
 
         # Предметы падают только нападавшему
         items = ExperienceItems.objects.all()
-        amulets = AmuletType.objects.exclude(chance_drop_on_fight=0)
+        amulets = AmuletType.objects.exclude(rarity__chance_drop_on_fight=0)
         reward_item_user = []
         reward_amulet_user = []
         for item in items:  # Проверка выпадения предмета
@@ -372,20 +383,20 @@ def fight(request, protector_id):
                                                                          amount=1
                                                                          )
                     reward_item_user.append(item)
+        if request.user.profile.amulet_slots > AmuletItem.objects.filter(owner=request.user.id).count():
+            for amulet in amulets:  # Проверка выпадения амулета
 
-        for amulet in amulets:  # Проверка выпадения амулета
+                # Использование способности эльфа
+                if attacker.profile.current_card.class_card.name == 'Эльф':
+                    chance_drop = amulet.rarity.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
+                else:
+                    chance_drop = amulet.rarity.chance_drop_on_fight
 
-            # Использование способности эльфа
-            if attacker.profile.current_card.class_card.name == 'Эльф':
-                chance_drop = amulet.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
-            else:
-                chance_drop = amulet.chance_drop_on_fight
-
-            chance = randint(1, 100)
-            if chance <= chance_drop:
-                new_amulet = AmuletItem.objects.create(amulet_type=amulet,
-                                                       owner=attacker)
-                reward_amulet_user.append(amulet)
+                chance = randint(1, 100)
+                if chance <= chance_drop:
+                    new_amulet = AmuletItem.objects.create(amulet_type=amulet,
+                                                           owner=attacker)
+                    reward_amulet_user.append(amulet)
 
         context = {'title': 'Битва',
                    'header': f'Итог битвы между {attacker.username} и {protector.username}!',
@@ -428,6 +439,11 @@ def buy_card_user(request, card_id):
     if request.user.is_authenticated:
         buyer_profile = Profile.objects.get(user=request.user.pk)
         card = Card.objects.get(pk=card_id)
+
+        if request.user.profile.card_slots <= Card.objects.filter(owner=request.user.id).count():
+            messages.error(request, 'У вас не хватает места для покупки новой карты!')
+
+            return HttpResponseRedirect(reverse('view_all_sale_card'))
 
         if buyer_profile.gold < card.price:
             messages.error(request, 'У вас не хватает средств для покупки!')

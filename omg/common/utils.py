@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 
 from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
 
+
 def date_time_now():
     """ Возвращает текущее время по Московскому часовому поясу.
     """
@@ -14,6 +15,7 @@ def date_time_now():
     date_time = datetime.now(pytz.timezone('Europe/Moscow'))
 
     return date_time
+
 
 def time_difference_check(check_time, need_hours):
     """ Проверяет прошло ли необходимое количество часов для действия.

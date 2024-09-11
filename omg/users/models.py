@@ -77,6 +77,11 @@ class Profile(models.Model):
     date_guild_accession = models.DateField(blank=True, null=True, verbose_name='Дата присоединения к гильдии')
     guild_point = models.IntegerField(blank=True, null=True, default=0, verbose_name='Очки гильдии')
 
+    card_slots = models.IntegerField(blank=True, null=True, default=80, verbose_name='Максимальное количество карт')
+    amulet_slots = models.IntegerField(blank=True, null=True, default=100, verbose_name='Максимальное количество амулетов')
+    level = models.IntegerField(blank=True, null=True, default=1, verbose_name='Уровень')
+    experience_bar = models.IntegerField(default=0, blank=True, null=True, verbose_name='Опыт')
+
     class Meta:
         verbose_name_plural = 'Профили'
         verbose_name = 'Профиль'

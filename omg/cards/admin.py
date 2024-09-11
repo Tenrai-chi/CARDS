@@ -14,7 +14,8 @@ class CardAdmin(admin.ModelAdmin):
                     'experience_bar',
                     'level',
                     'sale_status',
-                    'price')
+                    'price',
+                    'merger',)
 
 
 class RarityAdmin(admin.ModelAdmin):
@@ -34,7 +35,8 @@ class ClassCardAdmin(admin.ModelAdmin):
 
 
 class CardStoreAdmin(admin.ModelAdmin):
-    list_display = ('id', 'class_card', 'type', 'rarity', 'hp', 'damage', 'sale_now', 'price')
+    list_display = ('id', 'class_card', 'type', 'rarity', 'hp',
+                    'damage', 'sale_now', 'price', 'discount', 'discount_now')
     list_display_links = ('id', 'class_card')
     search_fields = ('id', 'class_card')
 

@@ -97,7 +97,7 @@
                         <a href="{% url 'fight' protector_id=user_info.id %}" class="btn btn-primary">Бой</a>
                     {% endif %}
                     {% if user.id == user_info.id %}
-                        <a href="{% url 'inventory_user' user_id=user.id %}" class="btn btn-primary">Инвентарь</a>
+                        <a href="{% url 'inventory_user' user_id=user.id inventory_filter='all' %}" class="btn btn-primary">Инвентарь</a>
                     {% endif %}
                 {% endif %}
 

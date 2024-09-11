@@ -9,7 +9,11 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
             <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=user_info.pk %}">{{ user_info.username }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Карты пользователя</li>
+            {% if user_info.pk == user.id %}
+                <li class="breadcrumb-item active" aria-current="page">Карты пользователя: {{ count_cards }} из {{ max_count_cards }}</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">Карты пользователя</li>
+            {% endif %}
         </ol>
     </nav>
 {% endblock navigation %}

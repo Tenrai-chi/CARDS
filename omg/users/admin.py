@@ -6,6 +6,7 @@ class ProfileAdmin(admin.ModelAdmin):
     list_display = ('id',
                     'user',
                     'about_user',
+                    'level',
                     'gold',
                     'receiving_timer',
                     'win',
@@ -14,7 +15,9 @@ class ProfileAdmin(admin.ModelAdmin):
                     'is_activated',
                     'guild',
                     'date_guild_accession',
-                    'guild_point')
+                    'guild_point',
+                    'card_slots',
+                    'amulet_slots')
     list_display_links = ('id', 'user')
     search_fields = ('id', 'user')
 

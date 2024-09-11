@@ -59,7 +59,7 @@ class ExperienceItems(models.Model):
     rarity = models.CharField(null=True, blank=True, max_length=3, verbose_name='Редкость')
     experience_amount = models.IntegerField(blank=True, null=True, verbose_name='Количество опыта')
     chance_drop_on_fight = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения после битвы %')
-    chance_drop_on_box = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения в сундуке')
+    chance_drop_on_box = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения в сундуке %')
     price = models.IntegerField(blank=True, null=True, verbose_name='Цена')
     image = models.ImageField(null=True, blank=True, upload_to='image/items/', verbose_name='Изображение')
     gold_for_use = models.IntegerField(blank=True, null=True, verbose_name='Плата за использование')
@@ -129,9 +129,24 @@ class HistoryPurchaseItems(models.Model):
         return f'Покупка пользователя {self.user}'
 
 
+class AmuletRarity(models.Model):
+    """ Редкость амулетов """
+
+    name = models.CharField(max_length=30, verbose_name='Название')
+    chance_drop_on_fight = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения после битвы %')
+    chance_drop_on_box = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения в сундуке %')
+    max_upgrade = models.IntegerField(blank=True, null=True, verbose_name='Максимальное количество улучшений')
+
+    class Meta:
+        verbose_name_plural = 'Редкость амулетов'
+        verbose_name = 'Редкость амулета'
+
+    def __str__(self):
+        return self.name
+
+
 class AmuletType(models.Model):
-    """ Типы амулетов.
-    """
+    """ Типы амулетов """
 
     name = models.CharField(max_length=30, verbose_name='Название')
     bonus_hp = models.FloatField(blank=True, null=True, verbose_name='Бонус здоровья')
@@ -139,9 +154,14 @@ class AmuletType(models.Model):
     price = models.IntegerField(blank=True, null=True, verbose_name='Цена')
     sale_now = models.BooleanField(blank=True, null=True, default=True, verbose_name='Продажа')
     image = models.ImageField(blank=True, null=True, upload_to='image/amulet/', verbose_name='Изображение')
-    rarity = models.CharField(max_length=3, verbose_name='Редкость')
-    chance_drop_on_fight = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения после битвы')
-    chance_drop_on_box = models.IntegerField(blank=True, null=True, verbose_name='Шанс выпадения в сундуке')
+    discount = models.IntegerField(blank=True, null=True, default=0, verbose_name='Скидка %')
+    discount_now = models.BooleanField(blank=True, null=True, default=False, verbose_name='Действие скидки')
+    rarity = models.ForeignKey(AmuletRarity,
+                               blank=True,
+                               null=True,
+                               on_delete=models.CASCADE,
+                               related_name='rarity',
+                               verbose_name='Редкость')
 
     class Meta:
         verbose_name_plural = 'Типы амулетов'
@@ -168,6 +188,7 @@ class AmuletItem(models.Model):
                              null=True,
                              verbose_name='Карта',
                              related_name='amulet_card')
+    upgrades = models.IntegerField(blank=True, null=True, default=0, verbose_name='Количество улучшений')
 
     class Meta:
         verbose_name_plural = 'Амулеты'
@@ -177,3 +198,39 @@ class AmuletItem(models.Model):
         return f'{self.amulet_type.name} пользователя {self.owner.username}'
 
 
+class UpgradeItemsType(models.Model):
+    """ Типы предметов, позволяющих улучшать амулеты """
+
+    name = models.CharField(max_length=30, verbose_name='Название')
+    description = models.CharField(max_length=100, blank=True, null=True, verbose_name='Описание')
+    type = models.CharField(max_length=30, blank=True, null=True, verbose_name='Тип предмета')
+    amount_up = models.IntegerField(blank=True, null=True, verbose_name='Значение улучшения характеристик')
+    image = models.ImageField(blank=True, null=True, upload_to='image/upgrade_items/', verbose_name='Изображение')
+
+    class Meta:
+        verbose_name_plural = 'Типы предметов улучшения'
+        verbose_name = 'Тип предметов улучшения'
+
+    def __str__(self):
+        return self.name
+
+
+class UpgradeItemsUsers(models.Model):
+    """ Предметы улучшения в инвентаре пользователей """
+
+    upgrade_item_type = models.ForeignKey(UpgradeItemsType,
+                                          blank=True,
+                                          null=True,
+                                          on_delete=models.CASCADE,
+                                          verbose_name='Тип предмета улучшения')
+    owner = models.ForeignKey(User,
+                              on_delete=models.CASCADE,
+                              verbose_name='Владелец')
+    amount = models.IntegerField(blank=True, null=True, verbose_name='Количество')
+
+    class Meta:
+        verbose_name_plural = 'Предметы улучшения в инвентаре пользователя'
+        verbose_name = 'Предмет улучшения в инвентаре пользователя'
+
+    def __str__(self):
+        return f'{self.upgrade_item_type.name} пользователя {self.owner.username}'

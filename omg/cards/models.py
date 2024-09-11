@@ -86,6 +86,8 @@ class Card(models.Model):
     sale_status = models.BooleanField(default=False, blank=True, null=True, verbose_name='Продажа')
     price = models.IntegerField(default=None, blank=True, null=True, verbose_name='Цена продажи')
 
+    merger = models.IntegerField(default=0, blank=True, null=True, verbose_name='Количество слияний')
+
     class Meta:
         verbose_name_plural = 'Карты'
         verbose_name = 'Карта'
@@ -113,6 +115,9 @@ class CardStore(models.Model):
     damage = models.IntegerField(verbose_name='Урон')
     sale_now = models.BooleanField(blank=True, verbose_name='Продается')
     price = models.IntegerField(default=0, blank=True, verbose_name='Цена')
+
+    discount = models.IntegerField(default=0, blank=True, verbose_name='Скидка %')
+    discount_now = models.BooleanField(blank=True, default=False, verbose_name='Действие скидки')
 
     class Meta:
         verbose_name_plural = 'Магазин карт'

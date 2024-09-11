@@ -9,12 +9,21 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
             <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=user.id %}">{{ user.username }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Инвентарь</li>
+            <li class="breadcrumb-item active" aria-current="page">Инвентарь: {{ count_amulets }} из {{ max_count_amulets }}</li>
         </ol>
     </nav>
 {% endblock navigation %}
 
 {% block content %}
+    <div class="container col-md-12 text-center">
+        <a class="btn btn-primary" href="{% url 'inventory_user' user_id=user.id inventory_filter='all' %}" role="button">Все</a>
+        <a class="btn btn-primary" href="{% url 'inventory_user' user_id=user.id inventory_filter='books_exp' %}" role="button">Книги опыта</a>
+        <a class="btn btn-primary" href="{% url 'inventory_user' user_id=user.id inventory_filter='amulets' %}" role="button">Амулеты</a>
+        <a class="btn btn-primary" href="{% url 'inventory_user' user_id=user.id inventory_filter='upgrade_items' %}" role="button">Предметы усиления</a>
+    </div>
+    <br><br>
+
+    {% if user_items != None %}
     <div class="container col-12">
         <h4 class="text-center">Книги опыта</h4><br>
         <div class="row">
@@ -33,7 +42,40 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
 
+    {% if upgrade_items != None %}
+    <div class="container col-12">
+        <h4 class="text-center">Предметы усиления</h4><br>
+        <div class="row">
+            {% for item in upgrade_items %}
+            <div class="col-4">
+                <div class="card card border-dark" style="width: 23rem;">
+                    <img src="{{ item.upgrade_item_type.image.url }}" class="card-img-top" alt="card_image">
+                    <div class="card-body">
+                        <h5 class="card-title" class="card text-center">{{ item.upgrade_item_type.name }}</h5>
+                        <p class="card-text">Описание: {{ item.upgrade_item_type.description }}</p>
+                        {% if item.upgrade_item_type.type == 'random' %}
+                            <p class="card-text">Характеристика: Случайная</p>
+                        {% elif item.upgrade_item_type.type == 'attack' %}
+                            <p class="card-text">Характеристика: Атака</p>
+                        {% elif item.upgrade_item_type.type == 'hp' %}
+                            <p class="card-text">Характеристика: Здоровье</p>
+                        {% else %}
+                            Ошибка
+                        {% endif %}
+                        <p class="card-text">Бонус: +{{ item.upgrade_item_type.amount_up }}</p>
+                        <p class="card-text">Количество: {{ item.amount }}</p>
+                    </div>
+                </div>
+                <br>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% if user_amulets != None %}
     <div class="container col-12">
         <h4 class="text-center">Амулеты</h4><br>
         <div class="row">
@@ -59,5 +101,6 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
 {% endblock content %}
 

@@ -27,7 +27,6 @@ def fight_now(attacker, protector):
     if amulet_attacker:
         attacker_hp, attacker_damage = stat_amulet_calculation(amulet_attacker, attacker_hp, attacker_damage)
 
-
     # Битва
     can_fight_now = True
     history_fight = []
@@ -177,7 +176,6 @@ def fight_now(attacker, protector):
                 can_fight_now = False
 
     return winner, loser, history_fight
-
 
 
 def use_spell_dryad(user_hp, user_info):

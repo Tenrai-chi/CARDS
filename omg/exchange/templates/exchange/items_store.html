@@ -16,6 +16,16 @@
 
 
 {% block content %}
+    <div class="container col-md-12 text-center">
+        <a class="btn btn-primary" href="{% url 'items_store' store_filter='all' %}" role="button">Все</a>
+        <a class="btn btn-primary" href="{% url 'items_store' store_filter='box' %}" role="button">Сундуки</a>
+        <a class="btn btn-primary" href="{% url 'items_store' store_filter='books_exp' %}" role="button">Книги опыта</a>
+        <a class="btn btn-primary" href="{% url 'items_store' store_filter='amulets' %}" role="button">Амулеты</a>
+        <a class="btn btn-primary" href="{% url 'items_store' store_filter='upgrade_items' %}" role="button">Предметы усиления</a>
+    </div>
+    <br><br>
+
+    {% if is_box == True %}
     <div class="container col-md-12">
         <h4 class="text-center">Сундуки</h4><br>
         <div class="row">
@@ -86,8 +96,10 @@
             </div>
         </div>
     </div>
-<br><br>
+    <br><br>
+    {% endif %}
 
+    {% if items != None %}
     <div class="container col-md-12">
         <h4 class="text-center">Книги опыта</h4><br>
         <div class="row">
@@ -100,17 +112,17 @@
                         <p class="card-text">Опыт: {{ item.experience_amount }}</p>
 
                         {% if user.is_authenticated %}
-                        {% if user.profile.gold < item.price %}
-                        <p class="card-text">Цена: <span style="color:#ff0000">{{ item.price }}</span></p>
-                        <a href="{% url 'buy_item' item_id=item.pk %}" class="btn btn-primary">Купить</a>
+                            {% if user.profile.gold < item.price %}
+                                <p class="card-text">Цена: <span style="color:#ff0000">{{ item.price }}</span></p>
+                                <a href="{% url 'buy_item' item_id=item.pk %}" class="btn btn-primary">Купить</a>
+                            {% else %}
+                                <p class="card-text">Цена: <span style="color:#009933">{{ item.price }}</span></p>
+                                <div class="btn-group-vertical col-12 mx-auto">
+                                <a href="{% url 'buy_item' item_id=item.pk %}" class="btn btn-primary">Купить</a>
+                                </div>
+                            {% endif %}
                         {% else %}
-                        <p class="card-text">Цена: <span style="color:#009933">{{ item.price }}</span></p>
-                        <div class="btn-group-vertical col-12 mx-auto">
-                            <a href="{% url 'buy_item' item_id=item.pk %}" class="btn btn-primary">Купить</a>
-                        </div>
-                        {% endif %}
-                        {% else %}
-                        <p style="color:#000000" class="card-text">Цена: {{ item.price }}</p>
+                            <p style="color:#000000" class="card-text">Цена: {{ item.price }}</p>
                         {% endif %}
                     </div>
                 </div>
@@ -119,7 +131,15 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
 
+    {% if upgrade_items == True %}
+    <div class="container col-12">
+        <h4 class="text-center">Предметы усиления</h4><br>
+    </div>
+    {% endif %}
+
+    {% if amulets != None %}
     <div class="container col-md-12">
         <h4 class="text-center">Амулеты</h4><br>
         <div class="row">
@@ -134,18 +154,30 @@
 
                         {% if user.is_authenticated %}
                         {% if user.profile.gold < amulet.price %}
-                        <p class="card-text">Цена: <span style="color:#ff0000">{{ amulet.price }}</span></p>
+                            {% if amulet.discount_now == True %}
+                                <p class="card-text">Цена: <del><span style="color:#ff0000">{{ amulet.price }}</span></del>   {{ amulet.new_price }}</p>
+                            {% else %}
+                                <p class="card-text">Цена: <span style="color:#ff0000">{{ amulet.price }}</span></p>
+                            {% endif %}
                         <div class="btn-group-vertical col-12 mx-auto">
                         <a href="{% url 'buy_amulet' amulet_id=amulet.pk %}" class="btn btn-primary">Купить</a>
                         </div>
                         {% else %}
-                        <p class="card-text">Цена: <span style="color:#009933">{{ amulet.price }}</span></p>
+                        {% if amulet.discount_now == True %}
+                            <p class="card-text">Цена: <del><span style="color:#009933">{{ amulet.price }}</span></del>   {{ amulet.new_price }}</p>
+                        {% else %}
+                            <p class="card-text">Цена: <span style="color:#009933">{{ amulet.price }}</span></p>
+                        {% endif %}
                         <div class="btn-group-vertical col-12 mx-auto">
                             <a href="{% url 'buy_amulet' amulet_id=amulet.pk %}" class="btn btn-primary">Купить</a>
                         </div>
                         {% endif %}
                         {% else %}
-                        <p style="color:#000000" class="card-text">Цена: {{ amulet.price }}</p>
+                        {% if amulet.discount_now == True %}
+                            <p style="color:#000000" class="card-text">Цена: <del>{{ amulet.price }}</del> {{ amulet.new_price }}</p>
+                        {% else %}
+                            <p style="color:#000000" class="card-text">Цена: {{ amulet.price }}</p>
+                        {% endif %}
                         {% endif %}
                     </div>
                 </div>
@@ -154,4 +186,5 @@
             {% endfor %}
         </div>
     </div>
+    {% endif %}
 {% endblock content %}

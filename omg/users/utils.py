@@ -1,6 +1,6 @@
 def new_size(image):
-    """ Преобразование изображение в квадратное.
-    """
+    """ Преобразование изображение в квадратное. """
+
     wight, height = image.size
     print(type(image))
 

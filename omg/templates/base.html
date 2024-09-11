@@ -10,9 +10,8 @@
         {#<link rel="stylesheet" href="{% static 'omg/css/base.css' %}">#}
         {#<link href="https://use.fontawesome.com/releases/v5.8.2/css/all.css" rel="stylesheet">#}
 
-
         <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
-        <script src="{% static 'bootstrap/js/bootstrap/min.js' %}"></script>
+
     </head>
 
     <body>
@@ -44,7 +43,7 @@
                             <a href="{% url 'card_store' %}" class="nav-link">Магазин карт</a>
                         </li>
                         <li class="nav-item">
-                            <a href="{% url 'items_store' %}" class="nav-link">Магазин предметов</a>
+                            <a href="{% url 'items_store' store_filter='all' %}" class="nav-link">Магазин предметов</a>
                         </li>
                         <li class="nav-item">
                             <a href="{% url 'get_card' %}" class="nav-link">Получить бесплатно</a>

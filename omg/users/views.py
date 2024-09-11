@@ -12,9 +12,10 @@ from django.views.generic import CreateView
 from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm, EditGuildInfoForm
 from .models import Profile, Transactions, FavoriteUsers, Guild
 
-from cards.models import FightHistory
+from cards.models import FightHistory, Card
 from common.utils import date_time_now, time_difference_check
 from exchange.models import AmuletItem
+from .utils_2 import user_level_up
 
 
 def view_profile(request, user_id):

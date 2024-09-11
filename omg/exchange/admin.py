@@ -1,6 +1,7 @@
 from django.contrib import admin
-from .models import SaleUserCards, ExperienceItems, UsersInventory
-from .models import HistoryPurchaseItems, AmuletItem, AmuletType
+from .models import (SaleUserCards, ExperienceItems, UsersInventory,
+                     HistoryPurchaseItems, AmuletItem, AmuletType, AmuletRarity,
+                     UpgradeItemsType, UpgradeItemsUsers)
 
 
 class SaleUserCardsAdmin(admin.ModelAdmin):
@@ -35,17 +36,38 @@ class HistoryPurchaseItemsAdmin(admin.ModelAdmin):
 
 class AmuletTypeAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'rarity', 'bonus_hp', 'bonus_damage', 'price',
-                    'sale_now', 'chance_drop_on_fight', 'chance_drop_on_box')
+                    'sale_now', 'discount', 'discount_now')
     list_display_links = ('id', 'name')
     search_fields = ('id', 'name')
 
 
 class AmuletItemAdmin(admin.ModelAdmin):
-    list_display = ('id', 'amulet_type', 'owner', 'card')
+    list_display = ('id', 'amulet_type', 'owner', 'card', 'upgrades')
     list_display_links = ('id', 'amulet_type',)
     search_fields = ('id', 'amulet_type', 'owner', 'card')
 
 
+class AmuletRarityAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'chance_drop_on_fight', 'chance_drop_on_box', 'max_upgrade')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name')
+
+
+class UpgradeItemsTypeAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'description', 'type', 'amount_up')
+    list_display_links = ('id', 'name')
+    search_fields = ('id', 'name')
+
+
+class UpgradeItemsUsersAdmin(admin.ModelAdmin):
+    list_display = ('id', 'upgrade_item_type', 'owner', 'amount')
+    list_display_links = ('id', 'upgrade_item_type')
+    search_fields = ('id', 'upgrade_item_type')
+
+
+admin.site.register(UpgradeItemsUsers, UpgradeItemsUsersAdmin)
+admin.site.register(UpgradeItemsType, UpgradeItemsTypeAdmin)
+admin.site.register(AmuletRarity, AmuletRarityAdmin)
 admin.site.register(AmuletType, AmuletTypeAdmin)
 admin.site.register(AmuletItem, AmuletItemAdmin)
 admin.site.register(SaleUserCards, SaleUserCardsAdmin)
