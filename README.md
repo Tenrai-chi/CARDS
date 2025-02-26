@@ -101,5 +101,5 @@ docker run -p 8000:8000  docker_card
 |               | user2Twoooooooo   | passwordpassword |
 |               | NewNew            | passwordpassword |
 
-Python 3.9, Django 4.2.7, Pillow 10.1.0, pytz 2023.3.post1, sqlparse 0.4.4, tzdata 2023.3
+Python, Django, SQLite, Pillow, pytz, sqlparse, tzdata
 
