@@ -66,7 +66,7 @@
 docker version
 ```
 Если Docker отсутствует, установите его.
-Клонируйте рипозиторий на свое устройство:
+Клонируйте репозиторий на свое устройство:
 ```bash
 git clone https://github.com/Tenrai-chi/CARDS.git
 ```
