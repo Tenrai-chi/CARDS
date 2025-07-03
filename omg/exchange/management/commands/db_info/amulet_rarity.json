@@ -1,0 +1,22 @@
+{
+  "amulet_rarity": [
+    {
+      "name": "R",
+      "chance_drop_on_fight": 7,
+      "chance_drop_on_box": 70,
+      "max_upgrade": 5
+    },
+    {
+      "name": "SR",
+      "chance_drop_on_fight": 3,
+      "chance_drop_on_box": 27,
+      "max_upgrade": 10
+    },
+    {
+      "name": "UR",
+      "chance_drop_on_fight": 0,
+      "chance_drop_on_box": 3,
+      "max_upgrade": 15
+    }
+  ]
+}

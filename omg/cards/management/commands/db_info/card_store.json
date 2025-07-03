@@ -1,0 +1,70 @@
+{
+  "card_store": [
+    {
+      "class_card": 3,
+      "type": 1,
+      "rarity": 1,
+      "hp": 18,
+      "damage": 10,
+      "sale_now": 1,
+      "price": 3000,
+      "discount": 0,
+      "discount_now": 0
+    },
+    {
+      "class_card": 2,
+      "type": 2,
+      "rarity": 1,
+      "hp": 17,
+      "damage": 13,
+      "sale_now": 1,
+      "price": 3000,
+      "discount": 0,
+      "discount_now": 0
+    },
+    {
+      "class_card": 1,
+      "type": 1,
+      "rarity": 1,
+      "hp": 18,
+      "damage": 10,
+      "sale_now": 1,
+      "price": 3000,
+      "discount": 0,
+      "discount_now": 0
+    },
+    {
+      "class_card": 4,
+      "type": 1,
+      "rarity": 1,
+      "hp": 18,
+      "damage": 10,
+      "sale_now": 1,
+      "price": 3000,
+      "discount": 0,
+      "discount_now": 0
+    },
+    {
+      "class_card": 5,
+      "type": 1,
+      "rarity": 1,
+      "hp": 18,
+      "damage": 10,
+      "sale_now": 1,
+      "price": 3000,
+      "discount": 0,
+      "discount_now": 0
+    },
+    {
+      "class_card": 6,
+      "type": 1,
+      "rarity": 1,
+      "hp": 18,
+      "damage": 10,
+      "sale_now": 1,
+      "price": 3000,
+      "discount": 0,
+      "discount_now": 0
+    }
+  ]
+}

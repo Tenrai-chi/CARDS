@@ -1,0 +1,37 @@
+{
+  "rarity": [
+    {
+      "name": "UR",
+      "max_level": 30,
+      "coefficient_damage_for_level": 3,
+      "coefficient_hp_for_level": 15,
+      "min_hp": 15,
+      "max_hp": 20,
+      "min_damage": 7,
+      "max_damage": 14,
+      "drop_chance": 3
+    },
+    {
+      "name": "SR",
+      "max_level": 25,
+      "coefficient_damage_for_level": 2,
+      "coefficient_hp_for_level": 12,
+      "min_hp": 12,
+      "max_hp": 17,
+      "min_damage": 3,
+      "max_damage": 10,
+      "drop_chance": 27
+    },
+    {
+      "name": "R",
+      "max_level": 20,
+      "coefficient_damage_for_level": 1,
+      "coefficient_hp_for_level": 10,
+      "min_hp": 10,
+      "max_hp": 15,
+      "min_damage": 1,
+      "max_damage": 7,
+      "drop_chance": 70
+    }
+  ]
+}

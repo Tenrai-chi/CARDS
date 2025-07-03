@@ -1,0 +1,37 @@
+{
+  "experience_items": [
+    {
+      "name": "Большая книга опыта",
+      "rarity": "UR",
+      "experience_amount": 230,
+      "chance_drop_on_fight": 20,
+      "chance_drop_on_box": 10,
+      "price": 260,
+      "image": "image/items/big_book.png",
+      "gold_for_use": 70,
+      "sale_now": 1
+    },
+    {
+      "name": "Средняя книга опыта",
+      "rarity": "SR",
+      "experience_amount": 110,
+      "chance_drop_on_fight": 50,
+      "chance_drop_on_box": 30,
+      "price": 160,
+      "image": "image/items/medium_book.png",
+      "gold_for_use": 60,
+      "sale_now": 1
+    },
+    {
+      "name": "Маленькая книга опыта",
+      "rarity": "R",
+      "experience_amount": 50,
+      "chance_drop_on_fight": 70,
+      "chance_drop_on_box": 60,
+      "price": 100,
+      "image": "image/items/small_book.png",
+      "gold_for_use": 50,
+      "sale_now": 1
+    }
+  ]
+}

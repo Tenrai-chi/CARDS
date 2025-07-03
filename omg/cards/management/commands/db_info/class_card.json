@@ -1,0 +1,58 @@
+{
+  "class_card": [
+    {
+      "name": "Демон",
+      "skill": "Темный поток",
+      "description": "Демон имеет шанс 25% нанести в свой ход дополнительный неигнорируемый урон, равный 90% от атаки.",
+      "description_for_history_fight": "наносит дополнительный урон",
+      "numeric_value": 90,
+      "chance_use": 25,
+      "image": "/image/class/demon.png"
+    },
+    {
+      "name": "Оборотень",
+      "skill": "Кровожадность",
+      "description": "Оборотень с вероятностью 50% может восстановить свое здоровье при атаке в размере 80% от своей атаки.",
+      "description_for_history_fight": "восстанавливает свое здоровье",
+      "numeric_value": 80,
+      "chance_use": 50,
+      "image": "/image/class/oboroten.png"
+    },
+    {
+      "name": "Бог Император",
+      "skill": "Превосходство",
+      "description": "Бог Император с вероятностью 100% возвращает 60% базового урона врага каждый вражеских ход.",
+      "description_for_history_fight": "возвращает полученный урон",
+      "numeric_value": 60,
+      "chance_use": 100,
+      "image": "/image/class/bog_imperator.png"
+    },
+    {
+      "name": "Эльф",
+      "skill": "Провиденье",
+      "description": "Эльф повышает шанс выпадения наград на 50%.",
+      "description_for_history_fight": "повышает шанс на",
+      "numeric_value": 50,
+      "chance_use": 100,
+      "image": "/image/class/elf.png"
+    },
+    {
+      "name": "Дриада",
+      "skill": "Сила жизни",
+      "description": "Дриада каждый свой ход восстанавливает свое здоровье в размере 7 единиц. Восстановление здоровья имеет приоритет в ходу.",
+      "description_for_history_fight": "восстанавливает свое здоровье",
+      "numeric_value": 7,
+      "chance_use": 100,
+      "image": "/image/class/driada.png"
+    },
+    {
+      "name": "Призрак",
+      "skill": "Бесплотность",
+      "description": "Призрак с вероятностью 25% имеет шанс стать бесплотным и избежать урон от базовой атаки при ходе врага.",
+      "description_for_history_fight": "избегает урон от атаки",
+      "numeric_value": 0,
+      "chance_use": 20,
+      "image": "/image/class/prizrak.png"
+    }
+  ]
+}

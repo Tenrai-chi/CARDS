@@ -1,0 +1,92 @@
+{
+  "amulet_type": [
+    {
+      "name": "Драконий камень",
+      "bonus_hp": 10,
+      "bonus_damage": 4,
+      "price": 3500,
+      "sale_now": 1,
+      "image": "image/amulet/1.png",
+      "discount": 60,
+      "discount_now": 0,
+      "rarity": 1
+    },
+    {
+      "name": "Амулет вечного цветения",
+      "bonus_hp": 15,
+      "bonus_damage": 0,
+      "price": 3500,
+      "sale_now": 1,
+      "image": "image/amulet/2.png",
+      "discount": 0,
+      "discount_now": 0,
+      "rarity": 1
+    },
+    {
+      "name": "Монета путешественников",
+      "bonus_hp": 14,
+      "bonus_damage": 3,
+      "price": 2800,
+      "sale_now": 1,
+      "image": "image/amulet/3.png",
+      "discount": 20,
+      "discount_now": 1,
+      "rarity": 1
+    },
+    {
+      "name": "Когти ворона",
+      "bonus_hp": 30,
+      "bonus_damage": -5,
+      "price": 4200,
+      "sale_now": 1,
+      "image": "image/amulet/4.png",
+      "discount": 0,
+      "discount_now": 0,
+      "rarity": 2
+    },
+    {
+      "name": "Око леса",
+      "bonus_hp": -15,
+      "bonus_damage": 7,
+      "price": 3500,
+      "sale_now": 1,
+      "image": "image/amulet/5.png",
+      "discount": 35,
+      "discount_now": 1,
+      "rarity": 2
+    },
+    {
+      "name": "Глаз провидицы",
+      "bonus_hp": 10,
+      "bonus_damage": 10,
+      "price": 7000,
+      "sale_now": 1,
+      "image": "image/amulet/6.png",
+      "discount": 10,
+      "discount_now": 0,
+      "rarity": 2
+    },
+    {
+      "name": "Ловец снов",
+      "bonus_hp": 40,
+      "bonus_damage": 10,
+      "price": 20000,
+      "sale_now": 0,
+      "image": "image/amulet/7.png",
+      "discount": 0,
+      "discount_now": 0,
+      "rarity": 3
+    },
+    {
+      "name": "Кроличья лапка",
+      "bonus_hp": 15,
+      "bonus_damage": 20,
+      "price": 20000,
+      "sale_now": 0,
+      "image": "image/amulet/8.png",
+      "discount": 0,
+      "discount_now": 0,
+      "rarity": 3
+    }
+  ]
+}
