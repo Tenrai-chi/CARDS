@@ -11,8 +11,8 @@ from .utils import new_size
 
 
 class GuildBuff(models.Model):
-    """ Все доступные усиления гильдии.
-    """
+    """ Все доступные усиления гильдии """
+
     name = models.CharField(max_length=50, verbose_name='Название')
     description = models.CharField(max_length=200, verbose_name='Описание')
     numeric_value = models.FloatField(verbose_name='Числовое значение')
@@ -26,8 +26,7 @@ class GuildBuff(models.Model):
 
 
 class Guild(models.Model):
-    """ Гильдия пользователей.
-    """
+    """ Гильдия пользователей """
 
     name = models.CharField(unique=True, max_length=50, verbose_name='Название')
     leader = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Лидер')
@@ -97,26 +96,25 @@ class Profile(models.Model):
             img.save(self.profile_pic.path)
 
     def update_receiving_timer(self):
+        """ Обновление времени и даты получения карты """
+
         self.receiving_timer = date_time_now()
         self.save()
 
     def get_gold(self, gold):
-        """ Начисление золота.
-        """
+        """ Начисление золота """
 
         self.gold += gold
         self.save()
 
     def spend_gold(self, gold):
-        """ Вычитание золота.
-        """
+        """ Вычитание золота """
 
         self.gold -= gold
         self.save()
 
     def get_guild_point(self, win_or_lose):
-        """ Начисление очков рейтинга гильдии
-        """
+        """ Начисление очков рейтинга гильдии """
 
         if win_or_lose == 'win':
             self.guild_point += 30
@@ -126,6 +124,7 @@ class Profile(models.Model):
             print('Неверные данные')  # Написать обработчик ошибки
 
         self.save()
+
 
 class Transactions(models.Model):
     """ Транзакции пользователей """
@@ -168,8 +167,7 @@ class SaleStoreCards(models.Model):
 
 
 class FavoriteUsers(models.Model):
-    """ Список избранных пользователей у пользователей.
-    """
+    """ Список избранных пользователей у пользователей """
 
     user = models.ForeignKey(User,
                              on_delete=models.CASCADE,

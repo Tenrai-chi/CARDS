@@ -70,6 +70,11 @@ def view_inventory_user(request, user_id, inventory_filter='all'):
 def item_store(request, store_filter='all'):
     """ Вывод ассортимента магазина предметов """
 
+    # items_on_sale = None
+    # amulets_on_sale = None
+    # is_box = None
+    # upgrade_items = None
+
     if store_filter == 'all':
         items_on_sale = ExperienceItems.objects.filter(sale_now=True).order_by('experience_amount')
         amulets_on_sale = AmuletType.objects.filter(sale_now=True).annotate(new_price=F('price') * (100 - F('discount')) / 100)
