@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from django.contrib.messages import constants as messages
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -72,15 +73,21 @@ WSGI_APPLICATION = 'omg.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+load_dotenv()
+db_name = os.getenv('db_name')
+db_user = os.getenv('db_user')
+db_user_password = os.getenv('db_user_password')
+db_host = os.getenv('db_host')
+db_port = os.getenv('db_port')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'cards',
-        'USER': 'cards_admin',
-        'PASSWORD': 'password',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': db_name,
+        'USER': db_user,
+        'PASSWORD': db_user_password,
+        'HOST': db_host,
+        'PORT': db_port,
     }
 }
 
