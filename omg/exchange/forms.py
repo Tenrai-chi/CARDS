@@ -1,7 +1,5 @@
 from django import forms
 from django.core import validators
-from django.forms import widgets
-
 
 from .models import HistoryPurchaseItems
 

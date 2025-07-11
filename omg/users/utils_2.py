@@ -4,7 +4,7 @@ from common.utils import date_time_now
 from common.utils import create_new_card
 
 
-def user_level_up(user_id):
+def user_level_up(user_id: int) -> None:
     """ Увеличение уровня и количества слотов для карт и амулетов """
 
     profile = Profile.objects.get(user=user_id)

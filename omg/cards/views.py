@@ -5,12 +5,12 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .forms import SaleCardForm, UseItemForm
-from .models import Card, ClassCard, Type, Rarity, CardStore, HistoryReceivingCards, FightHistory
+from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory
 from .utils import accrue_experience, calculate_need_exp, fight_now as f_n
 
 from common.utils import date_time_now, time_difference_check, create_new_card
@@ -18,7 +18,7 @@ from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, Amul
 from users.models import Transactions, Profile, SaleStoreCards
 
 
-def view_cards(request):
+def view_cards(request: HttpRequest) -> HttpResponse:
     """ Вывод всех существующих карт """
 
     cards = Card.objects.all().order_by('-pk')
@@ -37,8 +37,9 @@ def view_cards(request):
     return render(request, 'cards/view_cards.html', context)
 
 
-def home(request):
+def home(request: HttpRequest) -> HttpResponse:
     """ Домашняя пустая страница.
+        TODO Сделать какие0то акции и новости
     """
 
     context = {'title': 'Домашняя',
@@ -48,7 +49,7 @@ def home(request):
     return render(request, 'cards/home.html', context)
 
 
-def buy_card(request, card_id):
+def buy_card(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
     """ Покупка карты в магазине.
         Создает карту по шаблону выбранной карты в магазине и присваивает ее текущему пользователю.
         У текущего пользователя в Profile изменяется gold на значение равное цене карты.
@@ -62,10 +63,12 @@ def buy_card(request, card_id):
             messages.error(request, 'У вас не хватает средств для покупки!')
 
             return HttpResponseRedirect(reverse('card_store'))
+
         elif Card.objects.filter(owner=request.user.id).count() == user_profile.card_slots:
             messages.error(request, 'У вас не хватает места для покупки новой карты!')
 
             return HttpResponseRedirect(reverse('card_store'))
+
         else:
             transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
@@ -81,6 +84,7 @@ def buy_card(request, card_id):
                                                       sold_card=selected_card,
                                                       transaction=transaction
                                                       )
+            sale_card.save()
 
             new_card = Card.objects.create(owner=request.user,
                                            level=1,
@@ -96,6 +100,7 @@ def buy_card(request, card_id):
                                                               card=new_card,
                                                               user=request.user
                                                               )
+            new_record.save()
 
             messages.success(request, 'Вы успешно совершили покупку!')
 
@@ -107,7 +112,7 @@ def buy_card(request, card_id):
         return HttpResponseRedirect(reverse('card_store'))
 
 
-def get_card(request):
+def get_card(request: HttpRequest) -> HttpResponse:
     """ Получение бесплатной карты.
         Проверка последнего получения бесплатной карты пользователем,
         если прошло более 6 часов с момента получения или регистрации,
@@ -134,7 +139,7 @@ def get_card(request):
     return render(request, 'cards/get_card.html', context)
 
 
-def create_card(request):
+def create_card(request: HttpRequest) -> HttpResponseRedirect:
     """ Генерация новой карты при получении ее пользователем бесплатно.
         Обновляет receiving_timer профиля.
         После создания перенаправляет пользователя на страницу просмотра созданной карты.
@@ -161,6 +166,7 @@ def create_card(request):
                                                           card=new_card,
                                                           user=request.user
                                                           )
+        new_record.save()
 
         user_profile.update_receiving_timer()
 
@@ -172,7 +178,7 @@ def create_card(request):
         return HttpResponseRedirect(reverse('home'))
 
 
-def card_store(request):
+def card_store(request: HttpRequest) -> HttpResponse:
     """ Вывод ассортимента магазина карт """
 
     available_cards = CardStore.objects.filter(sale_now=True).order_by('-rarity')
@@ -185,7 +191,7 @@ def card_store(request):
     return render(request, 'cards/card_store.html', context)
 
 
-def view_user_cards(request, user_id):
+def view_user_cards(request: HttpRequest, user_id: int) -> HttpResponse:
     """ Вывод карт выбранного пользователя """
 
     user = User.objects.get(pk=user_id)
@@ -205,7 +211,7 @@ def view_user_cards(request, user_id):
     return render(request, 'cards/view_user_cards.html', context)
 
 
-def view_card(request, card_id):
+def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
     """ Просмотр выбранной карты """
 
     card = Card.objects.get(pk=card_id)
@@ -222,9 +228,10 @@ def view_card(request, card_id):
     return render(request, 'cards/card.html', context)
 
 
-def select_favorite_card(request, selected_card):
+def select_favorite_card(request: HttpRequest, selected_card: int) -> HttpResponseRedirect:
     """ Выбор избранной карты.
         Изменение current_card в Profile пользователя на выбранную карту.
+        TODO selected_card поменять на selected_card_id
     """
 
     card = Card.objects.get(pk=selected_card)
@@ -235,7 +242,7 @@ def select_favorite_card(request, selected_card):
     return HttpResponseRedirect(f'/cards/user_cards-{request.user.id}')
 
 
-def fight(request, protector_id):
+def fight(request: HttpRequest, protector_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Бой.
         Проверяет есть ли у обоих пользователей выбранная карта.
         Проверяет время последнего боя между двумя пользователями. Если прошло больше 6 часов, происходит битва.
@@ -246,6 +253,7 @@ def fight(request, protector_id):
         Создается новая запись в FightHistory.
         Обрабатывается возможность получения книг опыта нападавшему,
         если прокнул шанс, то книги появляются в инвентаре.
+        TODO использовать функцию fight_now
     """
 
     if request.user.is_authenticated:
@@ -296,12 +304,14 @@ def fight(request, protector_id):
                                                          after=winner.profile.gold,
                                                          comment='Награда за победу в битве'
                                                          )
+        transaction_winner.save()
         transaction_loser = Transactions.objects.create(date_and_time=date_time_now(),
                                                         user=loser,
                                                         before=old_loser_gold,
                                                         after=loser.profile.gold,
                                                         comment='Награда за проигрыш в битве'
                                                         )
+        transaction_loser.save()
 
         # Начисление опыта, если не достигнут максимальный уровень карты (вынести)
         if winner.profile.current_card.level < winner.profile.current_card.rarity.max_level:
@@ -354,6 +364,7 @@ def fight(request, protector_id):
                                                  card_winner=winner.profile.current_card,
                                                  card_loser=loser.profile.current_card
                                                  )
+        new_record.save()
 
         # Предметы падают только нападавшему
         items = ExperienceItems.objects.all()
@@ -382,6 +393,7 @@ def fight(request, protector_id):
                                                                          item=item,
                                                                          amount=1
                                                                          )
+                    new_record_inventory.save()
                     reward_item_user.append(item)
         if request.user.profile.amulet_slots > AmuletItem.objects.filter(owner=request.user.id).count():
             for amulet in amulets:  # Проверка выпадения амулета
@@ -396,6 +408,7 @@ def fight(request, protector_id):
                 if chance <= chance_drop:
                     new_amulet = AmuletItem.objects.create(amulet_type=amulet,
                                                            owner=attacker)
+                    new_amulet.save()
                     reward_amulet_user.append(amulet)
 
         context = {'title': 'Битва',
@@ -415,7 +428,7 @@ def fight(request, protector_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def view_user_cards_for_sale(request, user_id):
+def view_user_cards_for_sale(request: HttpRequest, user_id: int) -> HttpResponse:
     """ Просмотр продаваемых карт пользователя """
 
     cards = Card.objects.filter(owner=user_id, sale_status=True)
@@ -429,7 +442,7 @@ def view_user_cards_for_sale(request, user_id):
     return render(request, 'cards/view_sale_card_user.html', context)
 
 
-def buy_card_user(request, card_id):
+def buy_card_user(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
     """ Покупка карты у пользователя.
         Изменение владельца карты на текущего пользователя.
         Увеличение/уменьшение gold у покупателя/продавца.
@@ -477,6 +490,7 @@ def buy_card_user(request, card_id):
                                                           transaction_buyer=transaction1,
                                                           transaction_salesman=transaction2
                                                           )
+            sale_user_card.save()
 
             card.owner = request.user
             card.price = 0
@@ -502,7 +516,7 @@ def buy_card_user(request, card_id):
         return HttpResponseRedirect(reverse('card_store'))
 
 
-def card_sale(request, card_id):
+def card_sale(request: HttpRequest, card_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Выставление на продажу карты.
         С помощью формы задается цена карты, sale_status устанавливается на True автоматически.
     """
@@ -540,7 +554,7 @@ def card_sale(request, card_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def remove_from_sale_card(request, card_id):
+def remove_from_sale_card(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
     """ Убрать карту из продажи.
         Устанавливает sale_status карты на False.
         Цену карты устанавливает на None.
@@ -561,7 +575,7 @@ def remove_from_sale_card(request, card_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def card_level_up(request, card_id):
+def card_level_up(request: HttpRequest, card_id: int) -> HttpResponse:
     """ Меню увеличение уровня """
 
     card = get_object_or_404(Card, pk=card_id)
@@ -578,7 +592,7 @@ def card_level_up(request, card_id):
     return render(request, 'cards/card_level_up.html', context)
 
 
-def level_up_with_item(request, card_id, item_id):
+def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Увеличение уровня с помощью предмета.
         Если у пользователя хватает денег для использования предметов,
         то увеличивает опыт карты, и изменяет ее уровень, если необходимо.
@@ -653,6 +667,7 @@ def level_up_with_item(request, card_id, item_id):
                                                       after=profile.gold-expended_items*item.item.gold_for_use,
                                                       comment='Улучшение карты'
                                                       )
+            transaction.save()
             profile.gold -= expended_items * item.item.gold_for_use
             item.amount -= expended_items
 
@@ -686,9 +701,8 @@ def level_up_with_item(request, card_id, item_id):
         return render(request, 'cards/card_level_up_with_item.html', context)
 
 
-def view_all_sale_card(request):
-    """ Вывод всех продаваемых карт.
-    """
+def view_all_sale_card(request: HttpRequest) -> HttpResponse:
+    """ Вывод всех продаваемых карт """
 
     if request.user.is_authenticated:
         sale_cards = Card.objects.exclude(Q(sale_status=False) | Q(owner=request.user))

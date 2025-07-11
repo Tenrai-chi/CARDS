@@ -1,7 +1,8 @@
 from django.db import models
+from django.contrib.auth.models import User
+
 from cards.models import Card
 from users.models import Transactions
-from django.contrib.auth.models import User
 
 
 class SaleUserCards(models.Model):

@@ -1,6 +1,4 @@
-from PIL import Image
 from django import forms
-from django.core.exceptions import ValidationError
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.contrib.auth.models import User
 
@@ -8,8 +6,7 @@ from .models import Profile, Guild, GuildBuff
 
 
 class LoginForm(AuthenticationForm):
-    """ Форма авторизации.
-    """
+    """ Форма авторизации """
 
     username = forms.CharField(max_length=150,
                                label='Имя пользователя',
@@ -30,8 +27,7 @@ class LoginForm(AuthenticationForm):
 
 
 class RegistrationForm(UserCreationForm):
-    """ Форма регистрации.
-    """
+    """ Форма регистрации """
 
     username = forms.CharField(max_length=150,
                                label='Имя пользователя',
@@ -58,20 +54,23 @@ class RegistrationForm(UserCreationForm):
 
 
 class EditProfileForm(forms.ModelForm):
-    """ Форма редактирования профиля.
-    """
-
-    about_user = forms.CharField(label='Обо мне:', widget=forms.Textarea)
-    profile_pic = forms.ImageField(label='Аватарка')
+    """ Форма редактирования профиля """
 
     class Meta:
         model = Profile
         fields = ['about_user', 'profile_pic']
+        widgets = {
+            'about_user': forms.Textarea(attrs={'rows': 5}),  # Optional: Customize the widget
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['about_user'].required = False
+        self.fields['profile_pic'].required = False
 
 
 class EditGuildInfoForm(forms.ModelForm):
-    """ Форма редактирования информации о гильдии.
-    """
+    """ Форма редактирования информации о гильдии """
 
     name = forms.CharField(label='Название')
     guild_pic = forms.ImageField(label='Аватарка')
@@ -86,8 +85,7 @@ class EditGuildInfoForm(forms.ModelForm):
 
 
 class CreateGuildForm(forms.ModelForm):
-    """ Форма создания гильдии.
-    """
+    """ Форма создания гильдии """
 
     name = forms.CharField(label='Название')
     guild_pic = forms.ImageField(label='Аватарка')

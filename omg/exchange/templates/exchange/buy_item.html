@@ -8,7 +8,7 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'items_store' %}">Магазин предметов</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'items_store' store_filter='all' %}">Магазин предметов</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ item.name }}</li>
         </ol>
     </nav>

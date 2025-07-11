@@ -6,12 +6,12 @@
 
 {% block navigation%}
 <nav aria-label="breadcrumb" xmlns="http://www.w3.org/1999/html">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'items_store' %}">Магазин предметов</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Награда из сундука</li>
-        </ol>
-    </nav>
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'items_store' store_filter='all' %}">Магазин предметов</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Награда из сундука с книгами</li>
+    </ol>
+</nav>
 {% endblock navigation %}
 
 {% block content %}
@@ -20,12 +20,13 @@
         {% for amulet in amulets %}
         <div class="col-md-4">
             <div class="card card border-dark" style="width: 23rem;">
-                <img src="{{ amulet.image.url }}" class="card-img-top" alt="amulet_image">
+                <img src="{{ amulet.image.url }}" class="card-img-top" alt="item_image">
                 <div class="card-body">
                     <h5 class="card-title">{{ amulet.name }}</h5>
-                    <p class="card-text">Редкость: {{ amulet.rarity }}</p>
+                    <p class="card-text">Редкость: {{ amulet.rarity.name }}</p>
                     <p class="card-text">Бонус к урону: {{ amulet.bonus_damage }}</p>
                     <p class="card-text">Бонус к здоровью: {{ amulet.bonus_hp }}</p>
+
                 </div>
             </div>
             <br><br>

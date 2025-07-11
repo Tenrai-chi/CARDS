@@ -1,20 +1,21 @@
 from random import randint, choice
 
 from django.contrib import messages
-from django.db.models import F, Q
-from django.http import HttpResponseRedirect
+from django.db.models import F
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
-
-from .forms import BuyItemForm
-from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsUsers
 
 from cards.models import Card, HistoryReceivingCards, ClassCard, Type, Rarity
 from common.utils import date_time_now, create_new_card
 from users.models import Transactions, Profile
 
+from .forms import BuyItemForm
+from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsUsers
 
-def view_inventory_user(request, user_id, inventory_filter='all'):
+
+def view_inventory_user(request: HttpRequest, user_id: int,
+                        inventory_filter: str = 'all') -> HttpResponseRedirect | HttpResponse:
     """ Просмотр инвентаря пользователя.
         Доступно только если текущий пользователь является владельцем инвентаря.
      """
@@ -27,15 +28,15 @@ def view_inventory_user(request, user_id, inventory_filter='all'):
     if inventory_filter == 'all':
         max_count_amulets = Profile.objects.get(pk=user_id).amulet_slots
         count_amulets = AmuletItem.objects.filter(owner=request.user).count()
-        user_items = UsersInventory.objects.filter(owner=request.user)
-        user_amulets = AmuletItem.objects.filter(owner=request.user)
-        upgrade_items = UpgradeItemsUsers.objects.filter(owner=request.user)
+        user_items = UsersInventory.objects.filter(owner=request.user).order_by('id')
+        user_amulets = AmuletItem.objects.filter(owner=request.user).order_by('id')
+        upgrade_items = UpgradeItemsUsers.objects.filter(owner=request.user).order_by('id')
 
     elif inventory_filter == 'amulets':
         max_count_amulets = Profile.objects.get(pk=user_id).amulet_slots
         count_amulets = AmuletItem.objects.filter(owner=request.user).count()
         user_items = None
-        user_amulets = AmuletItem.objects.filter(owner=request.user)
+        user_amulets = AmuletItem.objects.filter(owner=request.user).order_by('id')
         upgrade_items = None
 
     elif inventory_filter == 'upgrade_items':
@@ -43,12 +44,12 @@ def view_inventory_user(request, user_id, inventory_filter='all'):
         count_amulets = AmuletItem.objects.filter(owner=request.user).count()
         user_items = None
         user_amulets = None
-        upgrade_items = UpgradeItemsUsers.objects.filter(owner=request.user)
+        upgrade_items = UpgradeItemsUsers.objects.filter(owner=request.user).order_by('id')
 
     elif inventory_filter == 'books_exp':
         max_count_amulets = Profile.objects.get(pk=user_id).amulet_slots
         count_amulets = AmuletItem.objects.filter(owner=request.user).count()
-        user_items = UsersInventory.objects.filter(owner=request.user)
+        user_items = UsersInventory.objects.filter(owner=request.user).order_by('id')
         user_amulets = None
         upgrade_items = None
 
@@ -67,13 +68,13 @@ def view_inventory_user(request, user_id, inventory_filter='all'):
     return render(request, 'exchange/view_user_inventory.html', context)
 
 
-def item_store(request, store_filter='all'):
+def item_store(request: HttpRequest, store_filter: str = 'all') -> HttpResponse:
     """ Вывод ассортимента магазина предметов """
 
-    # items_on_sale = None
-    # amulets_on_sale = None
-    # is_box = None
-    # upgrade_items = None
+    items_on_sale = None
+    amulets_on_sale = None
+    is_box = None
+    upgrade_items = None
 
     if store_filter == 'all':
         items_on_sale = ExperienceItems.objects.filter(sale_now=True).order_by('experience_amount')
@@ -82,31 +83,31 @@ def item_store(request, store_filter='all'):
         upgrade_items = True
 
     elif store_filter == 'box':
-        items_on_sale = None
-        amulets_on_sale = None
+        # items_on_sale = None
+        # amulets_on_sale = None
         is_box = True
-        upgrade_items = False
+        # upgrade_items = False
 
     elif store_filter == 'amulets':
-        items_on_sale = None
+        # items_on_sale = None
         amulets_on_sale = AmuletType.objects.filter(sale_now=True).annotate(new_price=F('price') * (100 - F('discount')) / 100)
-        is_box = False
-        upgrade_items = False
+        # is_box = False
+        # upgrade_items = False
 
     elif store_filter == 'upgrade_items':
-        items_on_sale = None
-        amulets_on_sale = None
+        # items_on_sale = None
+        # amulets_on_sale = None
         is_box = False
-        upgrade_items = True
+        # upgrade_items = True
 
     elif store_filter == 'books_exp':
         items_on_sale = ExperienceItems.objects.filter(sale_now=True).order_by('experience_amount')
-        amulets_on_sale = None
-        is_box = False
-        upgrade_items = False
+        # amulets_on_sale = None
+        # is_box = False
+        # upgrade_items = False
 
     else:
-        pass
+        print('Какая-то фигня')
 
     context = {'title': 'Магазин предметов',
                'header': 'Магазин предметов',
@@ -119,7 +120,7 @@ def item_store(request, store_filter='all'):
     return render(request, 'exchange/items_store.html', context)
 
 
-def buy_amulet(request, amulet_id):
+def buy_amulet(request: HttpRequest, amulet_id: int) -> HttpResponseRedirect:
     """ Покупка амулета.
         Создает амулет на основе амулета из магазина и присваивает его покупателю в таблице AmuletItem.
         Создает запись в Transactions.
@@ -168,15 +169,15 @@ def buy_amulet(request, amulet_id):
         profile_user.save()
         messages.success(request, 'Вы успешно совершили покупку!')
 
-        return HttpResponseRedirect(reverse('items_store'))
+        return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'all'}))
 
     else:
-        messages.error(request, 'Для покупки необходимо авторизироваться!')
+        messages.error(request, 'Для покупки необходимо авторизоваться!')
 
         return HttpResponseRedirect(reverse('items_store'))
 
 
-def buy_item(request, item_id):
+def buy_item(request: HttpRequest, item_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Покупка книги опыта.
         Создает запись в Transactions.
         Создает запись в истории покупок предметов HistoryPurchaseItems.
@@ -231,7 +232,7 @@ def buy_item(request, item_id):
             new_record_history.save()
             messages.success(request, 'Вы успешно совершили покупку!')
 
-            return HttpResponseRedirect(reverse('items_store'))
+            return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'all'}))
         else:
             context = {'form': form,
                        'title': 'Покупка предмета',
@@ -255,7 +256,7 @@ def buy_item(request, item_id):
         return render(request, 'exchange/buy_item.html', context)
 
 
-def change_amulet_menu(request, card_id):
+def change_amulet_menu(request: HttpRequest, card_id: int) -> HttpResponse:
     """ Меню смены амулеты у выбранной карты.
         Выводит список доступных амулетов.
     """
@@ -271,7 +272,7 @@ def change_amulet_menu(request, card_id):
     return render(request, 'cards/change_amulet_menu.html', context)
 
 
-def change_amulet(request, card_id, amulet_id):
+def change_amulet(request: HttpRequest, card_id: int, amulet_id: int) -> HttpResponseRedirect:
     """ Устанавливает выбранный амулет на выбранную карту.
         Если у карты был установлен амулет, то отвязывает его.
     """
@@ -301,9 +302,9 @@ def change_amulet(request, card_id, amulet_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def remove_amulet(request, card_id, amulet_id):
-    """ Удаляет у выбранного амулета карту
-    """
+def remove_amulet(request: HttpRequest, card_id: int, amulet_id: int) -> HttpResponseRedirect:
+    """ Удаляет у выбранного амулета карту """
+
     if request.user.is_authenticated:
         current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
         if current_amulet.owner == request.user:
@@ -317,12 +318,12 @@ def remove_amulet(request, card_id, amulet_id):
 
             return HttpResponseRedirect(reverse('home'))
     else:
-        messages.error(request, 'Для данных действий нужно авторизироваться!')
+        messages.error(request, 'Для данных действий нужно авторизоваться!')
 
         return HttpResponseRedirect(reverse('home'))
 
 
-def sale_amulet(request, user_id, amulet_id):
+def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpResponseRedirect:
     """ Продажа пользователем амулета внутриигровому магазину.
         Амулет удаляется из инвентаря и запись о нем так же удаляется.
         Пользователь получает деньги за продажу.
@@ -356,11 +357,12 @@ def sale_amulet(request, user_id, amulet_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def buy_box_amulet(request):
+def buy__and_open_box_amulet(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     """ Покупка и открытие пользователем сундука с амулетами стоимостью 15 000.
         Случайно выбирает 5 амулетов и помещает в инвентарь пользователя.
         У пользователя снимаются деньги.
         Создается запись в Transaction.
+        Амулеты, полученные из сундука выводятся пользователю
     """
 
     if request.user.is_authenticated:
@@ -418,17 +420,10 @@ def buy_box_amulet(request):
             profile_user.gold -= 15000
             profile_user.save()
 
-            context = {'title': 'Открытие сундука с амулетами',
-                       'header': 'Открытие сундука с амулетами',
-                       'amulets': amulet_reward
-                       }
-
-            return render(request, 'exchange/open_box_amulet.html', context)
-
+            context = {'amulets': sorted(amulet_reward, key=lambda item: item.rarity.id, reverse=True)}
+            return render(request, 'exchange/open_box_amulets.html', context)
         else:
-
             messages.error(request, 'Вам не хватает денег!')
-
             return HttpResponseRedirect(reverse('home'))
 
     else:
@@ -437,11 +432,12 @@ def buy_box_amulet(request):
         return HttpResponseRedirect(reverse('home'))
 
 
-def buy_box_book(request):
+def buy_and_open_box_book(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     """ Покупка и открытие пользователем сундука с книгами опыта стоимостью 1 600.
         Случайно генерирует 9 книг и создает 1 книгу UR редкости.
         У пользователя снимаются деньги.
         Создается запись в Transaction.
+        Книги, полученные из сундука выводятся пользователю.
     """
 
     if request.user.is_authenticated:
@@ -449,7 +445,6 @@ def buy_box_book(request):
         if profile_user.gold >= 1600:
             all_items = ExperienceItems.objects.all().order_by('rarity')
             item_reward = []
-
             for _ in range(9):  # Переделать. Сначала рандом, потом запись количества 1 вызовом
                 chance = randint(1, 100)
                 if chance <= all_items[0].chance_drop_on_box:
@@ -517,12 +512,8 @@ def buy_box_book(request):
             profile_user.gold -= 1600
             profile_user.save()
 
-            context = {'title': 'Открытие сундука с книгами',
-                       'header': 'Открытие сундука с книгами',
-                       'items': item_reward
-                       }
-
-            return render(request, 'exchange/open_box_item.html', context)
+            context = {'books': sorted(item_reward, key=lambda item: item.rarity, reverse=True)}
+            return render(request, 'exchange/open_box_books.html', context)
         else:
             messages.error(request, 'Вам не хватает денег!')
 
@@ -533,7 +524,7 @@ def buy_box_book(request):
         return HttpResponseRedirect(reverse('home'))
 
 
-def buy_box_card(request):
+def buy_box_card(request: HttpRequest) -> HttpResponseRedirect:
     """ Покупка и открытие пользователем сундука с UR картой стоимостью 20 000.
         Создает карту UR редкости с максимальным значение начального здоровья или урона.
         У пользователя снимаются деньги.
@@ -563,6 +554,7 @@ def buy_box_card(request):
                                                           after=profile_user.gold-20000,
                                                           comment='Покупка в магазине предметов'
                                                           )
+            new_transaction.save()
             profile_user.gold -= 20000
             profile_user.save()
 
@@ -571,6 +563,7 @@ def buy_box_card(request):
                                                                                user=request.user,
                                                                                method_receiving='Покупка сундука'
                                                                                )
+            new_history_receiving_cards.save()
 
             return HttpResponseRedirect(f'/cards/card-{new_card.id}')
 
@@ -580,6 +573,24 @@ def buy_box_card(request):
             return HttpResponseRedirect(reverse('home'))
 
     else:
-        messages.error(request, 'Для покупки необходимо авторизироваться!')
+        messages.error(request, 'Для покупки необходимо авторизоваться!')
 
         return HttpResponseRedirect(reverse('home'))
+
+
+# def open_box_items(request: HttpRequest, user_id: int, open_box: str) -> HttpResponseRedirect | HttpResponse:
+#     """ Вывод книг опыта или амулетов, полученных из сундука """
+#
+#     if request.user.is_authenticated:
+#         if open_box == 'books':
+#             items = UsersInventory.objects.filter(owner=user_id).order_by('-id')[:10]
+#             print(items)
+#             context = {'books': items}
+#         elif open_box == 'amulets':
+#             items = AmuletItem.objects.filter(owner=user_id).order_by('-id')[:5]
+#             context = {'amulets': items}
+#         else:
+#             pass
+#         return render(request, 'exchange/open_box_books.html', context)
+#     else:
+#         return HttpResponseRedirect(reverse('home'))

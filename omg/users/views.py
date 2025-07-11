@@ -4,23 +4,23 @@ from django.contrib.auth.views import LoginView
 from django.db.models import F, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.http import HttpResponseRedirect
+from django.forms import Form
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
-
-from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm, EditGuildInfoForm
-from .models import Profile, Transactions, FavoriteUsers, Guild
 
 from cards.models import FightHistory, Card
 from common.utils import date_time_now, time_difference_check
 from exchange.models import AmuletItem
 from .utils_2 import user_level_up
 
+from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm, EditGuildInfoForm
+from .models import Profile, Transactions, FavoriteUsers, Guild
 
-def view_profile(request, user_id):
-    """ Просмотр профиля пользователя.
-    """
+
+def view_profile(request: HttpRequest, user_id: int) -> HttpResponse:
+    """ Просмотр профиля пользователя """
 
     user = get_object_or_404(User, pk=user_id)
     if user == request.user:
@@ -55,8 +55,7 @@ def view_profile(request, user_id):
 
 
 class CustomLoginView(LoginView):
-    """ Авторизация пользователя.
-    """
+    """ Авторизация пользователя """
 
     authentication_form = LoginForm
     template_name = 'users/login.html'
@@ -64,13 +63,12 @@ class CustomLoginView(LoginView):
                      'header': 'Авторизация на сайте',
                      }
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         return reverse_lazy('home')
 
 
 class CustomRegistrationView(CreateView):
-    """ Регистрация пользователя.
-    """
+    """ Регистрация пользователя """
 
     form_class = RegistrationForm
     template_name = 'users/signup.html'
@@ -78,18 +76,17 @@ class CustomRegistrationView(CreateView):
                      'header': 'Регистрация на сайте',
                      }
 
-    def get_success_url(self):
+    def get_success_url(self) -> str:
         return reverse_lazy('login')
 
-    def form_valid(self, form):
+    def form_valid(self, form: Form) -> HttpResponse:
         user = form.save()
         return super().form_valid(form)
 
 
 @receiver(post_save, sender=User)
 def create_profile_user(sender, instance, created, **kwargs):
-    """ Создание профиля пользователя.
-    """
+    """ Создание профиля пользователя """
 
     if created and not Profile.objects.filter(user=instance).exists():
         Profile.objects.create(user=instance,
@@ -97,9 +94,8 @@ def create_profile_user(sender, instance, created, **kwargs):
                                )
 
 
-def view_rating(request):
-    """ Просмотр таблицы рейтинга пользователей.
-    """
+def view_rating(request: HttpRequest) -> HttpResponse:
+    """ Просмотр таблицы рейтинга пользователей """
 
     users = User.objects.all().annotate(rating=500 + F('profile__win') * 25 - F('profile__lose') * 20).order_by('-rating')
     context = {'title': 'Таблица рейтинга',
@@ -110,9 +106,8 @@ def view_rating(request):
     return render(request, 'users/rating.html', context)
 
 
-def edit_profile(request, user_id):
-    """ Изменение информации в профиле пользователя.
-    """
+def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
+    """ Изменение информации в профиле пользователя """
 
     if user_id == request.user.id:
         profile = Profile.objects.get(user=request.user)
@@ -149,9 +144,8 @@ def edit_profile(request, user_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def view_transactions(request, user_id):
-    """ Выводит историю движений денежных средств пользователя.
-    """
+def view_transactions(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
+    """ Выводит историю движений денежных средств пользователя """
 
     if request.user.is_authenticated and request.user.id == user_id:
         transactions = Transactions.objects.filter(user=request.user).order_by('-date_and_time').annotate(result=F('after')-F('before'))[:250]
@@ -170,9 +164,8 @@ def view_transactions(request, user_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def add_favorite_user(request, user_id: int):
-    """ Добавляет в избранное выбранного пользователя.
-    """
+def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
+    """ Добавляет в избранное выбранного пользователя """
 
     if request.user.is_authenticated and request.user.id != user_id:
         try:
@@ -206,9 +199,8 @@ def add_favorite_user(request, user_id: int):
         return HttpResponseRedirect(reverse('home'))
 
 
-def delete_favorite_user(request, user_id):
-    """ Удаляет пользователя из списка избранных.
-    """
+def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
+    """ Удаляет пользователя из списка избранных """
 
     if request.user.id != user_id:
         try:
@@ -227,9 +219,8 @@ def delete_favorite_user(request, user_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def view_favorite_users(request):
-    """ Список избранных пользователей.
-    """
+def view_favorite_users(request: HttpRequest) -> HttpResponse:
+    """ Список избранных пользователей """
 
     favorite_users = FavoriteUsers.objects.filter(user=request.user)
     context = {'title': f'Избранные пользователи',
@@ -240,9 +231,8 @@ def view_favorite_users(request):
     return render(request, 'users/favorite_users.html', context)
 
 
-def view_guild(request, guild_id):
-    """ Просмотр информации о выбранной гильдии.
-    """
+def view_guild(request: HttpRequest, guild_id: int) -> HttpResponse:
+    """ Просмотр информации о выбранной гильдии """
 
     guild_info = get_object_or_404(Guild, pk=guild_id)
     guild_participants = Profile.objects.filter(guild=guild_id).order_by('-guild_point')
@@ -256,9 +246,8 @@ def view_guild(request, guild_id):
     return render(request, 'users/view_guild.html', context)
 
 
-def view_all_guilds(request):
-    """ Просмотр всех гильдий.
-    """
+def view_all_guilds(request: HttpRequest) -> HttpResponse:
+    """ Просмотр всех гильдий """
 
     guilds = Guild.objects.all().order_by('-rating')
 
@@ -270,7 +259,7 @@ def view_all_guilds(request):
     return render(request, 'users/view_all_guilds.html', context)
 
 
-def create_guild(request):
+def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
     """ Создание гильдии.
         Создается запись в Transaction.
         Лидером становится создатель.
@@ -306,6 +295,7 @@ def create_guild(request):
                                                               after=user_gold_after,
                                                               comment='Создание гильдии'
                                                               )
+                new_transaction.save()
                 user_profile.gold -= 50000
                 user_profile.guild = new_guild_info
                 user_profile.guild_point = 0
@@ -338,7 +328,7 @@ def create_guild(request):
         return HttpResponseRedirect(reverse('home'))
 
 
-def edit_guild_info(request, guild_id):
+def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpResponseRedirect:
     """ Редактирование информации о гильдии.
         Выводит страницу с формой для смены названия, картинки и усиления гильдии.
         Если было изменено название, то с лидера гильдии снимается 30 000.
@@ -375,9 +365,10 @@ def edit_guild_info(request, guild_id):
                                                                   after=profile_gold_after,
                                                                   comment='Смена названия гильдии'
                                                                   )
+                    new_transaction.save()
 
                 edit_guild_info_form.save()
-                # Пофиксить несохранение изменения даты последнего обновления усиления
+                # TODO Пофиксить несохранение изменения даты последнего обновления усиления
                 current_update_guild_info = Guild.objects.get(pk=guild_id)
                 if old_buff != current_update_guild_info.buff:
                     can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
@@ -415,7 +406,7 @@ def edit_guild_info(request, guild_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def change_leader_guild_choice(request, guild_id):
+def change_leader_guild_choice(request: HttpRequest, guild_id: int) -> HttpResponse | HttpResponseRedirect:
     """ Меню смены лидера гильдии.
         Выводит всех доступных для передачи лидерства участников гильдии.
     """
@@ -442,9 +433,8 @@ def change_leader_guild_choice(request, guild_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def change_leader_guild(request, guild_id, user_id):
-    """ Смена лидера гильдии на выбранного пользователя.
-    """
+def change_leader_guild(request: HttpRequest, guild_id: int, user_id: int) -> HttpResponseRedirect:
+    """ Смена лидера гильдии на выбранного пользователя """
 
     if not request.user.is_authenticated:
         messages.error(request, 'Ошибка!')
@@ -465,7 +455,7 @@ def change_leader_guild(request, guild_id, user_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def delete_member_guild(request, member_id, guild_id):
+def delete_member_guild(request: HttpRequest, member_id: int, guild_id: int) -> HttpResponseRedirect:
     """ Удалить пользователя из гильдии.
         Вычитает очки гильдии пользователя из общего показателя гильдии.
         У пользователя обнуляются очки гильдии.
@@ -527,7 +517,7 @@ def delete_member_guild(request, member_id, guild_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def add_member_guild(request, guild_id):
+def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
     """ Вступление в гильдию текущим пользователем.
         В profile пользователя устанавливается выбранная гильдия.
         Количество участников гильдии увеличивается на 1.
@@ -566,7 +556,7 @@ def add_member_guild(request, guild_id):
         return HttpResponseRedirect(reverse('home'))
 
 
-def delete_guild(request, guild_id):
+def delete_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
     """ Удаление гильдии.
         Удалить гильдию может только лидер.
         У всех текущих участников гильдии изменяются guild, date_guild_accession на None, а guild_point на 0.

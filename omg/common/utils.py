@@ -8,18 +8,16 @@ from django.contrib.auth.models import User
 from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
 
 
-def date_time_now():
-    """ Возвращает текущее время по Московскому часовому поясу.
-    """
+def date_time_now() -> datetime:
+    """ Возвращает текущее время по Московскому часовому поясу """
 
     date_time = datetime.now(pytz.timezone('Europe/Moscow'))
 
     return date_time
 
 
-def time_difference_check(check_time, need_hours):
-    """ Проверяет прошло ли необходимое количество часов для действия.
-    """
+def time_difference_check(check_time: datetime, need_hours: int) -> tuple[bool, float]:
+    """ Проверяет прошло ли необходимое количество часов для действия """
 
     difference = date_time_now() - check_time
     hours = difference.total_seconds() // 3600
@@ -27,8 +25,9 @@ def time_difference_check(check_time, need_hours):
     return hours >= need_hours, hours
 
 
-def create_new_card(user, ur_box=None, max_attribute=None):
-    """ Создание карты. Возвращает айди только что созданной карты.
+def create_new_card(user: User, ur_box=None, max_attribute=None):
+    """ Создание карты. Возвращает айди только что созданной карты
+        TODO ur_box, max_attribute
     """
 
     class_card = choice(ClassCard.objects.all())

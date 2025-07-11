@@ -1,10 +1,8 @@
-from random import randint
-
 import pytz
 
 from datetime import datetime
-
 from django.contrib.auth.models import User
+from random import randint
 
 from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
 from exchange.models import AmuletItem
@@ -13,6 +11,7 @@ from exchange.models import AmuletItem
 def fight_now(attacker, protector):
     """ Битва.
         Возвращает победителя, проигравшего и историю боя
+        TODO посмотреть атакер и протектор
     """
 
     attacker_damage, protector_damage, attacker_hp, protector_hp = stats_calculation(attacker, protector)
@@ -267,6 +266,7 @@ def stats_calculation(attacker, protector):
 
     return attacker_damage, protector_damage, attacker_hp, protector_hp
 
+
 def stat_amulet_calculation(user_amulet, user_hp, user_damage):
     """ Начисление статов от амулета.
         Возвращает итоговые значения здоровья и урона карты пользователя с амулетом.
@@ -277,9 +277,9 @@ def stat_amulet_calculation(user_amulet, user_hp, user_damage):
 
     return user_hp, user_damage
 
+
 def filling_missing_data():
-    """ Заполнение данных о создании карты у карт, созданных изначально.
-    """
+    """ Заполнение данных о создании карты у карт, созданных изначально """
 
     date_and_time = datetime(year=2023, month=11, day=5, hour=13, minute=30, tzinfo=pytz.timezone('Europe/Moscow'))
     cards = Card.objects.all()
@@ -310,16 +310,16 @@ def filling_missing_data():
             new_record.save()
 
 
-def delete_all_record():
-    """ Удаление всех записей в таблице с историей получения карт.
-    """
+def delete_all_record() -> None:
+    """ Удаление всех записей в таблице с историей получения карт """
 
     table = HistoryReceivingCards.objects.all()
     for a in table:
         a.delete()
 
 
-def accrue_experience(accrued_experience, current_level, max_level, expended_experience=0, current_exp=0):
+def accrue_experience(accrued_experience: float, current_level: int, max_level: int,
+                      expended_experience: int = 0, current_exp: int = 0):
     """ Вычисляет итоговый уровень карты, текущее значение опыта и общий затраченный опыт.
         :param accrued_experience: Полученный опыт
         :param current_level: Текущий уровень
@@ -354,8 +354,7 @@ def accrue_experience(accrued_experience, current_level, max_level, expended_exp
             return accrue_experience(accrued_experience, current_level, max_level, expended_experience, current_exp)
 
 
-def calculate_need_exp(level):
-    """ Вычисление необходимого уровня для получения следующего уровня.
-    """
+def calculate_need_exp(level: int) -> float:
+    """ Вычисление необходимого уровня для получения следующего уровня """
 
     return round(1000 + 100 * 1.15 ** level, 2)

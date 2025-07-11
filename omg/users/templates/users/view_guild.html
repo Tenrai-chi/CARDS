@@ -77,7 +77,7 @@
                     <td>{{ participant.guild_point }}</td>
                     <td>{{ participant.date_guild_accession }}</td>
                     {% if user == guild_info.leader %}
-                        <td><a href="{% url 'remove_member_guild' member_id=participant.id guild_id=guild_info.id %}" class="btn btn-primary">Удалить
+                        <td><a href="{% url 'remove_member_guild' member_id=participant.id guild_id=guild_info.id %}" class="btn btn-primary">Выгнать
                         </a></td>
                     {% endif %}
 
