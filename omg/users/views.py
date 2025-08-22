@@ -308,7 +308,6 @@ def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
                            'header': f'Создание гильдии',
                            'form': new_guild_form,
                            }
-                print(new_guild_form.errors)
                 messages.error(request, 'Произошла ошибка')
 
                 return render(request, 'users/create_guild.html', context)

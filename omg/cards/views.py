@@ -659,8 +659,11 @@ def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> Http
             card.increase_stats(new_levels)
             card.level = answer[1]
 
-            expended_items = ceil(expended_experience / item.item.experience_amount)
-
+            # Проверка на бафф гильдиии
+            if profile.guild.buff.name == 'Пытливый ум':
+                expended_items = ceil((expended_experience / item.item.experience_amount) * 0.8)
+            else:
+                expended_items = ceil(expended_experience / item.item.experience_amount)
             transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
                                                       before=profile.gold,

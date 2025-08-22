@@ -61,17 +61,15 @@ class Profile(models.Model):
 
     user = models.OneToOneField(User, null=True, on_delete=models.CASCADE, verbose_name='Пользователь')
     about_user = models.TextField(null=True, blank=True, max_length=300, verbose_name='Информация')
-    gold = models.IntegerField(blank=True, null=True, default=2000, verbose_name='Деньги')
+    gold = models.IntegerField(blank=True, null=True, default=10000, verbose_name='Деньги')
     receiving_timer = models.DateTimeField(blank=True, null=True, verbose_name='Последнее получение')
     win = models.IntegerField(blank=True, null=True, default=0, verbose_name='Победы')
     lose = models.IntegerField(blank=True, null=True, default=0, verbose_name='Поражения')
-    current_card = models.ForeignKey(Card, null=True, blank=True, default=None, on_delete=models.SET_NULL, verbose_name='Выбранная карта')
+    current_card = models.ForeignKey(Card, null=True, blank=True, default=None,
+                                     on_delete=models.SET_NULL, verbose_name='Выбранная карта')
     is_activated = models.BooleanField(null=True, blank=True, default=True, verbose_name='Активен')
-    profile_pic = models.ImageField(null=True,
-                                    blank=True,
-                                    default='image/profile/avatar.jpg',
-                                    upload_to='image/profile/',
-                                    verbose_name='Аватарка')
+    profile_pic = models.ImageField(null=True, blank=True, default='image/profile/avatar.jpg',
+                                    upload_to='image/profile/', verbose_name='Аватарка')
     guild = models.ForeignKey(Guild, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Гильдия')
     date_guild_accession = models.DateField(blank=True, null=True, verbose_name='Дата присоединения к гильдии')
     guild_point = models.IntegerField(blank=True, null=True, default=0, verbose_name='Очки гильдии')
