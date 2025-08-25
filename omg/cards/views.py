@@ -39,7 +39,7 @@ def view_cards(request: HttpRequest) -> HttpResponse:
 
 def home(request: HttpRequest) -> HttpResponse:
     """ Домашняя пустая страница.
-        TODO Сделать какие0то акции и новости
+        TODO Сделать какие-то акции и новости
     """
 
     context = {'title': 'Домашняя',
@@ -228,13 +228,12 @@ def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
     return render(request, 'cards/card.html', context)
 
 
-def select_favorite_card(request: HttpRequest, selected_card: int) -> HttpResponseRedirect:
+def select_favorite_card(request: HttpRequest, selected_card_id: int) -> HttpResponseRedirect:
     """ Выбор избранной карты.
         Изменение current_card в Profile пользователя на выбранную карту.
-        TODO selected_card поменять на selected_card_id
     """
 
-    card = Card.objects.get(pk=selected_card)
+    card = Card.objects.get(pk=selected_card_id)
     user_profile = Profile.objects.get(user=request.user)
     user_profile.current_card = card
     user_profile.save()

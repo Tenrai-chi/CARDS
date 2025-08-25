@@ -44,7 +44,7 @@
                         <div class="btn-group-vertical col-12 mx-auto">
                             {% if user.id == card.owner.id %}
                                 {% if user.profile.current_card != card %}
-                                    <a href="{% url 'select_favorite_card' selected_card=card.id %}" class="btn btn-primary">Сделать избранной</a><br>
+                                    <a href="{% url 'select_favorite_card' selected_card_id=card.id %}" class="btn btn-primary">Сделать избранной</a><br>
                                 {% endif %}
                                 {% if card.sale_status %}
                                     <a href="{% url 'remove_from_sale_card' card_id=card.pk %}" class="btn btn-primary">Убрать с продажи</a>

@@ -28,6 +28,6 @@ urlpatterns = [
     path('card-<int:card_id>/level_up/<int:item_id>/', level_up_with_item, name='level_up_with_item'),
 
     path('ffflx/', create_card, name='create_card'),
-    path('aw<int:selected_card>aw/', select_favorite_card, name='select_favorite_card'),
+    path('aw<int:selected_card_id>aw/', select_favorite_card, name='select_favorite_card'),
     path('', view_cards, name='cards'),
 ]
