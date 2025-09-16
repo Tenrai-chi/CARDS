@@ -84,22 +84,5 @@ docker run -p 8000:8000  docker_card
 ```
 Теперь проект работает на вашем [localhost](http://127.0.0.1:8000/)
 
-## Административная панель
-Зайти в административную панель вы можете [здесь](http://127.0.0.1:8000/admin/)
-| Пользователь  |           Логин   |      Пароль      |
-|---------------|-------------------|------------------|
-| Администратор | admin             |     password     |
-|      users    | mewmew            | passwordpassword |
-|               | aaaaaaaaaaaaaaaa  | passwordpassword |
-|               | test              | passwordpassword |
-|               | user1             | passwordpassword |
-|               | tenrai            | passwordpassword |
-|               | mimimi            | passwordpassword |
-|               | new_user          | passwordpassword |
-|               | molodec           | passwordpassword |
-|               | Niko              | passwordpassword |
-|               | user2Twoooooooo   | passwordpassword |
-|               | NewNew            | passwordpassword |
-
 Python, Django, SQLite, Pillow, pytz, sqlparse, tzdata
 
