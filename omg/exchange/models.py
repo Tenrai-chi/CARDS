@@ -179,7 +179,9 @@ class AmuletItem(models.Model):
                                     blank=True,
                                     null=True,
                                     on_delete=models.CASCADE,
-                                    verbose_name='Тип амулета')
+                                    verbose_name='Тип амулета',
+                                    related_name='amulet_type'
+                                    )
     owner = models.ForeignKey(User,
                               on_delete=models.CASCADE,
                               verbose_name='Владелец')

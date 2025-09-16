@@ -27,7 +27,7 @@ def time_difference_check(check_time: datetime, need_hours: int) -> tuple[bool, 
 
 def create_new_card(user: User, ur_box=None, max_attribute=None):
     """ Создание карты. Возвращает айди только что созданной карты
-        TODO ur_box, max_attribute
+        TODO ur_box, max_attribute???
     """
 
     class_card = choice(ClassCard.objects.all())

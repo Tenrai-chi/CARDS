@@ -216,6 +216,7 @@ def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
 
     card = Card.objects.get(pk=card_id)
     amulet = AmuletItem.objects.filter(card=card).last()
+    print(amulet.amulet_type.bonus_hp)
     need_exp = calculate_need_exp(card.level)
 
     context = {'title': 'Выбранная карта',

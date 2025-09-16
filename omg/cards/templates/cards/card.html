@@ -23,15 +23,15 @@
         <p>Класс: {{ card.class_card }}</p>
         <p>Тип: {{ card.type }}</p>
         {% if amulet %}
-            {% if amulet.bonus_hp < 0 %}
-                <p>Здоровье: {{ card.hp }} {{ amulet.bonus_hp }}</p>
+            {% if amulet.amulet_type.bonus_hp < 0 %}
+                <p>Здоровье: {{ card.hp }} {{ amulet.amulet_type.bonus_hp }}</p>
             {% else %}
-                <p>Здоровье: {{ card.hp }} +{{ amulet.bonus_hp }}</p>
+                <p>Здоровье: {{ card.hp }} + {{ amulet.amulet_type.bonus_hp }}</p>
             {% endif %}
-            {% if amulet.bonus_damage < 0 %}
-                <p>Урон: {{ card.damage }} {{ amulet.bonus_damage }}</p>
+            {% if amulet..amulet_type.bonus_damage < 0 %}
+                <p>Урон: {{ card.damage }} {{ amulet.amulet_type.bonus_damage }}</p>
             {% else %}
-                <p>Урон: {{ card.damage }} +{{ amulet.bonus_damage }}</p>
+                <p>Урон: {{ card.damage }} + {{ amulet.amulet_type.bonus_damage }}</p>
             {% endif %}
         {% else %}
             <p>Здоровье: {{ card.hp }}</p>
