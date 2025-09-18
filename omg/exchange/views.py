@@ -11,7 +11,7 @@ from common.utils import date_time_now, create_new_card
 from users.models import Transactions, Profile
 
 from .forms import BuyItemForm
-from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsUsers
+from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsType, UpgradeItemsUsers
 
 
 def view_inventory_user(request: HttpRequest, user_id: int,
@@ -80,34 +80,22 @@ def item_store(request: HttpRequest, store_filter: str = 'all') -> HttpResponse:
         items_on_sale = ExperienceItems.objects.filter(sale_now=True).order_by('experience_amount')
         amulets_on_sale = AmuletType.objects.filter(sale_now=True).annotate(new_price=F('price') * (100 - F('discount')) / 100)
         is_box = True
-        upgrade_items = True
+        upgrade_items = UpgradeItemsType.objects.all()
 
     elif store_filter == 'box':
-        # items_on_sale = None
-        # amulets_on_sale = None
         is_box = True
-        # upgrade_items = False
 
     elif store_filter == 'amulets':
-        # items_on_sale = None
         amulets_on_sale = AmuletType.objects.filter(sale_now=True).annotate(new_price=F('price') * (100 - F('discount')) / 100)
-        # is_box = False
-        # upgrade_items = False
 
     elif store_filter == 'upgrade_items':
-        # items_on_sale = None
-        # amulets_on_sale = None
-        is_box = False
-        # upgrade_items = True
+        upgrade_items = UpgradeItemsType.objects.all()
 
     elif store_filter == 'books_exp':
         items_on_sale = ExperienceItems.objects.filter(sale_now=True).order_by('experience_amount')
-        # amulets_on_sale = None
-        # is_box = False
-        # upgrade_items = False
 
     else:
-        print('Какая-то фигня')
+        pass
 
     context = {'title': 'Магазин предметов',
                'header': 'Магазин предметов',
@@ -357,7 +345,7 @@ def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpRespo
         return HttpResponseRedirect(reverse('home'))
 
 
-def buy__and_open_box_amulet(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
+def buy_and_open_box_amulet(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     """ Покупка и открытие пользователем сундука с амулетами стоимостью 15 000.
         Случайно выбирает 5 амулетов и помещает в инвентарь пользователя.
         У пользователя снимаются деньги.
@@ -578,19 +566,137 @@ def buy_box_card(request: HttpRequest) -> HttpResponseRedirect:
         return HttpResponseRedirect(reverse('home'))
 
 
-# def open_box_items(request: HttpRequest, user_id: int, open_box: str) -> HttpResponseRedirect | HttpResponse:
-#     """ Вывод книг опыта или амулетов, полученных из сундука """
-#
-#     if request.user.is_authenticated:
-#         if open_box == 'books':
-#             items = UsersInventory.objects.filter(owner=user_id).order_by('-id')[:10]
-#             print(items)
-#             context = {'books': items}
-#         elif open_box == 'amulets':
-#             items = AmuletItem.objects.filter(owner=user_id).order_by('-id')[:5]
-#             context = {'amulets': items}
-#         else:
-#             pass
-#         return render(request, 'exchange/open_box_books.html', context)
-#     else:
-#         return HttpResponseRedirect(reverse('home'))
+def buy_upgrade_item(request: HttpRequest, upgrade_item_id: int) -> HttpResponseRedirect:
+    """ Покупка предмета усиления.
+        Добавляет или создает предмет усиления в инвентаре пользователя в таблице UpgradeItemsUsers.
+        Создает запись в Transactions.
+        Изменяет gold в Profile текущего пользователя.
+    """
+
+    if request.user.is_authenticated:
+        profile_user = Profile.objects.get(user=request.user)
+        current_upgrade_item = get_object_or_404(UpgradeItemsType, pk=upgrade_item_id)
+
+        if profile_user.gold < current_upgrade_item.price:
+            messages.error(request, 'Для покупки вам не хватает денег!')
+
+            return HttpResponseRedirect(reverse('items_store'))
+
+        # Сделать ОБНОВИТЬ ИЛИ СОЗДАТЬ
+        upgrade_item = UpgradeItemsType.objects.get(id=upgrade_item_id)
+        try:
+            upgrade_item_user = UpgradeItemsUsers.objects.get(owner=request.user,
+                                                              upgrade_item_type=upgrade_item)
+
+            upgrade_item_user.amount += 1
+            upgrade_item_user.save()
+
+        except UpgradeItemsUsers.DoesNotExist:
+            new_upgrade_item_user = UpgradeItemsUsers.objects.create(owner=request.user,
+                                                                     upgrade_item_type=upgrade_item,
+                                                                     amount=1)
+            new_upgrade_item_user.save()
+
+        new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                             user=request.user,
+                                                             before=profile_user.gold,
+                                                             after=profile_user.gold - upgrade_item.price,
+                                                             comment='Покупка в магазине предметов')
+
+        profile_user.gold = new_record_transaction.after
+        new_record_transaction.save()
+        profile_user.save()
+        messages.success(request, 'Вы успешно совершили покупку!')
+
+        return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'all'}))
+
+    else:
+        messages.error(request, 'Для покупки необходимо авторизоваться!')
+
+        return HttpResponseRedirect(reverse('items_store'))
+
+
+def menu_merge_card(request: HttpRequest, card_id: int):
+    """ Меню усиления карты с помощью предметов усиления """
+
+    if request.user.is_authenticated:
+        card = get_object_or_404(Card, pk=card_id)
+        if request.user != card.owner:
+            messages.error(request, 'Вы не можете усиливать эту карту!')
+
+            return HttpResponseRedirect(reverse('home'))
+
+        inventory = UpgradeItemsUsers.objects.filter(owner=request.user)
+        context = {'title': 'Усиление карты',
+                   'header': f'Усиление карты {card_id}',
+                   'card': card,
+                   'inventory': inventory,
+                   }
+
+        return render(request, 'exchange/card_stats_up.html', context)
+    else:
+        messages.error(request, 'Вы не авторизованы!')
+
+        return HttpResponseRedirect(reverse('items_store'))
+
+
+def merge_card(request: HttpRequest, card_id: int, up_item_id: int):
+    """ Улучшение карты с помощью предмета усиления.
+        Карта улучшает свои статы в зависимости от выбранного предмета.
+        Удаляет выбранный предмет из инвентаря пользователя UpgradeItemsUsers.
+        Создает запись в Transactions.
+        Изменяет gold в Profile текущего пользователя.
+    """
+
+    if request.user.is_authenticated:
+        current_card = get_object_or_404(Card, pk=card_id)
+
+        if current_card.owner != request.user:
+            messages.error(request, 'Вы не можете улучшать эту карту!')
+            return HttpResponseRedirect(reverse('home'))
+
+        current_up_item = UpgradeItemsUsers.objects.filter(owner=request.user,
+                                                           upgrade_item_type=up_item_id).last()
+        if current_up_item is None:
+            messages.error(request, 'У вас недостаточно предметов усиления!')
+            return HttpResponseRedirect(f'/inventory/card-{card_id}')
+        elif current_up_item.amount <= 0:
+            messages.error(request, 'У вас недостаточно предметов усиления!')
+            return HttpResponseRedirect(f'/inventory/card-{card_id}')
+
+        profile_user = Profile.objects.get(user=request.user)
+        if profile_user.gold < current_up_item.upgrade_item_type.price_of_use:
+            messages.error(request, 'У вас недостаточно денег!')
+            return HttpResponseRedirect(f'/inventory/card-{card_id}')
+
+        if current_card.merger >= current_card.max_merger:
+            messages.error(request, 'Эта карта имеет максимальный уровень улучшения!')
+            return HttpResponseRedirect(reverse('home'))
+
+        if current_up_item.upgrade_item_type.type == 'hp':
+            current_card.merge_hp()
+        elif current_up_item.upgrade_item_type.type == 'attack':
+            current_card.merge_attack()
+        elif current_up_item.upgrade_item_type.type == 'random':
+            current_card.merge_random()
+        else:
+            pass
+
+        current_up_item.amount -= 1
+        new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                             user=request.user,
+                                                             before=profile_user.gold,
+                                                             after=profile_user.gold - current_up_item.upgrade_item_type.price_of_use,
+                                                             comment='Усиление карты')
+
+        profile_user.gold = new_record_transaction.after
+        new_record_transaction.save()
+        profile_user.save()
+        current_up_item.save()
+
+        messages.success(request, 'Вы улучшили карту!')
+        return HttpResponseRedirect(f'/inventory/card-{card_id}')
+
+    else:
+        messages.error(request, 'Вы не авторизованы!')
+        return HttpResponseRedirect(reverse('home'))

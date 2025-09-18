@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 
+from random import choice
+
 
 class ClassCard(models.Model):
     """ Класса карты. Отвечает за способности и изображение """
@@ -87,6 +89,7 @@ class Card(models.Model):
     price = models.IntegerField(default=None, blank=True, null=True, verbose_name='Цена продажи')
 
     merger = models.IntegerField(default=0, blank=True, null=True, verbose_name='Количество слияний')
+    max_merger = models.IntegerField(default=20, blank=True, null=True, verbose_name='Максимальное количество слияний')
 
     class Meta:
         verbose_name_plural = 'Карты'
@@ -96,12 +99,31 @@ class Card(models.Model):
         return f'Карта пользователя {self.owner.username} ID {self.id}'
 
     def increase_stats(self, new_level=1):
-        """ Увеличение характеристик карты с повышением уровня.
-        """
+        """ Увеличение характеристик карты с повышением уровня """
 
         self.damage += self.rarity.coefficient_damage_for_level * new_level
         self.hp += self.rarity.coefficient_hp_for_level * new_level
 
+        self.save()
+
+    def merge_hp(self):
+        self.hp += 3
+        self.merger += 1
+        self.save()
+
+    def merge_attack(self):
+        self.damage += 3
+        self.merger += 1
+        self.save()
+
+    def merge_random(self):
+        hp_or_damage = choice([0, 1])
+        if hp_or_damage == 0:
+            self.hp += 5
+            self.merger += 1
+        else:
+            self.damage += 5
+            self.merger += 1
         self.save()
 
 

@@ -214,9 +214,8 @@ def view_user_cards(request: HttpRequest, user_id: int) -> HttpResponse:
 def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
     """ Просмотр выбранной карты """
 
-    card = Card.objects.get(pk=card_id)
+    card = get_object_or_404(Card, pk=card_id)
     amulet = AmuletItem.objects.filter(card=card).last()
-    print(amulet.amulet_type.bonus_hp)
     need_exp = calculate_need_exp(card.level)
 
     context = {'title': 'Выбранная карта',
@@ -253,7 +252,6 @@ def fight(request: HttpRequest, protector_id: int) -> HttpResponseRedirect | Htt
         Создается новая запись в FightHistory.
         Обрабатывается возможность получения книг опыта нападавшему,
         если прокнул шанс, то книги появляются в инвентаре.
-        TODO использовать функцию fight_now
     """
 
     if request.user.is_authenticated:
@@ -579,6 +577,11 @@ def card_level_up(request: HttpRequest, card_id: int) -> HttpResponse:
     """ Меню увеличение уровня """
 
     card = get_object_or_404(Card, pk=card_id)
+    if request.user != card.owner:
+        messages.error(request, 'Вы не можете усиливать эту карту!')
+
+        return HttpResponseRedirect(reverse('home'))
+
     need_exp = calculate_need_exp(card.level)
 
     inventory = UsersInventory.objects.filter(owner=request.user)
@@ -593,7 +596,7 @@ def card_level_up(request: HttpRequest, card_id: int) -> HttpResponse:
 
 
 def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> HttpResponseRedirect | HttpResponse:
-    """ Увеличение уровня с помощью предмета.
+    """ Увеличение уровня с помощью книг опыта.
         Если у пользователя хватает денег для использования предметов,
         то увеличивает опыт карты, и изменяет ее уровень, если необходимо.
         Использует только необходимое количество книг опыта.

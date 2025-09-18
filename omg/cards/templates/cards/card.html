@@ -39,22 +39,28 @@
         {% endif %}
         <p>Способность: {{ card.class_card.skill }}</p>
         <p>Описание: {{ card.class_card.description }}</p>
-        <p>Уровень: {{ card.level }}</p>
+        <p>Уровень: {{ card.level }} из {{ card.rarity.max_level }}</p>
         {% if amulet %}
             <p>Амулет: {{ amulet.amulet_type.name }}</a></p>
         {% endif %}
-        {% if user == card.owner and card.level < card.rarity.max_level %}
-            <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
-            <div class="text-center">
-                <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Улучшить</a><br><br>
-                <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Амулет</a>
-            </div>
-        {% endif %}
-        {% if user == card.owner and card.level >= card.rarity.max_level %}
-            <div class="text-center">
-                <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-md-12">Амулет</a>
-            </div>
-        {% endif %}
+        <p>Усиление: {{ card.merger }} из {{ card.max_merger }} </p>
 
+
+        {% if user == card.owner %}
+            {% if card.level < card.rarity.max_level %}
+                <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
+                    <div class="text-center">
+                        <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Улучшить</a><br><br>
+                    </div>
+            {% endif %}
+            {% if card.merger < card.max_merger %}
+                <div class="text-center">
+                    <a href="{% url 'menu_merge_card' card_id=card.pk %}" class="btn btn-primary col-md-12">Усилить</a><br><br>
+                </div>
+            {% endif %}
+        {% endif %}
+        <div class="text-center">
+            <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-md-12">Амулет</a><br><br>
+        </div>
     </div>
 {% endblock content %}

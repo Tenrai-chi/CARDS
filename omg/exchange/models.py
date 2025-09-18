@@ -209,6 +209,8 @@ class UpgradeItemsType(models.Model):
     type = models.CharField(max_length=30, blank=True, null=True, verbose_name='Тип предмета')
     amount_up = models.IntegerField(blank=True, null=True, verbose_name='Значение улучшения характеристик')
     image = models.ImageField(blank=True, null=True, upload_to='image/upgrade_items/', verbose_name='Изображение')
+    price = models.IntegerField(blank=True, null=True, verbose_name='Цена в магазине')
+    price_of_use = models.IntegerField(blank=True, null=True, verbose_name='Цена использования')
 
     class Meta:
         verbose_name_plural = 'Типы предметов улучшения'
@@ -225,7 +227,8 @@ class UpgradeItemsUsers(models.Model):
                                           blank=True,
                                           null=True,
                                           on_delete=models.CASCADE,
-                                          verbose_name='Тип предмета улучшения')
+                                          verbose_name='Тип предмета улучшения',
+                                          related_name='upgrade_item_type')
     owner = models.ForeignKey(User,
                               on_delete=models.CASCADE,
                               verbose_name='Владелец')

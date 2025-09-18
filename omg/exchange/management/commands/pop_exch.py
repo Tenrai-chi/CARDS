@@ -12,9 +12,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения exchange """
 
-        # self.load_amulet_rarity()
-        # self.load_amulet_type()
-        # self.load_experience_items()
+        self.load_amulet_rarity()
+        self.load_amulet_type()
+        self.load_experience_items()
         self.load_upgrade_items_type()
 
     def load_amulet_rarity(self):
@@ -129,7 +129,9 @@ class Command(BaseCommand):
                                                description=up_item['description'],
                                                type=up_item['type'],
                                                amount_up=up_item['amount_up'],
-                                               image=up_item['image'])
+                                               image=up_item['image'],
+                                               price=up_item['price'],
+                                               price_of_use=up_item['price_of_use'],)
                 new_up_item.save()
                 self.stdout.write(self.style.SUCCESS(f'Успешно добавлен предмет улучшения амулета: {up_item["name"]}'))
         except FileNotFoundError:

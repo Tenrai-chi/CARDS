@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Усиление</li>
+        </ol>
+    </nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container text-center">
+        <p><img width="320" height="320" alt="card_image" src="{{ card.class_card.image.url }}"><p>
+        <p>Уровень: {{ card.level }}</p>
+        <p>Здоровье: {{ card.hp }} + {{ card.rarity.coefficient_hp_for_level }}</p>
+        <p>Урон: {{ card.damage }} + {{ card.rarity.coefficient_damage_for_level }}</p>
+        <p>Усиление: {{ card.merger }} из {{ card.max_merger }}</p>
+    </div>
+    <br>
+
+
+    <div class="container col-md-12 text-center">
+        <h4>Предметы усиления</h4>
+        <br>
+        <div class="row">
+            {% for item in inventory %}
+                <div class="col">
+                    <div class="card card border-dark" style="width: 18rem;">
+                        <img src="{{ item.upgrade_item_type.image.url }}" class="card-img-top" alt="card_image">
+                        <div class="card-body">
+                            <h5 class="card-title" class="text-center">{{ item.upgrade_item_type.name }}</a></h5>
+                            <p class="card-text">{{ item.upgrade_item_type.description }}</p>
+                            <p class="card-text">Количество: {{ item.amount }}</p>
+                            {% if user.profile.gold < item.upgrade_item_type.price_of_use %}
+                            <p class="card-text">Цена использования: <span style="color:#ff0000">{{ item.upgrade_item_type.price_of_use }}</span></p>
+                            {% else %}
+                            <p class="card-text">Цена использования: <span style="color:#009933">{{ item.upgrade_item_type.price_of_use }}</span></p>
+                            {% endif %}
+                            {% if card.level < card.rarity.max_level %}
+                                <div class="btn-group-vertical col-12 mx-auto">
+                                    <a href="{% url 'merge_card' card_id=card.pk up_item_id=item.upgrade_item_type.pk %}" class="btn btn-primary">Использовать</a>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <br>
+    </div>
+{% endblock content %}

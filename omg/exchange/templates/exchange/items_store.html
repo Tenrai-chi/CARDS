@@ -133,9 +133,51 @@
     </div>
     {% endif %}
 
-    {% if upgrade_items == True %}
+    {% if upgrade_items != None %}
     <div class="container col-12">
         <h4 class="text-center">Предметы усиления</h4><br>
+
+        {{ up_item.name }}
+        {{ up_item.description }}
+        {{ up_item.type }}
+        {{ up_item.amount_up }}
+
+
+        <div class="row">
+            {% for up_item in upgrade_items %}
+            <div class="col-md-4">
+                <div class="card card border-dark" style="width: 23rem;">
+                    <img src="{{ up_item.image.url }}" class="card-img-top" alt="item_image">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ up_item.name }}</h5>
+                        <p class="card-text">Описание: {{ up_item.description }}</p>
+
+                        {% if user.is_authenticated %}
+                            {% if user.profile.gold < item.price %}
+                                <p class="card-text">Цена: <span style="color:#ff0000">{{ up_item.price }}</span></p>
+                                <a href="{% url 'buy_upgrade_item' upgrade_item_id=up_item.pk %}" class="btn btn-primary">Купить</a>
+                            {% else %}
+                                <p class="card-text">Цена: <span style="color:#009933">{{ up_item.price }}</span></p>
+                                <div class="btn-group-vertical col-12 mx-auto">
+                                <a href="{% url 'buy_upgrade_item' upgrade_item_id=up_item.pk %}" class="btn btn-primary">Купить</a>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            <p style="color:#000000" class="card-text">Цена: {{ up_item.price }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <br><br>
+            </div>
+            {% endfor %}
+        </div>
+
+
+
+
+
+
+
     </div>
     {% endif %}
 

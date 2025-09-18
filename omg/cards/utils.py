@@ -8,10 +8,9 @@ from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type
 from exchange.models import AmuletItem
 
 
-def fight_now(attacker, protector):
+def fight_now(attacker: User, protector: User):
     """ Битва.
         Возвращает победителя, проигравшего и историю боя
-        TODO посмотреть атакер и протектор
     """
 
     attacker_damage, protector_damage, attacker_hp, protector_hp = stats_calculation(attacker, protector)
