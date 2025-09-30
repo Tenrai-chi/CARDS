@@ -41,10 +41,14 @@
                     <td><a href="{% url 'view_guild' guild_id=guild.id %}">{{ guild.name }}</a></td>
                     <td><a href="{% url 'view_profile' user_id=guild.leader.id %}">{{ guild.leader }}</a></td>
                     <td>{{ guild.rating }}</td>
-                    <td>{{ guild.number_of_participants }}</td>
+                    <td>{{ guild.number_of_participants }} / {{ guild.max_number_of_participants }}</td>
                     <td>{{ guild.buff.name }}</td>
                     {% if user.is_authenticated and user.profile.guild == None %}
-                        <td><a href="{% url 'add_member_guild' guild_id=guild.id %}" class="btn btn-primary">Вступить</a></td>
+                        {% if guild.number_of_participants < guild.max_number_of_participants %}
+                            <td><a href="{% url 'add_member_guild' guild_id=guild.id %}" class="btn btn-primary">Вступить</a></td>
+                        {% else %}
+                            <td><a href="{% url 'add_member_guild' guild_id=guild.id %}" class="btn btn-primary disabled" >Вступить</a></td>
+                        {% endif %}
                     {% endif %}
                 </tr>
             {% endfor %}

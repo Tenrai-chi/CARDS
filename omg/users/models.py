@@ -26,11 +26,12 @@ class GuildBuff(models.Model):
 
 
 class Guild(models.Model):
-    """ Гильдия пользователей """
+    """ Список гильдий """
 
     name = models.CharField(unique=True, max_length=50, verbose_name='Название')
     leader = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Лидер')
-    number_of_participants = models.IntegerField(default=1, verbose_name='Количество участников')
+    number_of_participants = models.PositiveSmallIntegerField(default=1, verbose_name='Количество участников')
+    max_number_of_participants = models.PositiveSmallIntegerField(null=True, blank=True, default=30, verbose_name='Максимальное количество участников')
     guild_pic = models.ImageField(null=True,
                                   blank=True,
                                   default='image/guild/avatar.png',
@@ -55,13 +56,20 @@ class Guild(models.Model):
             img = new_size(img)
             img.save(self.guild_pic.path)
 
+    def add_user_in_guild(self):
+        """ Увеличение количества участников гильдии """
+
+        if self.number_of_participants < self.max_number_of_participants:
+            self.number_of_participants += 1
+            self.save()
+
 
 class Profile(models.Model):
-    """ Профиль """
+    """ Профиль пользователя """
 
     user = models.OneToOneField(User, null=True, on_delete=models.CASCADE, verbose_name='Пользователь')
     about_user = models.TextField(null=True, blank=True, max_length=300, verbose_name='Информация')
-    gold = models.IntegerField(blank=True, null=True, default=10000, verbose_name='Деньги')
+    gold = models.PositiveIntegerField(blank=True, null=True, default=10000, verbose_name='Деньги')
     receiving_timer = models.DateTimeField(blank=True, null=True, verbose_name='Последнее получение')
     win = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Победы')
     lose = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Поражения')
@@ -74,12 +82,12 @@ class Profile(models.Model):
     date_guild_accession = models.DateField(blank=True, null=True, verbose_name='Дата присоединения к гильдии')
     guild_point = models.IntegerField(blank=True, null=True, default=0, verbose_name='Очки гильдии')
 
-    card_slots = models.IntegerField(blank=True, null=True, default=80, verbose_name='Максимальное количество карт')
-    amulet_slots = models.IntegerField(blank=True, null=True, default=100, verbose_name='Максимальное количество амулетов')
-    level = models.PositiveIntegerField(blank=True, null=True, default=1, verbose_name='Уровень')
+    card_slots = models.PositiveSmallIntegerField(blank=True, null=True, default=80, verbose_name='Максимальное количество карт')
+    amulet_slots = models.PositiveSmallIntegerField(blank=True, null=True, default=100, verbose_name='Максимальное количество амулетов')
+    level = models.PositiveSmallIntegerField(blank=True, null=True, default=1, verbose_name='Уровень')
     experience_bar = models.IntegerField(default=0, blank=True, null=True, verbose_name='Опыт')
 
-    event_visit = models.PositiveIntegerField(default=0, blank=True, null=True, verbose_name='Отметки пользователя для награды')
+    event_visit = models.PositiveSmallIntegerField(default=0, blank=True, null=True, verbose_name='Отметки пользователя для награды')
     date_event_visit = models.DateField(blank=True, null=True, verbose_name='Дата последней отметки для награды')
 
     class Meta:
@@ -109,7 +117,7 @@ class Profile(models.Model):
         self.save()
 
     def spend_gold(self, gold):
-        """ Вычитание золота """
+        """ Списание золота """
 
         self.gold -= gold
         self.save()
@@ -140,8 +148,8 @@ class Transactions(models.Model):
 
     date_and_time = models.DateTimeField(blank=True, null=True, verbose_name='Дата и время')
     user = models.ForeignKey(User, null=True, blank=True, on_delete=models.CASCADE, verbose_name='Пользователь')
-    before = models.IntegerField(null=True, blank=True, verbose_name='До')
-    after = models.IntegerField(null=True, blank=True, verbose_name='После')
+    before = models.PositiveIntegerField(null=True, blank=True, verbose_name='До')
+    after = models.PositiveIntegerField(null=True, blank=True, verbose_name='После')
     comment = models.CharField(null=True, blank=True, max_length=300, verbose_name='Комментарий')
 
     class Meta:

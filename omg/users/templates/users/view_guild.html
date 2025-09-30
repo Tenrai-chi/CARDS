@@ -26,7 +26,7 @@
 
             <div class="col">
                 <p>Лидер: <a href="{% url 'view_profile' user_id=guild_info.leader.id %}">{{ guild_info.leader.username }}</a></p>
-                <p>Количество участников: {{ guild_info.number_of_participants }} </p>
+                <p>Количество участников: {{ guild_info.number_of_participants }} из {{ guild_info.max_number_of_participants }}</p>
                 <p>Рейтинг: {{ guild_info.rating }} </p>
                 <p>Усиление: {{ guild_info.buff.name }} </p>
                 <p>Описание: {{ guild_info.buff.description }} </p>
@@ -40,7 +40,7 @@
                 {% elif user.profile.guild == guild_info %}
                     <a href="{% url 'remove_member_guild' member_id=user.id guild_id=guild_info.id %}" class="btn btn-primary">Покинуть</a>
 
-                {% elif user.profile.guild == None %}
+                {% elif user.is_authenticated and user.profile.guild == None and guild_info.number_of_participants < guild_info.max_number_of_participants %}
                     <a href="{% url 'add_member_guild' guild_id=guild_info.id %}" class="btn btn-primary">Вступить</a>
                 {% endif %}
 

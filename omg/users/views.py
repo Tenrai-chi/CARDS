@@ -145,7 +145,7 @@ def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | H
 
 
 def view_transactions(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
-    """ Выводит историю движений денежных средств пользователя """
+    """ Вывод истории движений денежных средств пользователя """
 
     if request.user.is_authenticated and request.user.id == user_id:
         transactions = Transactions.objects.filter(user=request.user).order_by('-date_and_time').annotate(result=F('after')-F('before'))[:250]
@@ -165,7 +165,7 @@ def view_transactions(request: HttpRequest, user_id: int) -> HttpResponseRedirec
 
 
 def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
-    """ Добавляет в избранное выбранного пользователя """
+    """ Добавление в избранное выбранного пользователя """
 
     if request.user.is_authenticated and request.user.id != user_id:
         try:
@@ -200,7 +200,7 @@ def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirec
 
 
 def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
-    """ Удаляет пользователя из списка избранных """
+    """ Удаление пользователя из списка избранных """
 
     if request.user.id != user_id:
         try:
@@ -220,7 +220,7 @@ def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedi
 
 
 def view_favorite_users(request: HttpRequest) -> HttpResponse:
-    """ Список избранных пользователей """
+    """ Вывод списка избранных пользователей """
 
     favorite_users = FavoriteUsers.objects.filter(user=request.user)
     context = {'title': f'Избранные пользователи',
@@ -367,7 +367,6 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
                     new_transaction.save()
 
                 edit_guild_info_form.save()
-                # TODO Пофиксить несохранение изменения даты последнего обновления усиления
                 current_update_guild_info = Guild.objects.get(pk=guild_id)
                 if old_buff != current_update_guild_info.buff:
                     can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
@@ -376,6 +375,8 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
                     if can_edit_buff:
                         current_update_guild_info.date_last_change_buff = date_time_now()
                         current_update_guild_info.save()
+
+                        messages.success(request, 'Вы успешно изменили информацию о гильдии!')
                     else:
                         current_update_guild_info.buff = old_buff
                         current_update_guild_info.save()
@@ -530,7 +531,7 @@ def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirec
     user_profile = Profile.objects.get(user=request.user)
     guild_info = get_object_or_404(Guild, pk=guild_id)
 
-    if guild_info.number_of_participants == 50:
+    if guild_info.number_of_participants >= guild_info.max_number_of_participants:
         messages.error(request, 'В этой гильдии заняты все места!')
 
         return HttpResponseRedirect(reverse('home'))
@@ -540,17 +541,15 @@ def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirec
         user_profile.date_guild_accession = date_time_now()
         user_profile.guild_point = 0
 
-        guild_info.number_of_participants += 1
-
+        guild_info.add_user_in_guild()
         user_profile.save()
-        guild_info.save()
 
         messages.success(request, 'Вы успешно вступили в гильдию!')
 
         return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
 
     else:
-        messages.error(request, 'Покиньте текущую гильдию!')
+        messages.error(request, 'Чтобы вступить в новую гильдию, покиньте текущую!')
 
         return HttpResponseRedirect(reverse('home'))
 

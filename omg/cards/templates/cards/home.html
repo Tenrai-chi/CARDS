@@ -14,7 +14,7 @@
 
 {% block content %}
 <div class="container text-center mt-4">
-
+{% if user.is_authenticated %}
     <h3>Награды за посещение мероприятия</h3>
 
     <div class="table-responsive">
@@ -56,4 +56,5 @@
     {% endif %}
 </div>
 <br>
+{% endif %}
 {% endblock content %}
