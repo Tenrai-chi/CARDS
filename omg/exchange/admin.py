@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (SaleUserCards, ExperienceItems, UsersInventory,
                      HistoryPurchaseItems, AmuletItem, AmuletType, AmuletRarity,
-                     UpgradeItemsType, UpgradeItemsUsers)
+                     UpgradeItemsType, UpgradeItemsUsers, InitialEventAwards)
 
 
 class SaleUserCardsAdmin(admin.ModelAdmin):
@@ -65,6 +65,13 @@ class UpgradeItemsUsersAdmin(admin.ModelAdmin):
     search_fields = ('id', 'upgrade_item_type')
 
 
+class InitialEventAwardsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'day_event_visit', 'type_award', 'amount_or_rarity_award', 'description')
+    list_display_links = ('id',)
+    search_fields = ('id', 'type_award', 'description')
+
+
+admin.site.register(InitialEventAwards, InitialEventAwardsAdmin)
 admin.site.register(UpgradeItemsUsers, UpgradeItemsUsersAdmin)
 admin.site.register(UpgradeItemsType, UpgradeItemsTypeAdmin)
 admin.site.register(AmuletRarity, AmuletRarityAdmin)

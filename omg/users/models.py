@@ -1,5 +1,5 @@
+from datetime import datetime
 from PIL import Image
-from os import path
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -37,7 +37,7 @@ class Guild(models.Model):
                                   upload_to='image/guild/',
                                   verbose_name='Аватарка')
     date_create = models.DateTimeField(blank=True, null=True, verbose_name='Дата создания')
-    rating = models.IntegerField(verbose_name='Рейтинг')
+    rating = models.PositiveIntegerField(verbose_name='Рейтинг')
     buff = models.ForeignKey(GuildBuff, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Усиление гильдии')
     date_last_change_buff = models.DateTimeField(blank=True, null=True, verbose_name='Дата и время смены усиления')
 
@@ -63,8 +63,8 @@ class Profile(models.Model):
     about_user = models.TextField(null=True, blank=True, max_length=300, verbose_name='Информация')
     gold = models.IntegerField(blank=True, null=True, default=10000, verbose_name='Деньги')
     receiving_timer = models.DateTimeField(blank=True, null=True, verbose_name='Последнее получение')
-    win = models.IntegerField(blank=True, null=True, default=0, verbose_name='Победы')
-    lose = models.IntegerField(blank=True, null=True, default=0, verbose_name='Поражения')
+    win = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Победы')
+    lose = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Поражения')
     current_card = models.ForeignKey(Card, null=True, blank=True, default=None,
                                      on_delete=models.SET_NULL, verbose_name='Выбранная карта')
     is_activated = models.BooleanField(null=True, blank=True, default=True, verbose_name='Активен')
@@ -76,8 +76,11 @@ class Profile(models.Model):
 
     card_slots = models.IntegerField(blank=True, null=True, default=80, verbose_name='Максимальное количество карт')
     amulet_slots = models.IntegerField(blank=True, null=True, default=100, verbose_name='Максимальное количество амулетов')
-    level = models.IntegerField(blank=True, null=True, default=1, verbose_name='Уровень')
+    level = models.PositiveIntegerField(blank=True, null=True, default=1, verbose_name='Уровень')
     experience_bar = models.IntegerField(default=0, blank=True, null=True, verbose_name='Опыт')
+
+    event_visit = models.PositiveIntegerField(default=0, blank=True, null=True, verbose_name='Отметки пользователя для награды')
+    date_event_visit = models.DateField(blank=True, null=True, verbose_name='Дата последней отметки для награды')
 
     class Meta:
         verbose_name_plural = 'Профили'
@@ -120,6 +123,16 @@ class Profile(models.Model):
             self.guild_point += 6
 
         self.save()
+
+    def add_event_visit(self):
+        """ Увеличение количество входа пользователя (активаций) для получения наград стартового ивента,
+            но не больше 30.
+        """
+
+        if self.event_visit < 30:
+            self.event_visit += 1
+            self.date_event_visit = datetime.now().date()
+            self.save()
 
 
 class Transactions(models.Model):

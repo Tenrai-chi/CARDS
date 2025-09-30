@@ -1,0 +1,184 @@
+{
+  "event_awards": [
+    {
+      "day_event_visit": 1,
+      "type_award": "Карта",
+      "amount_or_rarity_award": "R",
+      "description": "Случайная R карта с максимальными характеристиками"
+    },
+    {
+      "day_event_visit": 2,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "500",
+      "description": null
+    },
+    {
+      "day_event_visit": 3,
+      "type_award": "Маленькая книга опыта",
+      "amount_or_rarity_award": "10",
+      "description": null
+    },
+    {
+      "day_event_visit": 4,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "1000",
+      "description": null
+    },
+    {
+      "day_event_visit": 5,
+      "type_award": "Маленькая книга опыта",
+      "amount_or_rarity_award": "15",
+      "description": null
+    },
+    {
+      "day_event_visit": 6,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "2000",
+      "description": null
+    },
+    {
+      "day_event_visit": 7,
+      "type_award": "Маленькая книга опыта",
+      "amount_or_rarity_award": "20",
+      "description": null
+    },
+    {
+      "day_event_visit": 8,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "4000",
+      "description": null
+    },
+    {
+      "day_event_visit": 9,
+      "type_award": "Маленькая книга опыта",
+      "amount_or_rarity_award": "25",
+      "description": null
+    },
+    {
+      "day_event_visit": 10,
+      "type_award": "Карта",
+      "amount_or_rarity_award": "SR",
+      "description": "Случайная SR карта с максимальными характеристиками"
+    },
+    {
+      "day_event_visit": 11,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "5000",
+      "description": null
+    },
+    {
+      "day_event_visit": 12,
+      "type_award": "Средняя книга опыта",
+      "amount_or_rarity_award": "5",
+      "description": null
+    },
+    {
+      "day_event_visit": 13,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "6000",
+      "description": null
+    },
+    {
+      "day_event_visit": 14,
+      "type_award": "Средняя книга опыта",
+      "amount_or_rarity_award": "10",
+      "description": null
+    },
+    {
+      "day_event_visit": 15,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "7000",
+      "description": null
+    },
+    {
+      "day_event_visit": 16,
+      "type_award": "Средняя книга опыта",
+      "amount_or_rarity_award": "15",
+      "description": null
+    },
+    {
+      "day_event_visit": 17,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "8000",
+      "description": null
+    },
+    {
+      "day_event_visit": 18,
+      "type_award": "Средняя книга опыта",
+      "amount_or_rarity_award": "20",
+      "description": null
+    },
+    {
+      "day_event_visit": 19,
+      "type_award": "Средняя книга опыта",
+      "amount_or_rarity_award": "25",
+      "description": null
+    },
+    {
+      "day_event_visit": 20,
+      "type_award": "Амулет",
+      "amount_or_rarity_award": "Корона завоеваний",
+      "description": null
+    },
+    {
+      "day_event_visit": 21,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "10000",
+      "description": null
+    },
+    {
+      "day_event_visit": 22,
+      "type_award": "Большая книга опыта",
+      "amount_or_rarity_award": "5",
+      "description": null
+    },
+    {
+      "day_event_visit": 23,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "12000",
+      "description": null
+    },
+    {
+      "day_event_visit": 24,
+      "type_award": "Большая книга опыта",
+      "amount_or_rarity_award": "10",
+      "description": null
+    },
+    {
+      "day_event_visit": 25,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "14000",
+      "description": null
+    },
+    {
+      "day_event_visit": 26,
+      "type_award": "Большая книга опыта",
+      "amount_or_rarity_award": "15",
+      "description": null
+    },
+    {
+      "day_event_visit": 27,
+      "type_award": "Золото",
+      "amount_or_rarity_award": "16000",
+      "description": null
+    },
+    {
+      "day_event_visit": 28,
+      "type_award": "Большая книга опыта",
+      "amount_or_rarity_award": "20",
+      "description": null
+    },
+    {
+      "day_event_visit": 29,
+      "type_award": "Большая книга опыта",
+      "amount_or_rarity_award": "25",
+      "description": null
+    },
+    {
+      "day_event_visit": 30,
+      "type_award": "Карта",
+      "amount_or_rarity_award": "UR",
+      "description": "Случайная UR карта с максимальными характеристиками"
+    }
+  ]
+}

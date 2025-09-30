@@ -9,7 +9,7 @@ from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type
 
 
 def date_time_now() -> datetime:
-    """ Возвращает текущее время по Московскому часовому поясу """
+    """ Возвращает текущие дату и время по Московскому часовому поясу """
 
     date_time = datetime.now(pytz.timezone('Europe/Moscow'))
 
@@ -26,9 +26,7 @@ def time_difference_check(check_time: datetime, need_hours: int) -> tuple[bool, 
 
 
 def create_new_card(user: User, ur_box=None, max_attribute=None):
-    """ Создание карты. Возвращает айди только что созданной карты
-        TODO ur_box, max_attribute???
-    """
+    """ Создание карты. Возвращает айди только что созданной карты """
 
     class_card = choice(ClassCard.objects.all())
     type_card = choice(Type.objects.all())
@@ -66,7 +64,6 @@ def create_new_card(user: User, ur_box=None, max_attribute=None):
                                    type=type_card,
                                    rarity=rarity_card,
                                    hp=hp,
-                                   damage=damage
-                                   )
+                                   damage=damage)
 
     return new_card

@@ -87,8 +87,7 @@ class UsersInventory(models.Model):
                              blank=True,
                              null=True,
                              on_delete=models.CASCADE,
-                             verbose_name='Предмет'
-                             )
+                             verbose_name='Предмет')
     amount = models.IntegerField(null=True,
                                  blank=True,
                                  verbose_name='Количество')
@@ -240,3 +239,19 @@ class UpgradeItemsUsers(models.Model):
 
     def __str__(self):
         return f'{self.upgrade_item_type.name} пользователя {self.owner.username}'
+
+
+class InitialEventAwards(models.Model):
+    """ Награды начального ивента """
+
+    day_event_visit = models.IntegerField(blank=True, null=True, verbose_name='День для получения награды')
+    type_award = models.CharField(blank=True, null=True, max_length=30, verbose_name='Тип награды')
+    amount_or_rarity_award = models.CharField(blank=True, null=True, max_length=30, verbose_name='Количество/Редкость(для карт) награды')
+    description = models.CharField(blank=True, null=True, max_length=200, verbose_name='Дополнительная информация')
+
+    class Meta:
+        verbose_name_plural = 'Награды начального ивента'
+        verbose_name = 'Награда начального ивента'
+
+    def __str__(self):
+        return f'Награда {self.day_event_visit} дня {self.type_award}'

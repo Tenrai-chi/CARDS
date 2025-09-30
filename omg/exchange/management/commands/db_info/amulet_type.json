@@ -87,6 +87,17 @@
       "discount": 0,
       "discount_now": 0,
       "rarity": 3
+    },
+    {
+      "name": "Корона завоеваний",
+      "bonus_hp": 45,
+      "bonus_damage": 15,
+      "price": 100000,
+      "sale_now": 0,
+      "image": "image/amulet/9.png",
+      "discount": 0,
+      "discount_now": 0,
+      "rarity": 3
     }
   ]
 }

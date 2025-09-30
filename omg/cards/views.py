@@ -1,3 +1,5 @@
+from random import choice
+from datetime import datetime
 from math import ceil
 from random import randint
 
@@ -10,11 +12,11 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .forms import SaleCardForm, UseItemForm
-from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory
+from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory, Type, ClassCard
 from .utils import accrue_experience, calculate_need_exp, fight_now as f_n
 
 from common.utils import date_time_now, time_difference_check, create_new_card
-from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletType
+from exchange.models import SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletType, InitialEventAwards
 from users.models import Transactions, Profile, SaleStoreCards
 
 
@@ -39,12 +41,24 @@ def view_cards(request: HttpRequest) -> HttpResponse:
 
 def home(request: HttpRequest) -> HttpResponse:
     """ Домашняя пустая страница.
-        TODO Сделать какие-то акции и новости
+        Если пользователь не получил награды начального ивента,
+        то выводится таблица наград.
+        Если отметки в этот день нет, то помимо таблицы выводится кнопка 'отметиться'.
     """
 
     context = {'title': 'Домашняя',
-               'header': 'Стартовая страница'
+               'header': 'Стартовая страница',
+               'button': False
                }
+
+    if request.user.is_authenticated:
+        user_profile = Profile.objects.get(user=request.user)
+        event_awards = InitialEventAwards.objects.all().order_by('id')
+        if user_profile.date_event_visit is None or user_profile.date_event_visit < datetime.now().date():
+            context['button'] = True
+
+        context['user_profile'] = user_profile
+        context['event_awards'] = event_awards
 
     return render(request, 'cards/home.html', context)
 
@@ -381,8 +395,7 @@ def fight(request: HttpRequest, protector_id: int) -> HttpResponseRedirect | Htt
             if chance <= chance_drop:
                 try:
                     items_user = UsersInventory.objects.get(owner=request.user,
-                                                            item=item
-                                                            )
+                                                            item=item)
                     items_user.amount += 1
                     items_user.save()
                     reward_item_user.append(item)
@@ -721,3 +734,75 @@ def view_all_sale_card(request: HttpRequest) -> HttpResponse:
                }
 
     return render(request, 'cards/all_sale_card.html', context)
+
+
+def get_award_start_event(request: HttpRequest):
+    """ Получение награды из начального ивента.
+        Пользователь получает награду за отметку дня, если она еще не получена.
+        Количество совершенных входов пользователя увеличивается.
+        Если награда 30 дня (UR карта), то создает ее и присваивает пользователю.
+    """
+
+    if request.user.is_authenticated:
+        user_profile = Profile.objects.get(user=request.user)
+        if user_profile.event_visit >= 30:
+            messages.error(request, 'Вы получили все награды из этого ивента)')
+            return HttpResponseRedirect(reverse('home'))
+
+        if user_profile.date_event_visit is None or user_profile.date_event_visit < datetime.now().date():
+
+            award = InitialEventAwards.objects.get(day_event_visit=user_profile.event_visit + 1)
+            if award.type_award in ['Маленькая книга опыта', 'Средняя книга опыта', 'Большая книга опыта']:
+                try:
+                    books_user = UsersInventory.objects.get(owner=request.user, item__name=award.type_award)
+                    books_user.amount += int(award.amount_or_rarity_award)
+                    books_user.save()
+                except UsersInventory.DoesNotExist:
+                    book = ExperienceItems.objects.get(name=award.type_award)
+                    books_user = UsersInventory.objects.create(owner=request.user,
+                                                               item=book,
+                                                               amount=int(award.amount_or_rarity_award))
+                    books_user.save()
+
+                messages.success(request, f'Вы получили награду! {award.type_award} {award.amount_or_rarity_award}')
+
+            elif award.type_award == 'Золото':
+                user_profile.get_gold(int(award.amount_or_rarity_award))
+                messages.success(request, f'Вы получили награду! {award.type_award} {award.amount_or_rarity_award}')
+
+            elif award.type_award == 'Амулет':
+                amulet = AmuletType.objects.get(name=award.amount_or_rarity_award)
+                user_amulet = AmuletItem.objects.create(owner=request.user, amulet_type=amulet)
+                user_amulet.save()
+                messages.success(request, f'Вы получили награду! {award.amount_or_rarity_award}')
+
+            elif award.type_award == 'Карта':
+                type_card = choice(Type.objects.all())
+                class_card = choice(ClassCard.objects.all())
+                rarity = Rarity.objects.get(name=award.amount_or_rarity_award)
+
+                user_card = Card.objects.create(owner=request.user,
+                                                level=1,
+                                                class_card=class_card,
+                                                type=type_card,
+                                                rarity=rarity,
+                                                hp=rarity.max_hp,
+                                                damage=rarity.max_damage)
+                user_card.save()
+                user_profile.add_event_visit()
+                messages.success(request, f'Вы получили карту {award.amount_or_rarity_award} с максимальными характеристиками!')
+                return HttpResponseRedirect(f'/cards/card-{user_card.id}')
+
+            else:
+                messages.error(request, 'Что-то пошло не так... Упс')
+                return HttpResponseRedirect(reverse('home'))
+
+            user_profile.add_event_visit()
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.error(request, 'Вы уже получили награду за сегодня')
+            return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Вы не авторизованы!')
+        return HttpResponseRedirect(reverse('home'))

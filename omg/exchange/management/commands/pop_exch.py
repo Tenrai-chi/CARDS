@@ -3,7 +3,7 @@ import os
 
 from django.core.management.base import BaseCommand
 
-from exchange.models import ExperienceItems, AmuletRarity, AmuletType, UpgradeItemsType
+from exchange.models import ExperienceItems, AmuletRarity, AmuletType, UpgradeItemsType, InitialEventAwards
 
 
 class Command(BaseCommand):
@@ -16,6 +16,7 @@ class Command(BaseCommand):
         self.load_amulet_type()
         self.load_experience_items()
         self.load_upgrade_items_type()
+        self.load_start_event_awards()
 
     def load_amulet_rarity(self):
         """ Заполняет редкость амулетов """
@@ -138,5 +139,35 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Файл "upgrade_items_type.json" не найден.'))
         except json.JSONDecodeError as e:
             self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+
+    def load_start_event_awards(self):
+        """ Заполняет таблицу с наградами стартового ивента """
+
+        try:
+            file_path = os.path.join(os.path.dirname(__file__), 'db_info/start_event_awards.json')
+            with open(file_path, 'r', encoding='utf-8') as js:
+                data = json.load(js)
+            event_awards = data.get('event_awards', [])
+
+            for event in event_awards:
+                existing_event = InitialEventAwards.objects.filter(day_event_visit=event['day_event_visit']).first()
+                if existing_event:
+                    self.stdout.write(f'Награда {event["day_event_visit"]} дня уже существует. Пропускаем.')
+                    continue
+
+                new_award = InitialEventAwards.objects.create(day_event_visit=event['day_event_visit'],
+                                                              type_award=event['type_award'],
+                                                              amount_or_rarity_award=event['amount_or_rarity_award'],
+                                                              description=event['description'])
+                new_award.save()
+                self.stdout.write(self.style.SUCCESS(f'Успешно добавлен награда {event["day_event_visit"]} дня'))
+        except FileNotFoundError:
+            self.stdout.write(self.style.ERROR(f'Файл "start_event_awards.json" не найден.'))
+
+        except json.JSONDecodeError as e:
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
