@@ -616,7 +616,7 @@ def buy_upgrade_item(request: HttpRequest, upgrade_item_id: int) -> HttpResponse
         return HttpResponseRedirect(reverse('items_store'))
 
 
-def menu_merge_card(request: HttpRequest, card_id: int):
+def menu_enhance_card(request: HttpRequest, card_id: int):
     """ Меню усиления карты с помощью предметов усиления """
 
     if request.user.is_authenticated:
@@ -640,8 +640,8 @@ def menu_merge_card(request: HttpRequest, card_id: int):
         return HttpResponseRedirect(reverse('items_store'))
 
 
-def merge_card(request: HttpRequest, card_id: int, up_item_id: int):
-    """ Улучшение карты с помощью предмета усиления.
+def enhance_card(request: HttpRequest, card_id: int, up_item_id: int):
+    """ Усиление карты с помощью предмета.
         Карта улучшает свои статы в зависимости от выбранного предмета.
         Удаляет выбранный предмет из инвентаря пользователя UpgradeItemsUsers.
         Создает запись в Transactions.
@@ -669,16 +669,16 @@ def merge_card(request: HttpRequest, card_id: int, up_item_id: int):
             messages.error(request, 'У вас недостаточно денег!')
             return HttpResponseRedirect(f'/inventory/card-{card_id}')
 
-        if current_card.merger >= current_card.max_merger:
-            messages.error(request, 'Эта карта имеет максимальный уровень улучшения!')
+        if current_card.enhancement >= current_card.max_enhancement:
+            messages.error(request, 'Эта карта имеет максимальный уровень усиления!')
             return HttpResponseRedirect(reverse('home'))
 
         if current_up_item.upgrade_item_type.type == 'hp':
-            current_card.merge_hp()
+            current_card.enhance_hp()
         elif current_up_item.upgrade_item_type.type == 'attack':
-            current_card.merge_attack()
+            current_card.enhance_attack()
         elif current_up_item.upgrade_item_type.type == 'random':
-            current_card.merge_random()
+            current_card.enhance_random()
         else:
             pass
 

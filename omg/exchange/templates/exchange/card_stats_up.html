@@ -22,7 +22,7 @@
         <p>Уровень: {{ card.level }}</p>
         <p>Здоровье: {{ card.hp }} + {{ card.rarity.coefficient_hp_for_level }}</p>
         <p>Урон: {{ card.damage }} + {{ card.rarity.coefficient_damage_for_level }}</p>
-        <p>Усиление: {{ card.merger }} из {{ card.max_merger }}</p>
+        <p>Усиление: {{ card.enhancement }} из {{ card.max_enhancement }}</p>
     </div>
     <br>
 
@@ -46,7 +46,7 @@
                             {% endif %}
                             {% if card.level < card.rarity.max_level %}
                                 <div class="btn-group-vertical col-12 mx-auto">
-                                    <a href="{% url 'merge_card' card_id=card.pk up_item_id=item.upgrade_item_type.pk %}" class="btn btn-primary">Использовать</a>
+                                    <a href="{% url 'enhance_card' card_id=card.pk up_item_id=item.upgrade_item_type.pk %}" class="btn btn-primary">Использовать</a>
                                 </div>
                             {% endif %}
                         </div>

@@ -29,7 +29,9 @@
                             <p class="card-text">Здоровье: {{ card.hp }}</p>
                             <p class="card-text">Урон: {{ card.damage }}</p>
                             <p>Способность: {{ card.class_card.skill }}</p>
-                            <p class="card-text">Уровень: {{ card.level }}</p>
+                            <p class="card-text">Уровень: {{ card.level }} из {{ card.rarity.max_level }}</p>
+                            <p class="card-text">Улучшение: {{ card.enhancement }} из {{ card.max_enhancement }}</p>
+                            <p class="card-text">Слияние: {{ card.merger }} из {{ card.max_merger }}</p>
                         </div>
                     </div>
                     <br>

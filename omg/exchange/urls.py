@@ -2,7 +2,7 @@ from django.urls import path
 
 from .views import (item_store, view_inventory_user, buy_item, buy_amulet, sale_amulet,
                     buy_and_open_box_amulet, buy_and_open_box_book, buy_box_card, buy_upgrade_item,
-                    menu_merge_card, merge_card)
+                    menu_enhance_card, enhance_card)
 
 
 urlpatterns = [
@@ -18,6 +18,6 @@ urlpatterns = [
     path('<int:user_id>/<str:inventory_filter>/', view_inventory_user, name='inventory_user'),
     path('<int:user_id>-sale-<int:amulet_id>/', sale_amulet, name='sale_amulet'),
 
-    path('card-<int:card_id>/', menu_merge_card, name='menu_merge_card'),
-    path('card-<int:card_id>/up_item-<int:up_item_id>', merge_card, name='merge_card'),
+    path('card-<int:card_id>/', menu_enhance_card, name='menu_enhance_card'),
+    path('card-<int:card_id>/up_item-<int:up_item_id>', enhance_card, name='enhance_card'),
 ]

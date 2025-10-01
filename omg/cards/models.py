@@ -5,7 +5,7 @@ from random import choice
 
 
 class ClassCard(models.Model):
-    """ Класса карты. Отвечает за способности и изображение """
+    """ Класс карты. Отвечает за способности и изображение """
 
     name = models.CharField(max_length=50, verbose_name='Класс')
     skill = models.CharField(max_length=200, blank=True, verbose_name='Навык')
@@ -24,7 +24,7 @@ class ClassCard(models.Model):
 
 
 class Type(models.Model):
-    """ Тип карты. Отвечает за тип, используемый в битвах """
+    """ Тип карты. Отвечает за урон карты по цветовой схеме """
 
     name = models.CharField(max_length=10, verbose_name='Тип')
     better = models.ForeignKey('self',
@@ -75,7 +75,15 @@ class Rarity(models.Model):
 
 
 class Card(models.Model):
-    """ Карта """
+    """ Карты пользователей
+        Class -> способности карты в бою и картинка
+        Type -> цвет карты (зеленый, синий, красный) по принципу камень-ножницы-бумага
+        Rarity -> максимальный уровень, разброс характеристик начального уровня при генерации, увеличение характеристик с уровнем
+        Damage -> базовый урон
+        Hp -> базовое здоровье
+        Enhancement -> количество использований увеличения здоровья и урона
+        Merger -> количество использованных копий карты, усиливает на навык карты в бою (изначально 0)
+    """
 
     owner = models.ForeignKey(User, blank=True, null=True, on_delete=models.CASCADE, verbose_name='Владелец')
     class_card = models.ForeignKey(ClassCard, on_delete=models.SET_NULL, null=True, verbose_name='Класс')
@@ -83,13 +91,16 @@ class Card(models.Model):
     hp = models.FloatField(verbose_name='Здоровье')
     damage = models.FloatField(verbose_name='Урон')
     level = models.IntegerField(default=1, verbose_name='Уровень')
-    experience_bar = models.IntegerField(default=0, blank=True, null=True, verbose_name='Опыт')
+    experience_bar = models.IntegerField(default=0, blank=True, null=True, verbose_name='Текущий опыт')
     rarity = models.ForeignKey(Rarity, on_delete=models.SET_NULL, null=True, verbose_name='Редкость')
     sale_status = models.BooleanField(default=False, blank=True, null=True, verbose_name='Продажа')
     price = models.IntegerField(default=None, blank=True, null=True, verbose_name='Цена продажи')
 
+    enhancement = models.IntegerField(default=0, blank=True, null=True, verbose_name='Количество усилений')
+    max_enhancement = models.IntegerField(default=20, blank=True, null=True, verbose_name='Максимальное количество усилений')
+
     merger = models.IntegerField(default=0, blank=True, null=True, verbose_name='Количество слияний')
-    max_merger = models.IntegerField(default=20, blank=True, null=True, verbose_name='Максимальное количество слияний')
+    max_merger = models.IntegerField(default=10, blank=True, null=True, verbose_name='Максимальное количество слияний')
 
     class Meta:
         verbose_name_plural = 'Карты'
@@ -106,25 +117,41 @@ class Card(models.Model):
 
         self.save()
 
-    def merge_hp(self):
-        self.hp += 3
-        self.merger += 1
-        self.save()
+    def enhance_hp(self):
+        """ Усиление здоровья """
 
-    def merge_attack(self):
-        self.damage += 3
-        self.merger += 1
-        self.save()
+        if self.enhancement < self.max_enhancement:
+            self.hp += 3
+            self.enhancement += 1
+            self.save()
 
-    def merge_random(self):
-        hp_or_damage = choice([0, 1])
-        if hp_or_damage == 0:
-            self.hp += 5
+    def enhance_attack(self):
+        """ Усиление атаки """
+
+        if self.enhancement < self.max_enhancement:
+            self.damage += 3
+            self.enhancement += 1
+            self.save()
+
+    def enhance_random(self):
+        """ Усиление случайной характеристики """
+
+        if self.enhancement < self.max_enhancement:
+            hp_or_damage = choice([0, 1])
+            if hp_or_damage == 0:
+                self.hp += 5
+                self.enhancement += 1
+            else:
+                self.damage += 5
+                self.enhancement += 1
+            self.save()
+
+    def merge(self):
+        """ Слияние карты """
+
+        if self.merger < self.max_merger:
             self.merger += 1
-        else:
-            self.damage += 5
-            self.merger += 1
-        self.save()
+            self.save()
 
 
 class CardStore(models.Model):

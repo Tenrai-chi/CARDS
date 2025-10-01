@@ -185,7 +185,7 @@ class AmuletItem(models.Model):
                               on_delete=models.CASCADE,
                               verbose_name='Владелец')
     card = models.ForeignKey(Card,
-                             on_delete=models.CASCADE,
+                             on_delete=models.SET_NULL,
                              blank=True,
                              null=True,
                              verbose_name='Карта',

@@ -388,7 +388,7 @@ def fight(request: HttpRequest, protector_id: int) -> HttpResponseRedirect | Htt
 
             # Использование способности эльфа
             if attacker.profile.current_card.class_card.name == 'Эльф':
-                chance_drop = item.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
+                chance_drop = item.chance_drop_on_fight + (attacker.profile.current_card.class_card.numeric_value + 4 * attacker.profile.current_card.merger)
             else:
                 chance_drop = item.chance_drop_on_fight
 
@@ -728,7 +728,7 @@ def view_all_sale_card(request: HttpRequest) -> HttpResponse:
     else:
         sale_cards = Card.objects.filter(sale_status=True)
 
-    context = {'title': 'Улучшение карты',
+    context = {'title': 'Торговая площадка',
                'header': 'Торговая площадка',
                'cards': sale_cards,
                }
@@ -768,6 +768,13 @@ def get_award_start_event(request: HttpRequest):
 
             elif award.type_award == 'Золото':
                 user_profile.get_gold(int(award.amount_or_rarity_award))
+                new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                              user=request.user,
+                                                              before=user_profile.gold,
+                                                              after=user_profile.gold + int(award.amount_or_rarity_award),
+                                                              comment='Награда стартового ивента'
+                                                              )
+                new_transaction.save()
                 messages.success(request, f'Вы получили награду! {award.type_award} {award.amount_or_rarity_award}')
 
             elif award.type_award == 'Амулет':
@@ -802,6 +809,75 @@ def get_award_start_event(request: HttpRequest):
         else:
             messages.error(request, 'Вы уже получили награду за сегодня')
             return HttpResponseRedirect(reverse('home'))
+
+    else:
+        messages.error(request, 'Вы не авторизованы!')
+        return HttpResponseRedirect(reverse('home'))
+
+
+def merge_card_menu(request: HttpRequest, current_card_id: int):
+    """ Меню слияния карты.
+        Выводит карты, которые можно слить в выбранную карту
+    """
+
+    if request.user.is_authenticated:
+        current_card = get_object_or_404(Card, pk=current_card_id)
+
+        if current_card.owner != request.user:
+            messages.error(request, 'Вы не являетесь владельцем карты')
+            return HttpResponseRedirect(reverse('home'))
+
+        cards_for_merge = Card.objects.filter(owner=request.user,
+                                              class_card=current_card.class_card,
+                                              type=current_card.type,
+                                              rarity=current_card.rarity).exclude(pk=current_card_id)
+
+        context = {'title': 'Слияние карты',
+                   'header': 'Слияние карты',
+                   'current_card': current_card,
+                   'cards_for_merge': cards_for_merge
+                   }
+
+        return render(request, 'cards/merge_menu_card.html', context)
+
+    else:
+        messages.error(request, 'Вы не авторизованы!')
+        return HttpResponseRedirect(reverse('home'))
+
+
+def merge_card(request: HttpRequest, current_card_id: int, card_for_merge_id: int):
+    """ Слияние карты.
+        Повышает уровень слияния выбранной карты.
+        Уничтожает карту, которую слили, перед этим сняв амулет.
+        Избранную карту нельзя слить.
+    """
+
+    if request.user.is_authenticated:
+        if current_card_id == card_for_merge_id:
+            messages.error(request, 'Вы не можете слить одну и ту же карту!')
+            return HttpResponseRedirect(reverse('home'))
+
+        current_card = get_object_or_404(Card, pk=current_card_id)
+        card_for_merge = get_object_or_404(Card, pk=card_for_merge_id)
+
+        if current_card.owner != request.user or card_for_merge.owner != request.user:
+            messages.error(request, 'Вы не можете слить эти карты!')
+            return HttpResponseRedirect(reverse('home'))
+
+        if current_card.merger >= current_card.max_merger:
+            messages.error(request, 'Вы больше не можете использовать слияние для этой карты!')
+            return HttpResponseRedirect(reverse('home'))
+
+        if current_card.class_card != card_for_merge.class_card or \
+                current_card.type != card_for_merge.type or \
+                current_card.rarity != card_for_merge.rarity:
+            messages.error(request, 'Вы не можете слить эти карты!')
+            return HttpResponseRedirect(reverse('home'))
+
+        current_card.merge()
+        card_for_merge.delete()
+        messages.success(request, 'Вы успешно выполнили слияние!')
+        return HttpResponseRedirect(f'/cards/card-{current_card.id}/merge_menu')
 
     else:
         messages.error(request, 'Вы не авторизованы!')

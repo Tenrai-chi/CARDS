@@ -15,7 +15,8 @@ class CardAdmin(admin.ModelAdmin):
                     'level',
                     'sale_status',
                     'price',
-                    'merger',)
+                    'enhancement',
+                    'max_enhancement')
 
 
 class RarityAdmin(admin.ModelAdmin):

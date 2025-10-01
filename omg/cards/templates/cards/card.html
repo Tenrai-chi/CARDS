@@ -43,7 +43,8 @@
         {% if amulet %}
             <p>Амулет: {{ amulet.amulet_type.name }}</a></p>
         {% endif %}
-        <p>Усиление: {{ card.merger }} из {{ card.max_merger }} </p>
+        <p>Усиление: {{ card.enhancement }} из {{ card.max_enhancement }} </p>
+        <p>Слияние: {{ card.merger }} из {{ card.max_merger }} </p>
 
 
         {% if user == card.owner %}
@@ -53,9 +54,15 @@
                         <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Улучшить</a><br><br>
                     </div>
             {% endif %}
+            {% if card.enhancement < card.max_enhancement %}
+                <div class="text-center">
+                    <a href="{% url 'menu_enhance_card' card_id=card.pk %}" class="btn btn-primary col-md-12">Усилить</a><br><br>
+                </div>
+            {% endif %}
             {% if card.merger < card.max_merger %}
                 <div class="text-center">
-                    <a href="{% url 'menu_merge_card' card_id=card.pk %}" class="btn btn-primary col-md-12">Усилить</a><br><br>
+                    <a href="{% url 'merge_card_menu' current_card_id=card.pk %}"
+                       class="btn btn-primary col-md-12">Слияние</a><br><br>
                 </div>
             {% endif %}
         {% endif %}

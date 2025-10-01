@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=current_card.owner.pk %}">{{ current_card.owner.username }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'card' card_id=current_card.pk %}">Карта {{ current_card.pk }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Слияние</li>
+        </ol>
+    </nav>
+{% endblock navigation %}
+
+{% block content %}
+    <div class="container text-center">
+        <p><img width="320" height="320" alt="card_image" src="{{ current_card.class_card.image.url }}"><p>
+        <p>Класс: {{ current_card.class_card.name }}</p>
+        <p>Тип: {{ current_card.type.name }}</p>
+        <p>Редкость: {{ current_card.rarity.name }}</p>
+        <p>Уровень: {{ current_card.level }}</p>
+        <p>Здоровье: {{ current_card.hp }} + {{ current_card.rarity.coefficient_hp_for_level }}</p>
+        <p>Урон: {{ current_card.damage }} + {{ current_card.rarity.coefficient_damage_for_level }}</p>
+        <p>Навык: {{ current_card.class_card.skill }}: {{ current_card.class_card.description }}</p>
+        <p>Слияние: {{ current_card.merger }} из {{ current_card.max_merger }}</p>
+    </div>
+    <br>
+
+
+    <div class="container col-md-12 text-center">
+        <h4>Доступные карты для слияния</h4>
+        <br>
+        <div class="row">
+            {% for card in cards_for_merge %}
+                <div class="col">
+                    <div class="card card border-dark" style="width: 18rem;">
+                        <img src="{{ card.class_card.image.url }}" class="card-img-top" alt="card_image">
+                        <div class="card-body">
+                            <h5 class="card-title" class="text-center">ID {{ card.id }}</a></h5>
+                            <p>Класс: {{ current_card.class_card.name }}</p>
+                            <p>Тип: {{ current_card.type.name }}</p>
+                            <p>Редкость: {{ current_card.rarity.name }}</p>
+                            <p>Уровень: {{ current_card.level }}</p>
+                            <p>Слияние: {{ current_card.merger }} из {{ current_card.max_merger}}
+                            <div class="btn-group-vertical col-12 mx-auto">
+                                <a href="{% url 'merge_card' current_card_id=current_card.id card_for_merge_id=card.id %}" class="btn btn-primary">Использовать</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <br>
+    </div>
+{% endblock content %}

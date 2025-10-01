@@ -2,7 +2,7 @@ from django.urls import path
 from .views import (view_cards, view_user_cards, view_card, card_store, buy_card, get_card,
                     create_card, card_sale, buy_card_user, view_user_cards_for_sale,
                     select_favorite_card, fight, card_level_up, level_up_with_item,
-                    remove_from_sale_card, view_all_sale_card)
+                    remove_from_sale_card, view_all_sale_card, merge_card_menu, merge_card)
 
 from exchange.views import change_amulet_menu, remove_amulet, change_amulet
 
@@ -26,6 +26,9 @@ urlpatterns = [
     path('card-<int:card_id>/amulets/change-<int:amulet_id>', change_amulet, name='change_amulet'),
     path('card-<int:card_id>/level_up/', card_level_up, name='level_up'),
     path('card-<int:card_id>/level_up/<int:item_id>/', level_up_with_item, name='level_up_with_item'),
+
+    path('card-<int:current_card_id>/merge_menu/', merge_card_menu, name='merge_card_menu'),
+    path('card-<int:current_card_id>/merge_menu/<int:card_for_merge_id>/', merge_card, name='merge_card'),
 
     path('ffflx/', create_card, name='create_card'),
     path('aw<int:selected_card_id>aw/', select_favorite_card, name='select_favorite_card'),
