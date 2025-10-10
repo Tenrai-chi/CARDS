@@ -49,7 +49,8 @@ class Type(models.Model):
 
 
 class Rarity(models.Model):
-    """ Редкость карты. Отвечает за максимально возможный уровень, разброс здоровья и урона при генерации карты и
+    """ Редкость карты. Отвечает за максимально возможный уровень,
+        разброс здоровья и урона при генерации карты и
         возрастание характеристик с ростом уровня
     """
 
@@ -151,6 +152,14 @@ class Card(models.Model):
 
         if self.merger < self.max_merger:
             self.merger += 1
+            self.save()
+
+    def remove_from_sale(self):
+        """ Удаляет карту с торговой площадки """
+
+        if self.sale_status is True:
+            self.sale_status = False
+            self.price = None
             self.save()
 
 

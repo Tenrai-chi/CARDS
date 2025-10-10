@@ -8,280 +8,257 @@ from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type
 from exchange.models import AmuletItem
 
 
-def fight_now(attacker: User, protector: User):
-    """ Битва.
-        Возвращает победителя, проигравшего и историю боя
+def stats_calculation(user_card: Card, enemy_card: Card) -> tuple[float, float, float, float]:
+    """ Вычисление боевых характеристик карт.
+        Базовые характеристики на основе типа обеих карт.
+        Дополнительные характеристики на основе амулета при наличии.
     """
 
-    attacker_damage, protector_damage, attacker_hp, protector_hp = stats_calculation(attacker, protector)
+    user_card_hp = round(user_card.hp)
+    user_card_damage = round(user_card.damage)
+    enemy_card_hp = round(enemy_card.hp)
+    enemy_card_damage = round(enemy_card.damage)
 
-    # Начисление статов от амулета карте защиты
-    amulet_protector = AmuletItem.objects.filter(card=protector.profile.current_card).last()
-    if amulet_protector:
-        protector_hp, protector_damage = stat_amulet_calculation(amulet_protector, protector_hp, protector_damage)
+    # Если карта пользователя лучше карты противника
+    if user_card.type.better == enemy_card.type:
+        user_card_damage = round(user_card_damage * 1.2)
+        enemy_card_damage = round(enemy_card_damage * 0.8)
+    # Если карта противника лучше карты пользователя
+    elif enemy_card.type.better == user_card.type:
+        enemy_card_damage = round(enemy_card_damage * 1.2)
+        user_card_damage = round(user_card_damage * 0.8)
 
-    # Начисление статов от амулета карте нападения
-    amulet_attacker = AmuletItem.objects.filter(card=attacker.profile.current_card).last()
-    if amulet_attacker:
-        attacker_hp, attacker_damage = stat_amulet_calculation(amulet_attacker, attacker_hp, attacker_damage)
+    try:
+        amulet_user_card = user_card.amulet_card.get()
+        user_card_hp += amulet_user_card.amulet_type.bonus_hp
+        user_card_damage += amulet_user_card.amulet_type.bonus_damage
+    except AmuletItem.DoesNotExist:
+        pass
 
-    # Битва
+    try:
+        amulet_enemy_card = enemy_card.amulet_card.get()
+        enemy_card_hp += amulet_enemy_card.amulet_type.bonus_hp
+        enemy_card_damage += amulet_enemy_card.amulet_type.bonus_damage
+    except AmuletItem.DoesNotExist:
+        pass
+
+    return user_card_hp, user_card_damage, enemy_card_hp, enemy_card_damage
+
+
+def fight_now(user_card: Card, enemy_card: Card) -> tuple[User, User, bool, list[list[str]]]:
+    """ Битва возвращает победителя, проигравшего и итог боя """
+
+    user_card_hp, user_card_damage, enemy_card_hp, enemy_card_damage = stats_calculation(user_card, enemy_card)
+
     can_fight_now = True
     history_fight = []
     turn = -1
+    winner = None
+    loser = None
+    is_victory = False
     while can_fight_now:
-        # ХОД НАПАДЕНИЯ
+        """ Ход пользователя """
         turn += 1
-        history_fight.append([None for _ in range(6)])
-        history_fight[turn][0] = f'Ход {turn + 1} {attacker.username}'
+        # Перезапись информации о ходе
+        history_fight_turn = [f'Ход {turn + 1} {user_card.owner.username}']
 
-        #  Использование способности Дриады защиты
-        if attacker.profile.current_card.class_card.name == 'Дриада':
-            heal_hp = attacker.profile.current_card.class_card.numeric_value + 5 * attacker.profile.current_card.merger
-            attacker_hp += heal_hp
-            history_fight[turn][2] = (f'Используется способность {attacker.username}-' +
-                                      f'{attacker.profile.current_card.class_card.name} ' +
-                                      f'"{attacker.profile.current_card.class_card.skill}" и ' +
-                                      f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
-                                      f'{heal_hp}')
+        # Использование способности Дриады защиты
+        if enemy_card.class_card.name == 'Дриада':
+            enemy_card_hp, heal = use_spell_dryad(enemy_card, enemy_card_hp)
+            history_fight_turn.append(formation_of_history(enemy_card, heal))
 
-        # Нанесение урона
-        protector_hp -= attacker_damage
-        history_fight[turn][1] = f'{attacker.username} наносит {attacker_damage} урона'
+        enemy_card_hp -= user_card_damage
+        history_fight_turn.append(f'{user_card.owner.username} наносит {user_card_damage} урона')
 
-        #  Использование способности Демона нападения
-        if attacker.profile.current_card.class_card.name == 'Демон':
-            chance = randint(1, 100)
-            if chance <= attacker.profile.current_card.class_card.chance_use:
-                damage = round(attacker_damage * (attacker.profile.current_card.class_card.numeric_value + 5 * attacker.profile.current_card.merger) / 100)
-                protector_hp -= damage
-                history_fight[turn][2] = (f'Используется способность {attacker.username}-' +
-                                          f'{attacker.profile.current_card.class_card.name} ' +
-                                          f'"{attacker.profile.current_card.class_card.skill}" и ' +
-                                          f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
-                                          f'{damage}')
+        # Использование способности Демона атаки
+        if user_card.class_card.name == 'Демон':
+            answer = use_spell_demon(user_card, user_card_damage, enemy_card_hp)
+            if answer:
+                enemy_card_hp, add_damage = answer
+                history_fight_turn.append(formation_of_history(user_card, add_damage))
 
-        # Использование способности Оборотня нападения
-        if attacker.profile.current_card.class_card.name == 'Оборотень':
-            chance = randint(1, 100)
-            if chance <= attacker.profile.current_card.class_card.chance_use + 3 * attacker.profile.current_card.merger:
-                regen_hp = round(attacker_damage * (attacker.profile.current_card.class_card.numeric_value + 2 * attacker.profile.current_card.merger) / 100)
-                attacker_hp += regen_hp
-                history_fight[turn][2] = (f'Используется способность {attacker.username}-' +
-                                          f'{attacker.profile.current_card.class_card.name} ' +
-                                          f'"{attacker.profile.current_card.class_card.skill}" и ' +
-                                          f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
-                                          f'{regen_hp}')
+        # Использование способности Оборотня атаки
+        if user_card.class_card.name == 'Оборотень':
+            answer = use_spell_werewolf(user_card, user_card_hp, user_card_damage)
+            if answer:
+                user_card_hp, regen_hp = answer
+                history_fight_turn.append(formation_of_history(user_card, regen_hp))
 
-        #  Использование способности Призрака защиты
-        if protector.profile.current_card.class_card.name == 'Призрак':
-            chance = randint(1, 100)
-            if chance <= protector.profile.current_card.class_card.chance_use + 2.5 * protector.profile.current_card.merger:
-                protector_hp += attacker_damage
-                history_fight[turn][3] = (f'Используется способность {protector.username}-' +
-                                          f'{protector.profile.current_card.class_card.name} ' +
-                                          f'"{protector.profile.current_card.class_card.skill}" и ' +
-                                          f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
-                                          f'{attacker_damage}')
+        # Использование способности Призрака защиты
+        if enemy_card.class_card.name == 'Призрак':
+            answer = use_spell_ghost(enemy_card, enemy_card_hp, user_card_damage)
+            if answer:
+                user_card_hp, evade_damage = answer
+                history_fight_turn.append(formation_of_history(enemy_card, evade_damage))
 
-        #  Использование способности Бога Императора защиты
-        if protector.profile.current_card.class_card.name == 'Бог Император':
-            return_damage = round((protector.profile.current_card.class_card.numeric_value + 3 * protector.profile.current_card.merger) * attacker_damage / 100)
-            attacker_hp -= return_damage
-            history_fight[turn][3] = (f'Используется способность {protector.username}-' +
-                                      f'{protector.profile.current_card.class_card.name} ' +
-                                      f'"{protector.profile.current_card.class_card.skill}" и ' +
-                                      f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
-                                      f'{return_damage}')
+        # Использование способности Бога Императора защиты
+        if enemy_card.class_card.name == 'Бог Император':
+            user_card_hp, return_damage = use_spell_emperor_mankind(enemy_card, user_card_damage, user_card_hp)
+            history_fight_turn.append(formation_of_history(enemy_card, return_damage))
 
-        history_fight[turn][4] = f'Здоровье {attacker.username} {attacker_hp}'
-        history_fight[turn][5] = f'Здоровье {protector.username} {protector_hp}'
+        history_fight_turn.append(f'Здоровье {user_card.owner.username} {user_card_hp}')
+        history_fight_turn.append(f'Здоровье {enemy_card.owner.username} {enemy_card_hp}')
+        history_fight.append(history_fight_turn)
 
-        if protector_hp <= 0:
-            winner = attacker
-            loser = protector
+        """ Проверка на проигравшего """
+        if user_card_hp <= 0 and enemy_card_hp <= 0:
             can_fight_now = False
+            winner = None
+            loser = None
+            break
+        elif user_card_hp <= 0 or enemy_card_hp <= 0:
+            is_victory = True
+            loser_hp, winner_hp = sorted([user_card_hp, enemy_card_hp])
+            if loser_hp == enemy_card_hp:
+                winner, loser = user_card.owner, enemy_card.owner
+            else:
+                loser, winner = user_card.owner, enemy_card.owner
+            break
 
-        else:
-            # ХОД ЗАЩИТЫ
-            turn += 1
-            history_fight.append([None for _ in range(6)])
-            history_fight[turn][0] = f'Ход {turn + 1} {protector.username}'
+        """ Ход противника """
+        turn += 1
+        # Перезапись информации о ходе
+        history_fight_turn = [f'Ход {turn + 1} {enemy_card.owner.username}']
 
-            # Использование способности Дриады нападения
-            if protector.profile.current_card.class_card.name == 'Дриада':
-                heal_hp = protector.profile.current_card.class_card.numeric_value + 5 * protector.profile.current_card.merger
-                protector_hp += heal_hp
-                history_fight[turn][2] = (f'Используется способность {protector.username}-' +
-                                          f'{protector.profile.current_card.class_card.name} ' +
-                                          f'"{protector.profile.current_card.class_card.skill}" и ' +
-                                          f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
-                                          f'{heal_hp}')
+        # Использование способности Дриады атаки
+        if user_card.class_card.name == 'Дриада':
+            user_card_hp, heal = use_spell_dryad(user_card, user_card_hp)
+            history_fight_turn.append(formation_of_history(user_card, heal))
 
-            # Нанесение урона
-            attacker_hp -= protector_damage
-            history_fight[turn][1] = f'{protector.username} наносит {protector_damage} урона'
+        user_card_hp -= enemy_card_damage
+        history_fight_turn.append(f'{enemy_card.owner.username} наносит {enemy_card_damage} урона')
 
-            #  Использование способности Демона защиты
-            if protector.profile.current_card.class_card.name == 'Демон':
-                chance = randint(1, 100)
-                if chance <= protector.profile.current_card.class_card.chance_use:
-                    damage = round(protector_damage * (protector.profile.current_card.class_card.numeric_value + 5 * protector.profile.current_card.merger) / 100)
-                    attacker_hp -= damage
-                    history_fight[turn][2] = (f'Используется способность {protector.username}-' +
-                                              f'{protector.profile.current_card.class_card.name} ' +
-                                              f'"{protector.profile.current_card.class_card.skill}" и ' +
-                                              f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
-                                              f'{damage}')
+        # Использование способности Демона защиты
+        if enemy_card.class_card.name == 'Демон':
+            answer = use_spell_demon(enemy_card, enemy_card_damage, user_card_hp)
+            if answer:
+                user_card_hp, add_damage = answer
+                history_fight_turn.append(formation_of_history(enemy_card, add_damage))
 
-            # Использование способности Оборотня защиты
-            if protector.profile.current_card.class_card.name == 'Оборотень':
-                chance = randint(1, 100)
-                if chance <= protector.profile.current_card.class_card.chance_use + 3 * protector.profile.current_card.merger :
-                    regen_hp = round(protector_damage * (protector.profile.current_card.class_card.numeric_value + 2 * protector.profile.current_card.merger) / 100)
-                    protector_hp += regen_hp
-                    history_fight[turn][2] = (f'Используется способность {protector.username}-' +
-                                              f'{protector.profile.current_card.class_card.name} ' +
-                                              f'"{protector.profile.current_card.class_card.skill}" и ' +
-                                              f'{protector.profile.current_card.class_card.description_for_history_fight} ' +
-                                              f'{regen_hp}')
+        # Использование способности Оборотня защиты
+        if enemy_card.class_card.name == 'Оборотень':
+            answer = use_spell_werewolf(enemy_card, enemy_card_hp, enemy_card_damage)
+            if answer:
+                enemy_card_hp, regen_hp = answer
+                history_fight_turn.append(formation_of_history(enemy_card, regen_hp))
 
-            #  Использование способности Призрака нападения
-            if attacker.profile.current_card.class_card.name == 'Призрак':
-                chance = randint(1, 100)
-                print(attacker.profile.current_card.class_card.chance_use + 2.5 * attacker.profile.current_card.merger)
-                if chance <= attacker.profile.current_card.class_card.chance_use + 2.5 * attacker.profile.current_card.merger:
-                    attacker_hp += protector_damage
-                    history_fight[turn][3] = (f'Используется способность {attacker.username}-' +
-                                              f'{attacker.profile.current_card.class_card.name} ' +
-                                              f'"{attacker.profile.current_card.class_card.skill}" и ' +
-                                              f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
-                                              f'{protector_damage}')
+        # Использование способности Призрака атаки
+        if user_card.class_card.name == 'Призрак':
+            answer = use_spell_ghost(user_card, user_card_hp, enemy_card_damage)
+            if answer:
+                enemy_card_hp, evade_damage = answer
+                history_fight_turn.append(formation_of_history(user_card, evade_damage))
 
-            #  Использование способности Бога Императора нападения
-            if attacker.profile.current_card.class_card.name == 'Бог Император':
-                return_damage = round((attacker.profile.current_card.class_card.numeric_value + 3 * attacker.profile.current_card.merger) * protector_damage / 100)
-                protector_hp -= return_damage
-                history_fight[turn][3] = (f'Используется способность {attacker.username}-' +
-                                          f'{attacker.profile.current_card.class_card.name} ' +
-                                          f'"{attacker.profile.current_card.class_card.skill}" и ' +
-                                          f'{attacker.profile.current_card.class_card.description_for_history_fight} ' +
-                                          f'{return_damage}')
+        # Использование способности Бога Императора атаки
+        if user_card.class_card.name == 'Бог Император':
+            enemy_card_hp, return_damage = use_spell_emperor_mankind(user_card, enemy_card_damage, enemy_card_hp)
+            history_fight_turn.append(formation_of_history(user_card, return_damage))
 
-            history_fight[turn][4] = f'Здоровье {protector.username} {protector_hp}'
-            history_fight[turn][5] = f'Здоровье {attacker.username} {attacker_hp}'
+        history_fight_turn.append(f'Здоровье {enemy_card.owner.username} {enemy_card_hp}')
+        history_fight_turn.append(f'Здоровье {user_card.owner.username} {user_card_hp}')
+        history_fight.append(history_fight_turn)
 
-            if attacker_hp <= 0:
-                winner = protector
-                loser = attacker
-                can_fight_now = False
+        """ Проверка на проигравшего """
+        if user_card_hp <= 0 and enemy_card_hp <= 0:
+            can_fight_now = False
+            winner = None
+            loser = None
+            break
+        elif user_card_hp <= 0 or enemy_card_hp <= 0:
+            is_victory = True
+            loser_hp, winner_hp = sorted([user_card_hp, enemy_card_hp])
+            if loser_hp == enemy_card_hp:
+                winner, loser = user_card.owner, enemy_card.owner
+            else:
+                loser, winner = user_card.owner, enemy_card.owner
+            break
 
-    return winner, loser, history_fight
+    return winner, loser, is_victory, history_fight
 
 
-def use_spell_dryad(user_hp, user_info):
+def use_spell_dryad(card: Card, card_hp: float) -> tuple[float, float]:
     """ Использование способности дриады.
-        Восстанавливает свое здоровье.
-        Возвращает итоговое количество своего здоровья
+        Восстанавливает свое здоровье в зависимости от уровня слияния.
+        Возвращает итоговое количество своего здоровья и полученное лечение.
     """
-    user_hp += user_info.profile.current_card.class_card.numeric_value
 
-    return user_hp
+    heal_hp = card.class_card.numeric_value + 5 * card.merger
+    card_hp += heal_hp
+
+    return card_hp, heal_hp
 
 
-def use_spell_werewolf():
+def use_spell_demon(card: Card, card_damage: float, enemy_card_hp: float) -> tuple[float, float] | None:
+    """ Использование способности демона.
+        Если сработал шанс, то наносит дополнительный урон, в зависимости от своей атаки и уровня слияния.
+        Возвращает итоговое количество вражеского здоровья и дополнительный урон или None при неудаче.
+    """
+
+    chance = randint(1, 100)
+    if chance <= card.class_card.chance_use:
+        additional_damage = round(card_damage * (card.class_card.numeric_value + 5 * card.merger) / 100)
+        enemy_card_hp -= additional_damage
+
+        return enemy_card_hp, additional_damage
+
+
+def use_spell_werewolf(card: Card, card_hp: float, card_damage: float) -> tuple[float, float] | None:
     """ Использование способности оборотня.
-        Восстанавливает свое здоровье в зависимости от нанесенного урона.
+        Если сработал шанс, то восстанавливает свое здоровье в зависимости от базового урона.
+        Возвращает итоговое количество своего здоровья и количество восполненного здоровья.
+    """
+
+    chance = randint(1, 100)
+    if chance <= card.class_card.chance_use:
+        regen_hp = round(card_damage * (card.class_card.numeric_value + 2 * card.merger) / 100)
+        card_hp += regen_hp
+
+        return card_hp, regen_hp
+
+
+def use_spell_ghost(card: Card, card_hp: float, enemy_damage: float) -> tuple[float, float] | None:
+    """ Использование способности призрака.
+        Если сработал шанс, избегает урон от атаки противника (восполнятся здоровье)
         Возвращает итоговое количество своего здоровья
     """
 
-    pass
+    chance = randint(1, 100)
+    if chance <= card.class_card.chance_use + 2.5 * card.merger:
+        card_hp += enemy_damage
+
+        return card_hp, enemy_damage
 
 
-def use_spell_emperor_mankind():
+def use_spell_emperor_mankind(card: Card, enemy_damage: float, enemy_hp: float) -> tuple[float, float]:
     """ Использование способности императора человечества.
         Наносит часть полученного урона атаковавшему.
-        Возвращает итоговое количество здоровья нападающего
+        Возвращает итоговое количество здоровья нападающего, и количество возвращенного урона.
     """
 
-    pass
+    return_damage = round((card.class_card.numeric_value + 3 * card.merger) * enemy_damage / 100)
+    enemy_hp -= return_damage
+
+    return enemy_hp, return_damage
 
 
-def use_spell_ghost():
-    """ Использование способности призрака.
-        Избегает урон от атаки противника.
-        Возвращает итоговое количество своего здоровья
+def formation_of_history(card: Card, value: float) -> str:
+    """ Создание текста для записи в историю ходов
+        при использовании способности карты
     """
 
-    pass
+    description_move = (f'Используется способность {card.owner.username}-' +
+                        f'{card.class_card.name} ' +
+                        f'"{card.class_card.skill}" и ' +
+                        f'{card.class_card.description_for_history_fight} ' +
+                        f'{value}')
 
-
-def use_spell_demon():
-    """ Использование способности демона.
-        Наносит дополнительный урон, в зависимости от своей атаки.
-        Возвращает итоговое количество вражеского здоровья
-    """
-
-    pass
-
-
-def use_spell_elf():
-    """ Использование способности эльфа.
-        Увеличивает шанс выпадения предметов после битвы.
-        Возвращает итоговый шанс выпадения предмета.
-    """
-
-    pass
-
-
-def get_exp_card_after_fight(user_info):
-    """ Начисляет опыт избранной карте пользователя.
-        Возвращает информацию о текущем уровне и прогрессе опыта.
-    """
-
-    pass
-
-
-def stats_calculation(attacker, protector):
-    """ Вычисление первоначальных статов пользователей.
-        Возвращает урон и здоровье защиты и нападения
-    """
-
-    if protector.profile.current_card.type != attacker.profile.current_card.type:
-        if protector.profile.current_card.type.better == attacker.profile.current_card.type:
-
-            # Если защита лучше нападения
-            protector_damage = round(protector.profile.current_card.damage * 1.2)
-            attacker_damage = round(attacker.profile.current_card.damage * 0.8)
-        else:
-            # Если нападение лучше защиты
-            attacker_damage = round(attacker.profile.current_card.damage * 1.2)
-            protector_damage = round(protector.profile.current_card.damage * 0.8)
-    else:
-        # Стандартные статы урона
-        protector_damage = round(protector.profile.current_card.damage)
-        attacker_damage = round(attacker.profile.current_card.damage)
-
-    # Статы хп всегда одинаковы
-    protector_hp = protector.profile.current_card.hp
-    attacker_hp = attacker.profile.current_card.hp
-
-    return attacker_damage, protector_damage, attacker_hp, protector_hp
-
-
-def stat_amulet_calculation(user_amulet, user_hp, user_damage):
-    """ Начисление статов от амулета.
-        Возвращает итоговые значения здоровья и урона карты пользователя с амулетом.
-    """
-
-    user_damage += user_amulet.amulet_type.bonus_damage
-    user_hp += user_amulet.amulet_type.bonus_hp
-
-    return user_hp, user_damage
+    return description_move
 
 
 def filling_missing_data():
-    """ Заполнение данных о создании карты у карт, созданных изначально """
+    """ Заполнение данных о создании у карт, созданных изначально.
+        Для разработки
+    """
 
     date_and_time = datetime(year=2023, month=11, day=5, hour=13, minute=30, tzinfo=pytz.timezone('Europe/Moscow'))
     cards = Card.objects.all()

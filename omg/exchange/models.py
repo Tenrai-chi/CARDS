@@ -151,10 +151,10 @@ class AmuletType(models.Model):
     name = models.CharField(max_length=30, verbose_name='Название')
     bonus_hp = models.FloatField(blank=True, null=True, verbose_name='Бонус здоровья')
     bonus_damage = models.FloatField(blank=True, null=True, verbose_name='Бонус урона')
-    price = models.IntegerField(blank=True, null=True, verbose_name='Цена')
+    price = models.PositiveIntegerField(blank=True, null=True, verbose_name='Цена')
     sale_now = models.BooleanField(blank=True, null=True, default=True, verbose_name='Продажа')
     image = models.ImageField(blank=True, null=True, upload_to='image/amulet/', verbose_name='Изображение')
-    discount = models.IntegerField(blank=True, null=True, default=0, verbose_name='Скидка %')
+    discount = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Скидка %')
     discount_now = models.BooleanField(blank=True, null=True, default=False, verbose_name='Действие скидки')
     rarity = models.ForeignKey(AmuletRarity,
                                blank=True,
@@ -242,7 +242,7 @@ class UpgradeItemsUsers(models.Model):
 
 
 class InitialEventAwards(models.Model):
-    """ Награды начального ивента """
+    """ Награды начального события """
 
     day_event_visit = models.IntegerField(blank=True, null=True, verbose_name='День для получения награды')
     type_award = models.CharField(blank=True, null=True, max_length=30, verbose_name='Тип награды')
@@ -250,8 +250,113 @@ class InitialEventAwards(models.Model):
     description = models.CharField(blank=True, null=True, max_length=200, verbose_name='Дополнительная информация')
 
     class Meta:
-        verbose_name_plural = 'Награды начального ивента'
-        verbose_name = 'Награда начального ивента'
+        verbose_name_plural = 'Награды начального события'
+        verbose_name = 'Награда начального события'
 
     def __str__(self):
         return f'Награда {self.day_event_visit} дня {self.type_award}'
+
+
+class TeamsForBattleEvent(models.Model):
+    """ Шаблон отряда для участия в боевом событии.
+        Шаблон отряда можно изменять только вне проведения события (с 11 числа до конца месяца).
+        На основе шаблона создается список участников при каждом событии.
+        В одном отряде не могут быть одни и те же карты.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Пользователь', related_name='user_template_event')
+    first_card = models.ForeignKey(Card,
+                                   blank=True,
+                                   null=True,
+                                   on_delete=models.SET_NULL,
+                                   verbose_name='Первая карта',
+                                   related_name='first_card_template')
+    second_card = models.ForeignKey(Card,
+                                    blank=True,
+                                    null=True,
+                                    on_delete=models.SET_NULL,
+                                    verbose_name='Вторая карта',
+                                    related_name='second_card_template')
+    third_card = models.ForeignKey(Card,
+                                   blank=True,
+                                   null=True,
+                                   on_delete=models.SET_NULL,
+                                   verbose_name='Третья карта',
+                                   related_name='third_card_template')
+
+    class Meta:
+        verbose_name_plural = 'Шаблоны отряда пользователей'
+        verbose_name = 'Шаблон отряда пользователя'
+
+    def __str__(self):
+        return f'Шаблон отряда пользователя {self.user.username}'
+
+
+class BattleEventParticipants(models.Model):
+    """ Список участников боевого события.
+        При старте каждого сезона (1 числа каждого месяца) перезаписывает участников и их отряды.
+        Добавляются только те участники, что сформировали полный отряд из 3 разных карт.
+        Enemies -> json с противниками на каждый день. День: Противник
+        Battle_progress -> json  с отметками о бое на каждый день. Всего за день можно бросить вызов 1 раз. День: Участие
+        Points -> полученные очки за время проведения события. За победу +100, за поражение +40.
+    """
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name='Участник', related_name='user_team_event')
+    first_card = models.ForeignKey(Card,
+                                   blank=True,
+                                   null=True,
+                                   on_delete=models.SET_NULL,
+                                   verbose_name='Первая карта',
+                                   related_name='first_card_team')
+    second_card = models.ForeignKey(Card,
+                                    blank=True,
+                                    null=True,
+                                    on_delete=models.SET_NULL,
+                                    verbose_name='Вторая карта',
+                                    related_name='second_card_team')
+    third_card = models.ForeignKey(Card,
+                                   blank=True,
+                                   null=True,
+                                   on_delete=models.SET_NULL,
+                                   verbose_name='Третья карта',
+                                   related_name='third_card_team')
+    enemies = models.JSONField(default=dict,
+                               blank=True,
+                               null=True,
+                               verbose_name='Противники по дням')
+    battle_progress = models.JSONField(default=dict,
+                                       blank=True,
+                                       null=True,
+                                       verbose_name='Прогресс по дням')
+    points = models.PositiveIntegerField(default=0, verbose_name='Очки')
+
+    class Meta:
+        verbose_name_plural = 'Участники боевого события'
+        verbose_name = 'Участник боевого события'
+
+    def __str__(self):
+        return f'Участник боевого события {self.user.username}'
+
+    def add_points(self, is_win: bool):
+        """ Добавление очков в зависимости от исхода боя """
+
+        if is_win:
+            self.points += 100
+        else:
+            self.points += 40
+        self.save()
+
+
+class BattleEventAwards(models.Model):
+    """ Награды боевого события """
+
+    rank = models.PositiveIntegerField(verbose_name='Место в рейтинге')
+    award = models.CharField(max_length=200, verbose_name='Тип награды')
+    amount = models.PositiveIntegerField(verbose_name='Количество')
+
+    class Meta:
+        verbose_name_plural = 'Награды боевого события'
+        verbose_name = 'Награда боевого события'
+
+    def __str__(self):
+        return f'Награда {self.rank} места {self.award}'

@@ -8,6 +8,7 @@ class ProfileAdmin(admin.ModelAdmin):
                     'about_user',
                     'level',
                     'gold',
+                    'diamond',
                     'receiving_timer',
                     'win',
                     'lose',

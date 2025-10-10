@@ -70,6 +70,7 @@ class Profile(models.Model):
     user = models.OneToOneField(User, null=True, on_delete=models.CASCADE, verbose_name='Пользователь')
     about_user = models.TextField(null=True, blank=True, max_length=300, verbose_name='Информация')
     gold = models.PositiveIntegerField(blank=True, null=True, default=10000, verbose_name='Деньги')
+    diamond = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Кристалы')
     receiving_timer = models.DateTimeField(blank=True, null=True, verbose_name='Последнее получение')
     win = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Победы')
     lose = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Поражения')
@@ -122,6 +123,18 @@ class Profile(models.Model):
         self.gold -= gold
         self.save()
 
+    def get_diamond(self, diamond):
+        """ Начисление кристалов """
+
+        self.diamond += diamond
+        self.save()
+
+    def spend_diamond(self, diamond):
+        """ Списание кристалов """
+
+        self.diamond -= diamond
+        self.save()
+
     def get_guild_point(self, win_or_lose):
         """ Начисление очков рейтинга гильдии """
 
@@ -133,7 +146,7 @@ class Profile(models.Model):
         self.save()
 
     def add_event_visit(self):
-        """ Увеличение количество входа пользователя (активаций) для получения наград стартового ивента,
+        """ Увеличение количество входа пользователя (активаций) для получения наград стартового события,
             но не больше 30.
         """
 

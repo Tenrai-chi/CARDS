@@ -8,7 +8,7 @@
 {% block navigation%}
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'home' theme='news'%}">Главная</a></li>
             <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=card.owner.pk %}">{{ card.owner.username }}</a></li>
             <li class="breadcrumb-item"><a href="{% url 'card' card_id=card.pk %}">Карта {{ card.pk }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">Улучшение</li>

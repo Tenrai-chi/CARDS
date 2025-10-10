@@ -8,7 +8,7 @@
 {% block navigation%}
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'home' theme='news'%}">Главная</a></li>
             {% if winner == user %}
                 <li class="breadcrumb-item active" aria-current="page">Бой с {{ loser.username }}</li>
             {% else %}
@@ -21,6 +21,7 @@
 {% block content %}
     <div class="container col-md-12 text-center">
         <h4>Итоги боя</h4>
+        {% if is_victory is True %}
         <div class="row">
             <div class="col">
                 <p><img width="300" height="300" alt="profile_image" src="{{ winner.profile.profile_pic.url }}"><p>
@@ -31,6 +32,19 @@
                 <p>Проигравший: <a style="color:#ff0000" href="{% url 'view_profile' user_id=loser.id %}">{{ loser.username }}</a></p>
             </div>
         </div>
+        {% else %}
+        <h5>Ничья</h5>
+        <div class="row">
+            <div class="col">
+                <p><img width="300" height="300" alt="profile_image" src="{{ user.profile.profile_pic.url }}"><p>
+                <p>Вы: <a href="{% url 'view_profile' user_id=user.id %}">{{ user.username }}</a></p>
+            </div>
+            <div class="col">
+                <p><img width="300" height="300" alt="profile_image" src="{{ enemy.profile.profile_pic.url }}"><p>
+                <p>Противник: <a href="{% url 'view_profile' user_id=enemy.id %}">{{ enemy.username }}</a></p>
+            </div>
+        </div>
+        {% endif %}
     </div>
     <br>
 

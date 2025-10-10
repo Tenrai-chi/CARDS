@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+{% block navigation%}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item active" aria-current="page">Главная</li>
+        </ol>
+    </nav>
+{% endblock navigation %}
+
+{% block content %}
+<div class="container text-center mt-4">
+    <h3>Боевое событие</h3>
+    <div class="row mt-4">
+        <div class="col-12 text-center">
+            <h5 class="mb-3">Заработанные очки: {{ add_points }}</h5>
+        </div>
+    </div>
+    {% for fight in all_results %}
+        <div class="container-fluid">
+        <h5>{{ fight.2 }}</h5>
+        <div class="row justify-content-center">
+            <div class="col-md-5 text-center">
+                <h4>Ваша карта</h4>
+                <div class="row justify-content-around">
+                    <div class="col-4 mb-4 text-center">
+                        <div class="team-user-card">
+                            <img src="{{ fight.0.class_card.image.url }}" alt="card-user-img"
+                                 class="img-fluid rounded mb-2" style="max-width: 150px; height: auto;">
+                            <h5><a href="{% url 'card' card_id=fight.0.pk %}">{{ fight.0.class_card.name }}</a></h5>
+                            <div class="card-params text-left">
+                                <p><strong>Здоровье:</strong> {{ fight.0.hp }}</p>
+                                <p><strong>Урон:</strong> {{ fight.0.damage }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-1"></div>
+
+            <div class="col-md-5 text-center">
+                <h4>Карта противника {{ team_enemy.0.owner.username }}</h4>
+                <div class="row justify-content-around">
+                    <div class="col-4 mb-4 text-center">
+                        <div class="team-enemy-card">
+                            <img src="{{ fight.1.class_card.image.url }}" alt="card-enemy-img"
+                                 class="img-fluid rounded mb-2" style="max-width: 150px; height: auto;">
+                            <h5><a href="{% url 'card' card_id=fight.1.pk %}">{{ fight.1.class_card.name }}</a></h5>
+                            <div class="card-params text-left">
+                                <p><strong>Здоровье:</strong> {{ fight.1.hp }}</p>
+                                <p><strong>Урон:</strong> {{ fight.1.damage }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+<br>
+{% endblock content %}

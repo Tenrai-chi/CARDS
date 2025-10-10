@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (SaleUserCards, ExperienceItems, UsersInventory,
                      HistoryPurchaseItems, AmuletItem, AmuletType, AmuletRarity,
-                     UpgradeItemsType, UpgradeItemsUsers, InitialEventAwards)
+                     UpgradeItemsType, UpgradeItemsUsers, InitialEventAwards,
+                     TeamsForBattleEvent, BattleEventAwards, BattleEventParticipants)
 
 
 class SaleUserCardsAdmin(admin.ModelAdmin):
@@ -71,6 +72,27 @@ class InitialEventAwardsAdmin(admin.ModelAdmin):
     search_fields = ('id', 'type_award', 'description')
 
 
+class TeamsForBattleEventAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'first_card', 'second_card', 'third_card')
+    list_display_links = ('id', 'user')
+    search_fields = ('id', 'user')
+
+
+class BattleEventParticipantsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'first_card', 'second_card', 'third_card', 'points', 'enemies', 'battle_progress')
+    list_display_links = ('id', 'user')
+    search_fields = ('id', 'user')
+
+
+class BattleEventAwardsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'rank', 'award', 'amount',)
+    list_display_links = ('id', 'rank')
+    search_fields = ('id', 'rank', 'award')
+
+
+admin.site.register(BattleEventAwards, BattleEventAwardsAdmin)
+admin.site.register(BattleEventParticipants, BattleEventParticipantsAdmin)
+admin.site.register(TeamsForBattleEvent, TeamsForBattleEventAdmin)
 admin.site.register(InitialEventAwards, InitialEventAwardsAdmin)
 admin.site.register(UpgradeItemsUsers, UpgradeItemsUsersAdmin)
 admin.site.register(UpgradeItemsType, UpgradeItemsTypeAdmin)

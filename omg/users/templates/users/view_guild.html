@@ -8,7 +8,7 @@
 {% block navigation%}
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'home' %}">Главная</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'home' theme='news'%}">Главная</a></li>
         <li class="breadcrumb-item"><a href="{% url 'view_all_guilds' %}">Гильдия</a></li>
         <li class="breadcrumb-item active" aria-current="page">{{ guild_info.name }}</li>
     </ol>

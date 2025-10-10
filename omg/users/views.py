@@ -13,45 +13,9 @@ from django.views.generic import CreateView
 from cards.models import FightHistory, Card
 from common.utils import date_time_now, time_difference_check
 from exchange.models import AmuletItem
-from .utils_2 import user_level_up
 
 from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm, EditGuildInfoForm
 from .models import Profile, Transactions, FavoriteUsers, Guild
-
-
-def view_profile(request: HttpRequest, user_id: int) -> HttpResponse:
-    """ Просмотр профиля пользователя """
-
-    user = get_object_or_404(User, pk=user_id)
-    if user == request.user:
-        fight_history = FightHistory.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-id')[:50]
-        amulet = AmuletItem.objects.filter(card=user.profile.current_card).last()
-
-        context = {'title': f'Просмотр профиля {user.username}',
-                   'header': f'Просмотр профиля {user.username}',
-                   'user_info': user,
-                   'fight_history': fight_history,
-                   'amulet': amulet
-                   }
-    else:
-        if request.user.is_authenticated:
-            favorite_user = FavoriteUsers.objects.filter(user=request.user.id, favorite_user=user_id).last()
-            wins_vs_users = FightHistory.objects.filter(winner=request.user, loser=user).count()
-            losses_vs_users = FightHistory.objects.filter(winner=user, loser=request.user).count()
-            context = {'title': f'Просмотр профиля {user.username}',
-                       'header': f'Просмотр профиля {user.username}',
-                       'user_info': user,
-                       'favorite_user': favorite_user,
-                       'wins_vs_users': wins_vs_users,
-                       'losses_vs_users': losses_vs_users,
-                       }
-        else:
-            context = {'title': f'Просмотр профиля {user.username}',
-                       'header': f'Просмотр профиля {user.username}',
-                       'user_info': user,
-                       }
-
-    return render(request, 'users/view_profile.html', context)
 
 
 class CustomLoginView(LoginView):
@@ -94,6 +58,41 @@ def create_profile_user(sender, instance, created, **kwargs):
                                )
 
 
+def view_profile(request: HttpRequest, user_id: int) -> HttpResponse:
+    """ Просмотр профиля пользователя """
+
+    user = get_object_or_404(User, pk=user_id)
+    if user == request.user:
+        fight_history = FightHistory.objects.filter(Q(winner=user) | Q(loser=user)).order_by('-id')[:50]
+        amulet = AmuletItem.objects.filter(card=user.profile.current_card).last()
+
+        context = {'title': f'Просмотр профиля {user.username}',
+                   'header': f'Просмотр профиля {user.username}',
+                   'user_info': user,
+                   'fight_history': fight_history,
+                   'amulet': amulet
+                   }
+    else:
+        if request.user.is_authenticated:
+            favorite_user = FavoriteUsers.objects.filter(user=request.user.id, favorite_user=user_id).last()
+            wins_vs_users = FightHistory.objects.filter(winner=request.user, loser=user).count()
+            losses_vs_users = FightHistory.objects.filter(winner=user, loser=request.user).count()
+            context = {'title': f'Просмотр профиля {user.username}',
+                       'header': f'Просмотр профиля {user.username}',
+                       'user_info': user,
+                       'favorite_user': favorite_user,
+                       'wins_vs_users': wins_vs_users,
+                       'losses_vs_users': losses_vs_users,
+                       }
+        else:
+            context = {'title': f'Просмотр профиля {user.username}',
+                       'header': f'Просмотр профиля {user.username}',
+                       'user_info': user,
+                       }
+
+    return render(request, 'users/view_profile.html', context)
+
+
 def view_rating(request: HttpRequest) -> HttpResponse:
     """ Просмотр таблицы рейтинга пользователей """
 
@@ -107,27 +106,19 @@ def view_rating(request: HttpRequest) -> HttpResponse:
 
 
 def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
-    """ Изменение информации в профиле пользователя """
+    """ Изменение профиля пользователя """
 
-    if user_id == request.user.id:
-        profile = Profile.objects.get(user=request.user)
+    if user_id != request.user.id:
+        messages.error(request, 'Вы не можете редактировать этот профиль!')
+        return HttpResponseRedirect(reverse('home'))
 
-        if request.method == 'POST':
-            edit_profile_form = EditProfileForm(request.POST, request.FILES, instance=profile)
-            if edit_profile_form.is_valid():
-                edit_profile_form.save()
+    profile = Profile.objects.get(user=request.user)
+    if request.method == 'POST':
+        edit_profile_form = EditProfileForm(request.POST, request.FILES, instance=profile)
+        if edit_profile_form.is_valid():
+            edit_profile_form.save()
 
-                return HttpResponseRedirect(f'/users/{user_id}')
-            else:
-                edit_profile_form = EditProfileForm(instance=profile, initial={'about_user': profile.about_user,
-                                                                               'profile_pic': profile.profile_pic})
-                context = {'title': f'Редактирование профиля',
-                           'header': f'Редактирование профиля {request.user.username}',
-                           'user_info': profile,
-                           'form': edit_profile_form,
-                           }
-
-                return render(request, 'users/edit_profile.html', context)
+            return HttpResponseRedirect(f'/users/{user_id}')
         else:
             edit_profile_form = EditProfileForm(instance=profile, initial={'about_user': profile.about_user,
                                                                            'profile_pic': profile.profile_pic})
@@ -138,9 +129,17 @@ def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | H
                        }
 
             return render(request, 'users/edit_profile.html', context)
+    elif request.method == 'GET':
+        edit_profile_form = EditProfileForm(instance=profile, initial={'about_user': profile.about_user,
+                                                                       'profile_pic': profile.profile_pic})
+        context = {'title': f'Редактирование профиля',
+                   'header': f'Редактирование профиля {request.user.username}',
+                   'user_info': profile,
+                   'form': edit_profile_form,
+                   }
+        return render(request, 'users/edit_profile.html', context)
     else:
-        messages.error(request, 'Вы не можете редактировать этот профиль!')
-
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -159,44 +158,44 @@ def view_transactions(request: HttpRequest, user_id: int) -> HttpResponseRedirec
         return render(request, 'users/transactions.html', context)
 
     else:
-        messages.error(request, 'Произошла ошибка!')
-
+        messages.error(request, 'Вы не авторизованы или не имеете прав для просмотра!')
         return HttpResponseRedirect(reverse('home'))
 
 
 def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
     """ Добавление в избранное выбранного пользователя """
 
-    if request.user.is_authenticated and request.user.id != user_id:
-        try:
-            record = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
-            messages.error(request, 'Этот пользователь уже в избранном!')
+    if not request.user.is_authenticated:
+        messages.error(request, 'Вы не авторизованы')
+        return HttpResponseRedirect(reverse('home'))
 
-            return HttpResponseRedirect(reverse('home'))
+    if request.user.id == user_id:
+        messages.error(request, 'Вы не можете добавить себя из избранных')
+        return HttpResponseRedirect(reverse('home'))
 
-        except FavoriteUsers.DoesNotExist:
-            user = User.objects.filter(pk=user_id).last()
-            favorite_users_count = FavoriteUsers.objects.filter(user=request.user).count()
-            if favorite_users_count == 50:
-                message = 'Достигнут предел избранных пользователей! Для добавления новых освободите место'
-                messages.error(request, message)
-
-                return HttpResponseRedirect(f'/users/{user_id}')
-            if user:
-                new_favorite_user = FavoriteUsers.objects.create(user=request.user,
-                                                                 favorite_user=user)
-                new_favorite_user.save()
-
-                return HttpResponseRedirect(f'/users/{user_id}')
-            else:
-                messages.error(request, 'Произошла ошибка!')
-
-                return HttpResponseRedirect(reverse('home'))
-
-    else:
-        messages.error(request, 'Произошла ошибка!')
+    try:
+        _ = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
+        messages.error(request, 'Этот пользователь уже в избранном!')
 
         return HttpResponseRedirect(reverse('home'))
+
+    except FavoriteUsers.DoesNotExist:
+        user = User.objects.filter(pk=user_id).last()
+        if not user:
+            messages.error(request, 'Вы не можете добавить этого пользователя в избранное!')
+            return HttpResponseRedirect(reverse('home'))
+
+        favorite_users_count = FavoriteUsers.objects.filter(user=request.user).count()
+        if favorite_users_count >= 50:
+            message = 'Достигнут предел избранных пользователей! Для добавления новых освободите место'
+            messages.error(request, message)
+
+            return HttpResponseRedirect(f'/users/{user_id}')
+
+        new_favorite_user = FavoriteUsers.objects.create(user=request.user,
+                                                         favorite_user=user)
+        new_favorite_user.save()
+        return HttpResponseRedirect(f'/users/{user_id}')
 
 
 def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
@@ -210,12 +209,10 @@ def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedi
             return HttpResponseRedirect(f'/users/{user_id}')
 
         except FavoriteUsers.DoesNotExist:
-            messages.error(request, 'Произошла ошибка!')
-
+            messages.error(request, 'Вы пытаетесь убрать из избранных несуществующего пользователя!')
             return HttpResponseRedirect(reverse('home'))
     else:
-        messages.error(request, 'Произошла ошибка!')
-
+        messages.error(request, 'Вы не можете убрать себя из избранных!')
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -265,65 +262,64 @@ def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
         Лидером становится создатель.
     """
 
-    if request.user.is_authenticated:
-        user_profile = Profile.objects.get(user=request.user)
-        if user_profile.guild:
-            messages.error(request, 'Для создания гильдии покиньте текущую!')
+    if not request.user.is_authenticated:
+        messages.error(request, 'Для создания гильдии необходимо зарегистрироваться!')
+        return HttpResponseRedirect(reverse('home'))
+    user_profile = Profile.objects.get(user=request.user)
+    if user_profile.guild:
+        messages.error(request, 'Для создания гильдии покиньте текущую!')
 
-            return HttpResponseRedirect(reverse('home'))
+        return HttpResponseRedirect(reverse('home'))
 
-        if user_profile.gold < 50000:
-            messages.error(request, 'Вам не хватает денег!')
+    if user_profile.gold < 50000:
+        messages.error(request, 'Вам не хватает денег!')
 
-            return HttpResponseRedirect(reverse('home'))
+        return HttpResponseRedirect(reverse('home'))
 
-        if request.method == 'POST':
-            new_guild_form = CreateGuildForm(request.POST, request.FILES)
-            if new_guild_form.is_valid():
-                new_guild_info = new_guild_form.save(commit=False)
-                new_guild_info.leader = request.user
-                new_guild_info.date_create = date_time_now()
-                new_guild_info.date_last_change_buff = date_time_now()
-                new_guild_info.rating = 1
-                new_guild_info.save()
+    if request.method == 'POST':
+        new_guild_form = CreateGuildForm(request.POST, request.FILES)
+        if new_guild_form.is_valid():
+            new_guild_info = new_guild_form.save(commit=False)
+            new_guild_info.leader = request.user
+            new_guild_info.date_create = date_time_now()
+            new_guild_info.date_last_change_buff = date_time_now()
+            new_guild_info.rating = 1
+            new_guild_info.save()
 
-                user_gold_before = user_profile.gold
-                user_gold_after = user_gold_before - 50000
-                new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                              user=request.user,
-                                                              before=user_gold_before,
-                                                              after=user_gold_after,
-                                                              comment='Создание гильдии'
-                                                              )
-                new_transaction.save()
-                user_profile.gold -= 50000
-                user_profile.guild = new_guild_info
-                user_profile.guild_point = 0
-                user_profile.date_guild_accession = date_time_now()
-                user_profile.save()
+            user_gold_before = user_profile.gold
+            user_gold_after = user_gold_before - 50000
+            new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                          user=request.user,
+                                                          before=user_gold_before,
+                                                          after=user_gold_after,
+                                                          comment='Создание гильдии'
+                                                          )
+            new_transaction.save()
+            user_profile.gold -= 50000
+            user_profile.guild = new_guild_info
+            user_profile.guild_point = 0
+            user_profile.date_guild_accession = date_time_now()
+            user_profile.save()
 
-                return HttpResponseRedirect(f'/users/guilds/{new_guild_info.id}')
-            else:
-                context = {'title': f'Создание гильдии',
-                           'header': f'Создание гильдии',
-                           'form': new_guild_form,
-                           }
-                messages.error(request, 'Произошла ошибка')
-
-                return render(request, 'users/create_guild.html', context)
-
+            return HttpResponseRedirect(f'/users/guilds/{new_guild_info.id}')
         else:
-            form = CreateGuildForm()
             context = {'title': f'Создание гильдии',
                        'header': f'Создание гильдии',
-                       'form': form,
+                       'form': new_guild_form,
                        }
+            messages.error(request, 'Произошла ошибка')
 
             return render(request, 'users/create_guild.html', context)
 
+    elif request.method == 'GET':
+        form = CreateGuildForm()
+        context = {'title': f'Создание гильдии',
+                   'header': f'Создание гильдии',
+                   'form': form,
+                   }
+        return render(request, 'users/create_guild.html', context)
     else:
-        messages.error(request, 'Для создания гильдии необходимо зарегистрироваться!')
-
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -336,73 +332,76 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
     """
 
     if not request.user.is_authenticated:
-        messages.error(request, 'Ошибка!')
-
+        messages.error(request, 'Вы не авторизованы!')
         return HttpResponseRedirect(reverse('home'))
 
     guild_info = get_object_or_404(Guild, pk=guild_id)
     old_name = guild_info.name
     old_buff = guild_info.buff
-    if guild_info.leader == request.user:
-        if request.method == 'POST':
-            edit_guild_info_form = EditGuildInfoForm(request.POST, request.FILES, instance=guild_info)
-            if edit_guild_info_form.is_valid():
-                edit_guild_info_form.save(commit=False)
-
-                new_name = edit_guild_info_form.cleaned_data.get('name')
-
-                if old_name != new_name:
-                    profile_leader = Profile.objects.get(user=request.user)
-                    profile_gold_before = profile_leader.gold
-                    profile_gold_after = profile_gold_before - 30000
-                    profile_leader.gold = profile_gold_after
-                    profile_leader.save()
-
-                    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                                  user=request.user,
-                                                                  before=profile_gold_before,
-                                                                  after=profile_gold_after,
-                                                                  comment='Смена названия гильдии'
-                                                                  )
-                    new_transaction.save()
-
-                edit_guild_info_form.save()
-                current_update_guild_info = Guild.objects.get(pk=guild_id)
-                if old_buff != current_update_guild_info.buff:
-                    can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
-                    days = hours // 24
-
-                    if can_edit_buff:
-                        current_update_guild_info.date_last_change_buff = date_time_now()
-                        current_update_guild_info.save()
-
-                        messages.success(request, 'Вы успешно изменили информацию о гильдии!')
-                    else:
-                        current_update_guild_info.buff = old_buff
-                        current_update_guild_info.save()
-
-                        message = f'Вы пока что не можете поменять усиление гильдии! До следующего изменения {14-days} дней'
-                        messages.warning(request, message)
-
-                messages.success(request, 'Вы успешно изменили информацию о гильдии!')
-
-                return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
-        else:
-            edit_guild_info_form = EditGuildInfoForm(instance=guild_info,
-                                                     initial={'name': guild_info.name,
-                                                              'guild_pic': guild_info.guild_pic,
-                                                              'buff': guild_info.buff})
-
-            context = {'title': f'Редактирование гильдии {old_name}',
-                       'header': f'Редактирование гильдии {old_name}',
-                       'guild_info': guild_info,
-                       'form': edit_guild_info_form,
-                       }
-
-            return render(request, 'users/edit_guild.html', context)
-    else:
+    if guild_info.leader != request.user:
         messages.error(request, 'У вас нет таких прав!')
+        return HttpResponseRedirect(reverse('home'))
 
+    if request.method == 'POST':
+        edit_guild_info_form = EditGuildInfoForm(request.POST, request.FILES, instance=guild_info)
+        if edit_guild_info_form.is_valid():
+            edit_guild_info_form.save(commit=False)
+
+            new_name = edit_guild_info_form.cleaned_data.get('name')
+
+            if old_name != new_name:
+                profile_leader = Profile.objects.get(user=request.user)
+                profile_gold_before = profile_leader.gold
+                profile_gold_after = profile_gold_before - 30000
+                profile_leader.gold = profile_gold_after
+                profile_leader.save()
+
+                new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                              user=request.user,
+                                                              before=profile_gold_before,
+                                                              after=profile_gold_after,
+                                                              comment='Смена названия гильдии'
+                                                              )
+                new_transaction.save()
+
+            edit_guild_info_form.save()
+            current_update_guild_info = Guild.objects.get(pk=guild_id)
+            if old_buff != current_update_guild_info.buff:
+                can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
+                days = hours // 24
+
+                if can_edit_buff:
+                    current_update_guild_info.date_last_change_buff = date_time_now()
+                    current_update_guild_info.save()
+
+                    messages.success(request, 'Вы успешно изменили информацию о гильдии!')
+                else:
+                    current_update_guild_info.buff = old_buff
+                    current_update_guild_info.save()
+
+                    message = f'Вы пока что не можете поменять усиление гильдии! До следующего изменения {14-days} дней'
+                    messages.warning(request, message)
+
+            messages.success(request, 'Вы успешно изменили информацию о гильдии!')
+            return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
+        else:
+            messages.error(request, 'некорректные данные!')
+            return HttpResponseRedirect(reverse('home'))
+
+    elif request.method == 'GET':
+        edit_guild_info_form = EditGuildInfoForm(instance=guild_info,
+                                                 initial={'name': guild_info.name,
+                                                          'guild_pic': guild_info.guild_pic,
+                                                          'buff': guild_info.buff})
+
+        context = {'title': f'Редактирование гильдии {old_name}',
+                   'header': f'Редактирование гильдии {old_name}',
+                   'guild_info': guild_info,
+                   'form': edit_guild_info_form,
+                   }
+        return render(request, 'users/edit_guild.html', context)
+    else:
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 

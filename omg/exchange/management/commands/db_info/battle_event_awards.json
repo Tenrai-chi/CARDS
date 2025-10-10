@@ -1,0 +1,31 @@
+{
+  "event_awards": [
+    {
+      "rank": "1",
+      "award": "diamond",
+      "amount": 1000
+    },
+    {
+      "rank": "2",
+      "award": "diamond",
+      "amount": 500
+    },
+    {
+      "rank": "3",
+      "award": "diamond",
+      "amount": 250
+    }
+    ,
+    {
+      "rank": "4",
+      "award": "diamond",
+      "amount": 100
+    }
+    ,
+    {
+      "rank": "5",
+      "award": "diamond",
+      "amount": 50
+    }
+  ]
+}
