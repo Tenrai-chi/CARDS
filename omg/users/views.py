@@ -6,11 +6,12 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.forms import Form
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import get_object_or_404, render
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 
-from cards.models import FightHistory, Card
+from cards.models import Card, FightHistory
+from common.decorators import auth_required, owner_required
 from common.utils import date_time_now, time_difference_check
 from exchange.models import AmuletItem
 
@@ -44,7 +45,7 @@ class CustomRegistrationView(CreateView):
         return reverse_lazy('login')
 
     def form_valid(self, form: Form) -> HttpResponse:
-        user = form.save()
+        form.save()
         return super().form_valid(form)
 
 
@@ -105,12 +106,10 @@ def view_rating(request: HttpRequest) -> HttpResponse:
     return render(request, 'users/rating.html', context)
 
 
+@auth_required()
+@owner_required()
 def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Изменение профиля пользователя """
-
-    if user_id != request.user.id:
-        messages.error(request, 'Вы не можете редактировать этот профиль!')
-        return HttpResponseRedirect(reverse('home'))
 
     profile = Profile.objects.get(user=request.user)
     if request.method == 'POST':
@@ -143,31 +142,25 @@ def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | H
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
+@owner_required()
 def view_transactions(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Вывод истории движений денежных средств пользователя """
 
-    if request.user.is_authenticated and request.user.id == user_id:
-        transactions = Transactions.objects.filter(user=request.user).order_by('-date_and_time').annotate(result=F('after')-F('before'))[:250]
+    transactions = Transactions.objects.filter(user_id=user_id).order_by('-date_and_time').annotate(
+        result=F('after') - F('before'))[:250]
+    context = {'title': f'Транзакции',
+               'header': f'Транзакции пользователя {request.user.username}',
+               'transactions': transactions,
+               'user': request.user,
+               }
 
-        context = {'title': f'Транзакции',
-                   'header': f'Транзакции пользователя {request.user.username}',
-                   'transactions': transactions,
-                   'user': request.user,
-                   }
-
-        return render(request, 'users/transactions.html', context)
-
-    else:
-        messages.error(request, 'Вы не авторизованы или не имеете прав для просмотра!')
-        return HttpResponseRedirect(reverse('home'))
+    return render(request, 'users/transactions.html', context)
 
 
+@auth_required()
 def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
     """ Добавление в избранное выбранного пользователя """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы')
-        return HttpResponseRedirect(reverse('home'))
 
     if request.user.id == user_id:
         messages.error(request, 'Вы не можете добавить себя из избранных')
@@ -198,6 +191,7 @@ def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirec
         return HttpResponseRedirect(f'/users/{user_id}')
 
 
+@auth_required()
 def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
     """ Удаление пользователя из списка избранных """
 
@@ -216,6 +210,7 @@ def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedi
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def view_favorite_users(request: HttpRequest) -> HttpResponse:
     """ Вывод списка избранных пользователей """
 
@@ -256,15 +251,13 @@ def view_all_guilds(request: HttpRequest) -> HttpResponse:
     return render(request, 'users/view_all_guilds.html', context)
 
 
+@auth_required(error_message='Для создания гильдии необходимо авторизоваться!')
 def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
     """ Создание гильдии.
         Создается запись в Transaction.
         Лидером становится создатель.
     """
 
-    if not request.user.is_authenticated:
-        messages.error(request, 'Для создания гильдии необходимо зарегистрироваться!')
-        return HttpResponseRedirect(reverse('home'))
     user_profile = Profile.objects.get(user=request.user)
     if user_profile.guild:
         messages.error(request, 'Для создания гильдии покиньте текущую!')
@@ -323,6 +316,7 @@ def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpResponseRedirect:
     """ Редактирование информации о гильдии.
         Выводит страницу с формой для смены названия, картинки и усиления гильдии.
@@ -330,10 +324,6 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
         Если было изменено усиление, то обновляется дата последнего изменения усиления.
         Поменять усиление можно раз в 2 недели.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
 
     guild_info = get_object_or_404(Guild, pk=guild_id)
     old_name = guild_info.name
@@ -385,7 +375,7 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
             messages.success(request, 'Вы успешно изменили информацию о гильдии!')
             return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
         else:
-            messages.error(request, 'некорректные данные!')
+            messages.error(request, 'Некорректные данные!')
             return HttpResponseRedirect(reverse('home'))
 
     elif request.method == 'GET':
@@ -405,15 +395,11 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def change_leader_guild_choice(request: HttpRequest, guild_id: int) -> HttpResponse | HttpResponseRedirect:
     """ Меню смены лидера гильдии.
         Выводит всех доступных для передачи лидерства участников гильдии.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Ошибка!')
-
-        return HttpResponseRedirect(reverse('home'))
 
     guild_info = Guild.objects.get(pk=guild_id)
     if request.user == guild_info.leader:
@@ -428,17 +414,12 @@ def change_leader_guild_choice(request: HttpRequest, guild_id: int) -> HttpRespo
 
     else:
         messages.error(request, 'У вас нет таких прав!')
-
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def change_leader_guild(request: HttpRequest, guild_id: int, user_id: int) -> HttpResponseRedirect:
     """ Смена лидера гильдии на выбранного пользователя """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Ошибка!')
-
-        return HttpResponseRedirect(reverse('home'))
 
     guild_info = Guild.objects.get(pk=guild_id)
     new_leader = User.objects.get(pk=user_id)
@@ -450,20 +431,15 @@ def change_leader_guild(request: HttpRequest, guild_id: int, user_id: int) -> Ht
         return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
     else:
         messages.error(request, 'У вас нет таких прав!')
-
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def delete_member_guild(request: HttpRequest, member_id: int, guild_id: int) -> HttpResponseRedirect:
     """ Удалить пользователя из гильдии.
         Вычитает очки гильдии пользователя из общего показателя гильдии.
         У пользователя обнуляются очки гильдии.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Авторизируйтесь"!')
-
-        return HttpResponseRedirect(reverse('home'))
 
     profile_user = get_object_or_404(Profile, user=member_id)
     guild = get_object_or_404(Guild, pk=guild_id)
@@ -512,20 +488,15 @@ def delete_member_guild(request: HttpRequest, member_id: int, guild_id: int) -> 
 
     else:
         messages.error(request, 'Вы должны быть лидером!')
-
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
     """ Вступление в гильдию текущим пользователем.
         В profile пользователя устанавливается выбранная гильдия.
         Количество участников гильдии увеличивается на 1.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы должны быть зарегистрированы!')
-
-        return HttpResponseRedirect(reverse('home'))
 
     user_profile = Profile.objects.get(user=request.user)
     guild_info = get_object_or_404(Guild, pk=guild_id)
@@ -544,26 +515,20 @@ def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirec
         user_profile.save()
 
         messages.success(request, 'Вы успешно вступили в гильдию!')
-
         return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
 
     else:
         messages.error(request, 'Чтобы вступить в новую гильдию, покиньте текущую!')
-
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def delete_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
     """ Удаление гильдии.
         Удалить гильдию может только лидер.
         У всех текущих участников гильдии изменяются guild, date_guild_accession на None, а guild_point на 0.
         Удаляется запись о гильдии в Guild.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Ошибка')
-
-        return HttpResponseRedirect(reverse('home'))
 
     guild_info = get_object_or_404(Guild, pk=guild_id)
     members_guild = Profile.objects.filter(guild=guild_info)
@@ -575,11 +540,10 @@ def delete_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
             member.save()
 
         guild_info.delete()
-        messages.success(request, 'Вы успешно расформировали гильдию!')
 
+        messages.success(request, 'Вы успешно расформировали гильдию!')
         return HttpResponseRedirect(reverse('view_all_guilds'))
 
     else:
         messages.error(request, 'У вас нет таких прав!')
-
         return HttpResponseRedirect(reverse('home'))

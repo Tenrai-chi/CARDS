@@ -90,8 +90,7 @@ def accrual_of_reward():
     best_users = BattleEventParticipants.objects.filter(points__gt=0).order_by('-points')[:count_awards]
     best_user_ids = best_users.values_list('user_id', flat=True)
     users_in_awards = Profile.objects.filter(user__id__in=best_user_ids)
-    users_in_awards_lookup = {profile.user_id: profile for profile in
-                              Profile.objects.filter(user__id__in=best_user_ids)}
+    users_in_awards_lookup = {profile.user_id: profile for profile in users_in_awards}
     update_user = []
     for rank, user in enumerate(best_users):
         current_award = awards[rank]

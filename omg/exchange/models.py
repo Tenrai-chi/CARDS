@@ -90,7 +90,8 @@ class UsersInventory(models.Model):
                              verbose_name='Предмет')
     amount = models.IntegerField(null=True,
                                  blank=True,
-                                 verbose_name='Количество')
+                                 verbose_name='Количество',
+                                 default=0)
 
     class Meta:
         verbose_name_plural = 'Инвентари предметов опыта'

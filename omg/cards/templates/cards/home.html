@@ -134,15 +134,24 @@
             <table class="table table-striped table-hover">
                 <thead>
                 <tr>
+                    <th scope="col">Место</th>
                     <th scope="col">Пользователь</th>
                     <th scope="col">Очки</th>
+                    <th scope="col">Награда (diamond)</th>
                 </tr>
                 </thead>
                 <tbody>
                 {% for rank in rating %}
                 <tr>
-                    <td>{{ rank.user.username }}</td>
-                    <td>{{ rank.points }}</td>
+                    <td>{{ rank.0 }}</td>
+                    {% if rank.1 != None %}
+                        <td>{{ rank.1 }}</td>
+                        <td>{{ rank.2 }}</td>
+                    {% else %}
+                        <td> - </td>
+                        <td> - </td>
+                    {% endif %}
+                    <td>{{ rank.3 }}</td>
                 </tr>
                 {% empty %}
                 <tr>

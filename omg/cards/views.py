@@ -1,12 +1,12 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from math import ceil
-from random import randint, choice
+from random import choice, randint
 
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q
-from django.http import HttpResponseRedirect, HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
@@ -14,9 +14,10 @@ from .forms import SaleCardForm, UseItemForm
 from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory, Type, ClassCard
 from .utils import accrue_experience, calculate_need_exp, fight_now as f_n
 
+from common.decorators import auth_required
 from common.utils import date_time_now, time_difference_check, create_new_card
 from exchange.models import (SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletType, InitialEventAwards,
-                             BattleEventParticipants, TeamsForBattleEvent)
+                             BattleEventParticipants, TeamsForBattleEvent, BattleEventAwards)
 from users.models import Transactions, Profile, SaleStoreCards
 
 
@@ -58,7 +59,7 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
         context['theme'] = 'news'
         return render(request, 'cards/home.html', context)
 
-    if not request.user.is_authenticated:
+    elif not request.user.is_authenticated:
         messages.info(request, 'Для участия вы должны быть авторизованы')
         return render(request, 'cards/home.html', context)
 
@@ -98,10 +99,27 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
                 team_enemy.append(Card.objects.get(pk=team_enemy_id))
             battle_progress_this_day = user_event_participant.battle_progress.get(today)
             rating = BattleEventParticipants.objects.filter(points__gt=0).order_by('-points')[:5]
+            be_event_awards = BattleEventAwards.objects.all().order_by('rank')
+
+            top_list = []
+            for ind in range(0, 5):
+                try:
+                    place = [be_event_awards[ind].rank,
+                             rating[ind].user.username,
+                             rating[ind].points,
+                             be_event_awards[ind].amount]
+                    top_list.append(place)
+                except IndexError as _:
+                    place = [be_event_awards[ind].rank,
+                             None,
+                             None,
+                             be_event_awards[ind].amount]
+                    top_list.append(place)
+
             context['team_user'] = team_user
             context['team_enemy'] = team_enemy
             context['points'] = user_event_participant.points
-            context['rating'] = rating
+            context['rating'] = top_list
             context['enemy_user'] = enemy
 
             if battle_progress_this_day is True:
@@ -135,15 +153,12 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
     return render(request, 'cards/home.html', context)
 
 
+@auth_required()
 def menu_team_template_battle_event(request: HttpRequest, place: int) -> HttpResponseRedirect | HttpResponse:
     """ Меню установки карты.
         Выводит все доступные для установки на выбранное место карты,
         исключая уже размещенную
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы должны авторизоваться')
-        return HttpResponseRedirect(reverse('home'))
 
     user_cards = Card.objects.filter(owner=request.user).order_by('rarity')
     team, _ = TeamsForBattleEvent.objects.get_or_create(user=request.user)
@@ -157,16 +172,13 @@ def menu_team_template_battle_event(request: HttpRequest, place: int) -> HttpRes
     return render(request, 'cards/menu_team_battle_event.html', context)
 
 
+@auth_required()
 def set_team_template_battle_event(request: HttpRequest, place: int, current_card_id: int) -> HttpResponseRedirect:
     """ Установка карты в команду боевого события.
         Устанавливает текущую карту на выбранное место в команде.
         Если карта уже была в команде, то она меняет свое положение в отряде,
         а занимаемое ею место становится пустым.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы должны авторизоваться')
-        return HttpResponseRedirect(reverse('home'))
 
     current_card = get_object_or_404(Card, pk=current_card_id)
     if current_card.owner != request.user:
@@ -198,15 +210,12 @@ def set_team_template_battle_event(request: HttpRequest, place: int, current_car
     return HttpResponseRedirect(f'/battle_event')
 
 
+@auth_required()
 def fight_day_battle_event(request: HttpRequest, enemy_id: int) -> HttpResponseRedirect:
     """ Вывод итога боя.
         Начисление очков события.
         Ставится отметка о прошедшем бое.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, f'Вы должны авторизоваться')
-        return HttpResponseRedirect(reverse('home'))
 
     today = date.today().day
     if today > 10:
@@ -282,15 +291,12 @@ def fight_day_battle_event(request: HttpRequest, enemy_id: int) -> HttpResponseR
     return render(request, 'cards/battle_event_fight.html', context)
 
 
+@auth_required(error_message='Для покупки необходимо авторизоваться!', redirect_url_name='card_store')
 def buy_card(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
     """ Покупка карты в магазине.
         Создает карту по шаблону выбранной карты в магазине и присваивает ее текущему пользователю.
         У текущего пользователя в Profile изменяется gold на значение равное цене карты.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Для покупки необходимо авторизироваться!')
-        return HttpResponseRedirect(reverse('card_store'))
 
     user_profile = Profile.objects.get(user=request.user)
     selected_card = CardStore.objects.get(pk=card_id)
@@ -348,7 +354,6 @@ def get_card(request: HttpRequest) -> HttpResponse:
 
     if not request.user.is_authenticated:
         context = {'title': 'Получить карту', 'header': 'Получить бесплатную карту'}
-
         return render(request, 'cards/get_card.html', context)
 
     user_profile = Profile.objects.get(user=request.user)
@@ -366,20 +371,15 @@ def get_card(request: HttpRequest) -> HttpResponse:
     return render(request, 'cards/get_card.html', context)
 
 
+@auth_required(error_message='Чтобы получить бесплатную карту необходимо авторизоваться')
 def create_card(request: HttpRequest) -> HttpResponseRedirect:
     """ Генерация новой карты при получении ее пользователем бесплатно.
         Обновляет receiving_timer профиля.
         После создания перенаправляет пользователя на страницу просмотра созданной карты.
     """
 
-    if not request.user.is_authenticated:
-        messages.error(request, 'Чтобы получить бесплатную карту необходимо авторизироваться')
-
-        return HttpResponseRedirect(reverse('home'))
-
     if Card.objects.filter(owner=request.user.id).count() == request.user.profile.card_slots:
         messages.error(request, 'У вас не хватает места для получения новой карты!')
-
         return HttpResponseRedirect(reverse('card_store'))
 
     user_profile = Profile.objects.get(user=request.user)
@@ -420,8 +420,7 @@ def card_store(request: HttpRequest) -> HttpResponse:
 def view_user_cards(request: HttpRequest, user_id: int) -> HttpResponse:
     """ Вывод карт выбранного пользователя """
 
-    user = User.objects.get(pk=user_id)
-
+    user = get_object_or_404(User, pk=user_id)
     cards = Card.objects.filter(owner=user).order_by('rarity', 'class_card', 'id')
     count_cards = Card.objects.filter(owner=user).count()
     max_count_cards = Profile.objects.get(pk=user_id).card_slots
@@ -454,6 +453,7 @@ def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
     return render(request, 'cards/card.html', context)
 
 
+@auth_required()
 def select_favorite_card(request: HttpRequest, selected_card_id: int) -> HttpResponseRedirect:
     """ Выбор избранной карты.
         Изменение current_card в Profile пользователя на выбранную карту.
@@ -467,6 +467,7 @@ def select_favorite_card(request: HttpRequest, selected_card_id: int) -> HttpRes
     return HttpResponseRedirect(f'/cards/user_cards-{request.user.id}')
 
 
+@auth_required()
 def fight(request: HttpRequest, protector_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Бой.
         Проверяет есть ли у обоих пользователей выбранная карта.
@@ -479,10 +480,6 @@ def fight(request: HttpRequest, protector_id: int) -> HttpResponseRedirect | Htt
         Обрабатывается возможность получения книг опыта нападавшему,
         если сработал шанс, то книги появляются в инвентаре.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
 
     protector = User.objects.get(pk=protector_id)
     attacker = User.objects.get(pk=request.user.id)
@@ -643,16 +640,13 @@ def view_user_cards_for_sale(request: HttpRequest, user_id: int) -> HttpResponse
     return render(request, 'cards/view_sale_card_user.html', context)
 
 
+@auth_required(error_message='Для покупки необходимо авторизоваться!', redirect_url_name='card_store')
 def buy_card_user(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
     """ Покупка карты у пользователя.
         Изменение владельца карты на текущего пользователя.
         Увеличение/уменьшение gold у покупателя/продавца.
         Создание 2 записей в Transaction.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Для покупки необходимо авторизоваться!')
-        return HttpResponseRedirect(reverse('card_store'))
 
     buyer_profile = Profile.objects.get(user=request.user.pk)
     card = Card.objects.get(pk=card_id)
@@ -712,14 +706,11 @@ def buy_card_user(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
     return HttpResponseRedirect(f'/cards/card-{card.id}')
 
 
+@auth_required(redirect_url_name='card_store')
 def card_sale(request: HttpRequest, card_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Выставление на продажу карты.
         С помощью формы задается цена карты, sale_status устанавливается на True автоматически.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('card_store'))
 
     card = Card.objects.get(pk=card_id)
     team_card_pks = BattleEventParticipants.objects.filter(user=request.user).values_list('first_card__pk',
@@ -782,12 +773,10 @@ def remove_from_sale_card(request: HttpRequest, card_id: int) -> HttpResponseRed
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def card_level_up(request: HttpRequest, card_id: int) -> HttpResponse:
     """ Меню увеличение уровня """
 
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
     card = get_object_or_404(Card, pk=card_id)
     if request.user != card.owner:
         messages.error(request, 'Вы не можете усиливать эту карту!')
@@ -806,6 +795,7 @@ def card_level_up(request: HttpRequest, card_id: int) -> HttpResponse:
     return render(request, 'cards/card_level_up.html', context)
 
 
+@auth_required()
 def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Увеличение уровня с помощью книг опыта.
         Если у пользователя хватает денег для использования предметов,
@@ -814,10 +804,6 @@ def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> Http
         В Profile пользователя уменьшается gold.
         Создается транзакция.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
 
     card = get_object_or_404(Card, pk=card_id)
     if request.user != card.owner:
@@ -939,16 +925,13 @@ def view_all_sale_card(request: HttpRequest) -> HttpResponse:
     return render(request, 'cards/all_sale_card.html', context)
 
 
+@auth_required()
 def get_award_start_event(request: HttpRequest) -> HttpResponseRedirect:
     """ Получение награды из начального события.
         Пользователь получает награду за отметку дня, если она еще не получена.
         Количество совершенных входов пользователя увеличивается.
         Если награда 30 дня (UR карта), то создает ее и присваивает пользователю.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
 
     user_profile = Profile.objects.get(user=request.user)
     if user_profile.event_visit >= 30:
@@ -1017,15 +1000,12 @@ def get_award_start_event(request: HttpRequest) -> HttpResponseRedirect:
         return HttpResponseRedirect(reverse('home'))
 
 
+@auth_required()
 def merge_card_menu(request: HttpRequest, current_card_id: int) -> HttpResponseRedirect:
     """ Меню слияния карты.
         Выводит карты, которые можно слить в выбранную карту.
         В выборку не входят карты, которые участвуют в боевом событии.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
 
     current_card = get_object_or_404(Card, pk=current_card_id)
 
@@ -1053,16 +1033,13 @@ def merge_card_menu(request: HttpRequest, current_card_id: int) -> HttpResponseR
     return render(request, 'cards/merge_menu_card.html', context)
 
 
+@auth_required()
 def merge_card(request: HttpRequest, current_card_id: int, card_for_merge_id: int) -> HttpResponseRedirect:
     """ Слияние карты.
         Повышает уровень слияния выбранной карты.
         Уничтожает карту, которую слили, перед этим сняв амулет.
-        Избранную карту и карты участвующие в боевом событии слить нельзя.
+        Избранную карту и карты, участвующие в боевом событии, слить нельзя.
     """
-
-    if not request.user.is_authenticated:
-        messages.error(request, 'Вы не авторизованы!')
-        return HttpResponseRedirect(reverse('home'))
 
     if current_card_id == card_for_merge_id:
         messages.error(request, 'Вы не можете слить одну и ту же карту!')
