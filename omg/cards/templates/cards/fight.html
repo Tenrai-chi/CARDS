@@ -9,10 +9,12 @@
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' theme='news'%}">Главная</a></li>
-            {% if winner == user %}
+            {% if is_victory and winner == user %}
                 <li class="breadcrumb-item active" aria-current="page">Бой с {{ loser.username }}</li>
-            {% else %}
+            {% elif is_victory and loser == user %}
                 <li class="breadcrumb-item active" aria-current="page">Бой с {{ winner.username }}</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">Бой с {{ enemy.username }}</li>
             {% endif %}
         </ol>
     </nav>

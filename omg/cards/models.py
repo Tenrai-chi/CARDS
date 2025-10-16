@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth.models import User
+from django.db import models
 
 from random import choice
 
@@ -247,3 +247,19 @@ class HistoryReceivingCards(models.Model):
 
     def __str__(self):
         return f'Получение карты {self.card.id}'
+
+
+class News(models.Model):
+    """ Новости сайта """
+
+    title = models.CharField(max_length=500, verbose_name='Заголовок')
+    theme = models.CharField(max_length=200, blank=True, null=True, verbose_name='Тема')
+    text = models.CharField(max_length=2000, verbose_name='Текст')
+    date_time_create = models.DateTimeField(blank=True, null=True, verbose_name='Дата и время создания')
+
+    class Meta:
+        verbose_name_plural = 'Новости'
+        verbose_name = 'Новость'
+
+    def __str__(self):
+        return f'Новость по теме "{self.theme}" {self.id}'

@@ -2,6 +2,7 @@ import json
 import os
 
 from django.core.management.base import BaseCommand
+from django.db import transaction
 
 from exchange.models import (ExperienceItems, AmuletRarity, AmuletType, UpgradeItemsType,
                              InitialEventAwards, BattleEventAwards)
@@ -13,14 +14,14 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения exchange """
 
-        self.load_amulet_rarity()
-        self.load_amulet_type()
-        self.load_experience_items()
-        self.load_upgrade_items_type()
-        self.load_start_event_awards()
-        self.load_battle_event_awards()
+        self._load_amulet_rarity()
+        self._load_amulet_type()
+        self._load_experience_items()
+        self._load_upgrade_items_type()
+        self._load_start_event_awards()
+        self._load_battle_event_awards()
 
-    def load_amulet_rarity(self):
+    def _load_amulet_rarity(self):
         """ Заполняет редкость амулетов """
 
         try:
@@ -29,17 +30,19 @@ class Command(BaseCommand):
                 data = json.load(js)
             all_amulet_rarity = data.get('amulet_rarity', [])
 
+            new_records = []
             for rarity in all_amulet_rarity:
-                existing_rarity = AmuletRarity.objects.filter(name=rarity['name']).first()
-                if existing_rarity:
-                    self.stdout.write(f'Редкость амулета {rarity["name"]} уже существует. Пропускаем.')
-                    continue
-                new_amulet_rarity = AmuletRarity(name=rarity['name'],
-                                                 chance_drop_on_fight=rarity['chance_drop_on_fight'],
-                                                 chance_drop_on_box=rarity['chance_drop_on_box'],
-                                                 max_upgrade=rarity['max_upgrade'])
-                new_amulet_rarity.save()
-                self.stdout.write(self.style.SUCCESS(f'Успешно добавлена редкость амулета: {rarity["name"]}'))
+                if not AmuletRarity.objects.filter(name=rarity['name']).exists():
+                    new_amulet_rarity = AmuletRarity(name=rarity['name'],
+                                                     chance_drop_on_fight=rarity['chance_drop_on_fight'],
+                                                     chance_drop_on_box=rarity['chance_drop_on_box'],
+                                                     max_upgrade=rarity['max_upgrade'])
+                    new_records.append(new_amulet_rarity)
+                    self.stdout.write(self.style.SUCCESS(f'Добавлена редкость амулета: {rarity["name"]}'))
+            with transaction.atomic():
+                AmuletRarity.objects.bulk_create(new_records)
+                print(f'Зарегистрировано {len(new_records)} редкостей в amulet_rarity')
+
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_rarity.json" не найден.'))
         except json.JSONDecodeError as e:
@@ -47,7 +50,7 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
 
-    def load_amulet_type(self):
+    def _load_amulet_type(self):
         """ Заполняет типы амулетов """
 
         try:
@@ -58,23 +61,24 @@ class Command(BaseCommand):
 
             all_amulet_rarity = AmuletRarity.objects.all()
 
+            new_records = []
             for amulet_type in all_amulet_type:
-                existing_type = AmuletType.objects.filter(name=amulet_type['name']).first()
-                if existing_type:
-                    self.stdout.write(f'Редкость амулета {amulet_type["name"]} уже существует. Пропускаем.')
-                    continue
+                if not AmuletType.objects.filter(name=amulet_type['name']).exists():
+                    new_amulet_type = AmuletType(name=amulet_type['name'],
+                                                 bonus_hp=amulet_type['bonus_hp'],
+                                                 bonus_damage=amulet_type['bonus_damage'],
+                                                 price=amulet_type['price'],
+                                                 sale_now=amulet_type['sale_now'],
+                                                 image=amulet_type['image'],
+                                                 discount=amulet_type['discount'],
+                                                 discount_now=amulet_type['discount_now'],
+                                                 rarity=all_amulet_rarity[amulet_type['rarity'] - 1])
+                    new_records.append(new_amulet_type)
+                    self.stdout.write(self.style.SUCCESS(f'Добавлен тип амулета: {amulet_type["name"]}'))
+            with transaction.atomic():
+                AmuletType.objects.bulk_create(new_records)
+                print(f'Зарегистрировано {len(new_records)} типов в amulet_type')
 
-                new_amulet_type = AmuletType(name=amulet_type['name'],
-                                             bonus_hp=amulet_type['bonus_hp'],
-                                             bonus_damage=amulet_type['bonus_damage'],
-                                             price=amulet_type['price'],
-                                             sale_now=amulet_type['sale_now'],
-                                             image=amulet_type['image'],
-                                             discount=amulet_type['discount'],
-                                             discount_now=amulet_type['discount_now'],
-                                             rarity=all_amulet_rarity[amulet_type['rarity'] - 1])
-                new_amulet_type.save()
-                self.stdout.write(self.style.SUCCESS(f'Успешно добавлен тип амулета: {amulet_type["name"]}'))
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_type.json" не найден.'))
         except json.JSONDecodeError as e:
@@ -82,7 +86,7 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
 
-    def load_experience_items(self):
+    def _load_experience_items(self):
         """ Заполняет предметы опыта """
 
         try:
@@ -91,22 +95,24 @@ class Command(BaseCommand):
                 data = json.load(js)
             all_experience_items = data.get('experience_items', [])
 
+            new_records = []
             for experience_items in all_experience_items:
-                existing_exp_item = ExperienceItems.objects.filter(name=experience_items['name']).first()
-                if existing_exp_item:
-                    self.stdout.write(f'Предмет опыта {experience_items["name"]} уже существует. Пропускаем.')
-                    continue
-                new_exp_item = ExperienceItems(name=experience_items['name'],
-                                               rarity=experience_items['rarity'],
-                                               experience_amount=experience_items['experience_amount'],
-                                               chance_drop_on_fight=experience_items['chance_drop_on_fight'],
-                                               chance_drop_on_box=experience_items['chance_drop_on_box'],
-                                               price=experience_items['price'],
-                                               image=experience_items['image'],
-                                               gold_for_use=experience_items['gold_for_use'],
-                                               sale_now=experience_items['sale_now'])
-                new_exp_item.save()
-                self.stdout.write(self.style.SUCCESS(f'Успешно добавлен предмет опыта: {experience_items["name"]}'))
+                if not ExperienceItems.objects.filter(name=experience_items['name']).exists():
+                    new_exp_item = ExperienceItems(name=experience_items['name'],
+                                                   rarity=experience_items['rarity'],
+                                                   experience_amount=experience_items['experience_amount'],
+                                                   chance_drop_on_fight=experience_items['chance_drop_on_fight'],
+                                                   chance_drop_on_box=experience_items['chance_drop_on_box'],
+                                                   price=experience_items['price'],
+                                                   image=experience_items['image'],
+                                                   gold_for_use=experience_items['gold_for_use'],
+                                                   sale_now=experience_items['sale_now'])
+                    new_records.append(new_exp_item)
+                    self.stdout.write(self.style.SUCCESS(f'Добавлен предмет опыта: {experience_items["name"]}'))
+            with transaction.atomic():
+                ExperienceItems.objects.bulk_create(new_records)
+                print(f'Зарегистрировано {len(new_records)} предметов опыта в experience_items')
+
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "experience_items.json" не найден.'))
         except json.JSONDecodeError as e:
@@ -114,7 +120,7 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
 
-    def load_upgrade_items_type(self):
+    def _load_upgrade_items_type(self):
         """ Заполняет типы предметов для улучшения амулетов """
 
         try:
@@ -123,20 +129,22 @@ class Command(BaseCommand):
                 data = json.load(js)
             all_up_item_type = data.get('upgrade_items_type', [])
 
+            new_records = []
             for up_item in all_up_item_type:
-                existing_up_item = UpgradeItemsType.objects.filter(name=up_item['name']).first()
-                if existing_up_item:
-                    self.stdout.write(f'Предмет улучшения амулета {up_item["name"]} уже существует. Пропускаем.')
-                    continue
-                new_up_item = UpgradeItemsType(name=up_item['name'],
-                                               description=up_item['description'],
-                                               type=up_item['type'],
-                                               amount_up=up_item['amount_up'],
-                                               image=up_item['image'],
-                                               price=up_item['price'],
-                                               price_of_use=up_item['price_of_use'],)
-                new_up_item.save()
-                self.stdout.write(self.style.SUCCESS(f'Успешно добавлен предмет улучшения амулета: {up_item["name"]}'))
+                if not UpgradeItemsType.objects.filter(name=up_item['name']).exists():
+                    new_up_item = UpgradeItemsType(name=up_item['name'],
+                                                   description=up_item['description'],
+                                                   type=up_item['type'],
+                                                   amount_up=up_item['amount_up'],
+                                                   image=up_item['image'],
+                                                   price=up_item['price'],
+                                                   price_of_use=up_item['price_of_use'],)
+                    new_records.append(new_up_item)
+                    self.stdout.write(self.style.SUCCESS(f'Добавлен предмет улучшения амулета: {up_item["name"]}'))
+            with transaction.atomic():
+                UpgradeItemsType.objects.bulk_create(new_records)
+                print(f'Зарегистрировано {len(new_records)} предметов улучшения в upgrade_items_type')
+
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "upgrade_items_type.json" не найден.'))
         except json.JSONDecodeError as e:
@@ -144,7 +152,7 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
 
-    def load_start_event_awards(self):
+    def _load_start_event_awards(self):
         """ Заполняет таблицу с наградами стартового события """
 
         try:
@@ -153,18 +161,19 @@ class Command(BaseCommand):
                 data = json.load(js)
             event_awards = data.get('event_awards', [])
 
+            new_records = []
             for event in event_awards:
-                existing_event = InitialEventAwards.objects.filter(day_event_visit=event['day_event_visit']).first()
-                if existing_event:
-                    self.stdout.write(f'Награда {event["day_event_visit"]} дня уже существует. Пропускаем.')
-                    continue
+                if not InitialEventAwards.objects.filter(day_event_visit=event['day_event_visit']).exists():
+                    new_award = InitialEventAwards.objects.create(day_event_visit=event['day_event_visit'],
+                                                                  type_award=event['type_award'],
+                                                                  amount_or_rarity_award=event['amount_or_rarity_award'],
+                                                                  description=event['description'])
+                    new_award.save()
+                    self.stdout.write(self.style.SUCCESS(f'Добавлен награда {event["day_event_visit"]} дня'))
+            with transaction.atomic():
+                InitialEventAwards.objects.bulk_create(new_records)
+                print(f'Зарегистрировано {len(new_records)} наград в start_event_awards')
 
-                new_award = InitialEventAwards.objects.create(day_event_visit=event['day_event_visit'],
-                                                              type_award=event['type_award'],
-                                                              amount_or_rarity_award=event['amount_or_rarity_award'],
-                                                              description=event['description'])
-                new_award.save()
-                self.stdout.write(self.style.SUCCESS(f'Успешно добавлен награда {event["day_event_visit"]} дня'))
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "start_event_awards.json" не найден.'))
 
@@ -174,7 +183,7 @@ class Command(BaseCommand):
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
 
-    def load_battle_event_awards(self):
+    def _load_battle_event_awards(self):
         """ Заполняет таблицу с наградами боевого события """
 
         try:
@@ -183,17 +192,18 @@ class Command(BaseCommand):
                 data = json.load(js)
             event_awards = data.get('event_awards', [])
 
+            new_records = []
             for event in event_awards:
-                existing_event = BattleEventAwards.objects.filter(rank=event['rank']).first()
-                if existing_event:
-                    self.stdout.write(f'Награда {event["rank"]} ранга уже существует. Пропускаем.')
-                    continue
+                if not BattleEventAwards.objects.filter(rank=event['rank']).exists():
+                    new_award = BattleEventAwards.objects.create(rank=event['rank'],
+                                                                 award=event['award'],
+                                                                 amount=event['amount'])
+                    new_records.append(new_award)
+                    self.stdout.write(self.style.SUCCESS(f'Добавлен награда {event["rank"]} ранга'))
+            with transaction.atomic():
+                BattleEventAwards.objects.bulk_create(new_records)
+                print(f'Зарегистрировано {len(new_records)} наград в battle_event_awards')
 
-                new_award = BattleEventAwards.objects.create(rank=event['rank'],
-                                                             award=event['award'],
-                                                             amount=event['amount'])
-                new_award.save()
-                self.stdout.write(self.style.SUCCESS(f'Успешно добавлен награда {event["rank"]} ранга'))
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "battle_event_awards.json" не найден.'))
 

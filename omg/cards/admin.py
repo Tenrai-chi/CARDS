@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import ClassCard, Type, Rarity, Card, CardStore, FightHistory, HistoryReceivingCards
+from .models import ClassCard, Type, Rarity, Card, CardStore, FightHistory, HistoryReceivingCards, News
 
 
 class CardAdmin(admin.ModelAdmin):
@@ -60,6 +60,12 @@ class HistoryReceivingCardsAdmin(admin.ModelAdmin):
     search_fields = ('id', 'user', 'method_receiving')
 
 
+class NewsAdmin(admin.ModelAdmin):
+    list_display = ('id', 'title', 'theme')
+    list_display_links = ('id', 'title')
+    search_fields = ('id', 'title', 'theme', 'text', 'redirect_name')
+
+
 admin.site.register(Type, TypeAdmin)
 admin.site.register(HistoryReceivingCards, HistoryReceivingCardsAdmin)
 admin.site.register(FightHistory, FightHistoryAdmin)
@@ -67,3 +73,4 @@ admin.site.register(Card, CardAdmin)
 admin.site.register(ClassCard, ClassCardAdmin)
 admin.site.register(Rarity, RarityAdmin)
 admin.site.register(CardStore, CardStoreAdmin)
+admin.site.register(News, NewsAdmin)

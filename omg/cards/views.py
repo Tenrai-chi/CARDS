@@ -11,7 +11,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .forms import SaleCardForm, UseItemForm
-from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory, Type, ClassCard
+from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory, Type, ClassCard, News
 from .utils import accrue_experience, calculate_need_exp, fight_now as f_n
 
 from common.decorators import auth_required
@@ -56,12 +56,15 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
                'theme': None,
                }
     if theme == 'news':
+        news = News.objects.all().order_by('-date_time_create')
         context['theme'] = 'news'
-        return render(request, 'cards/home.html', context)
+        context['all_news'] = news
 
-    elif not request.user.is_authenticated:
-        messages.info(request, 'Для участия вы должны быть авторизованы')
-        return render(request, 'cards/home.html', context)
+        return render(request, 'cards/home_news.html', context)
+
+    if not request.user.is_authenticated:
+        messages.info(request, 'Для участия в событиях вы должны быть авторизованы')
+        return HttpResponseRedirect(reverse('home'))
 
     if theme == 'start_event':
         user_profile = Profile.objects.get(user=request.user)
@@ -73,6 +76,8 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
         context['event_awards'] = event_awards
         context['theme'] = 'start_event'
 
+        return render(request, 'cards/home_start_event.html', context)
+
     elif theme == 'battle_event':
         today = date.today().day
         context['theme'] = 'battle_event'
@@ -83,7 +88,7 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
             user_event_participant = BattleEventParticipants.objects.filter(user=request.user).last()
             if user_event_participant is None:
                 messages.info(request, f'Вы не участвуете в этом сезоне')
-                return render(request, 'cards/home.html', context)
+                return render(request, 'cards/home_news.html', context)
 
             team_user_ids = (user_event_participant.first_card.id,
                              user_event_participant.second_card.id,
@@ -126,8 +131,6 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
                 context['can_fight'] = False
             else:
                 context['can_fight'] = True
-            return render(request, 'cards/home.html', context)
-
         # Если событие завершилось
         else:
             user_team_template, _ = TeamsForBattleEvent.objects.get_or_create(user=request.user)
@@ -148,9 +151,10 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
             for team_template_id in team_template_ids:
                 team_template.append(Card.objects.filter(pk=team_template_id).last())
             context['user_team_template'] = team_template
-            return render(request, 'cards/home.html', context)
+        return render(request, 'cards/home_battle_event.html', context)
 
-    return render(request, 'cards/home.html', context)
+    else:
+        return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
