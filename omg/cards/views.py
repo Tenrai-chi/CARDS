@@ -3,6 +3,7 @@ from math import ceil
 from random import choice, randint
 
 from django.contrib import messages
+from django.contrib.admin.templatetags.admin_list import paginator_number
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db.models import Q
@@ -56,9 +57,16 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
                'theme': None,
                }
     if theme == 'news':
-        news = News.objects.all().order_by('-date_time_create')
         context['theme'] = 'news'
-        context['all_news'] = news
+        news = News.objects.all().order_by('-date_time_create')
+        paginator = Paginator(news, 10)
+        if 'page' in request.GET:
+            page_num = request.GET['page']
+        else:
+            page_num = 1
+        page = paginator.get_page(page_num)
+        context['all_news'] = page.object_list
+        context['page'] = page
 
         return render(request, 'cards/home_news.html', context)
 
