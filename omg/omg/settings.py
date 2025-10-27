@@ -73,21 +73,22 @@ WSGI_APPLICATION = 'omg.wsgi.application'
 #         'NAME': BASE_DIR / 'db.sqlite3',
 #     }
 # }
+
 load_dotenv()
-db_name = os.getenv('db_name')
-db_user = os.getenv('db_user')
-db_user_password = os.getenv('db_user_password')
-db_host = os.getenv('db_host')
-db_port = os.getenv('db_port')
+DB_NAME = os.getenv('db_name')
+DB_USER = os.getenv('db_user')
+DB_USER_PASSWORD = os.getenv('db_user_password')
+DB_HOST = os.getenv('db_host')
+DB_PORT = os.getenv('db_port')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': db_name,
-        'USER': db_user,
-        'PASSWORD': db_user_password,
-        'HOST': db_host,
-        'PORT': db_port,
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_USER_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
     }
 }
 
