@@ -13,10 +13,10 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения cards """
 
-        self._load_class_card()
-        self._load_type_card()
-        self._load_rarity_card()
-        self._load_card_store()
+        # self._load_class_card()
+        # self._load_type_card()
+        # self._load_rarity_card()
+        # self._load_card_store()
         self._load_news()
 
     def _load_class_card(self):

@@ -14,19 +14,19 @@ def stats_calculation(user_card: Card, enemy_card: Card) -> tuple[float, float, 
         Дополнительные характеристики на основе амулета при наличии.
     """
 
-    user_card_hp = round(user_card.hp)
-    user_card_damage = round(user_card.damage)
-    enemy_card_hp = round(enemy_card.hp)
-    enemy_card_damage = round(enemy_card.damage)
+    user_card_hp = round(user_card.hp, 2)
+    user_card_damage = round(user_card.damage, 2)
+    enemy_card_hp = round(enemy_card.hp, 2)
+    enemy_card_damage = round(enemy_card.damage, 2)
 
     # Если карта пользователя лучше карты противника
     if user_card.type.better == enemy_card.type:
-        user_card_damage = round(user_card_damage * 1.2)
-        enemy_card_damage = round(enemy_card_damage * 0.8)
+        user_card_damage = round(user_card_damage * 1.2, 2)
+        enemy_card_damage = round(enemy_card_damage * 0.8, 2)
     # Если карта противника лучше карты пользователя
     elif enemy_card.type.better == user_card.type:
-        enemy_card_damage = round(enemy_card_damage * 1.2)
-        user_card_damage = round(user_card_damage * 0.8)
+        enemy_card_damage = round(enemy_card_damage * 1.2, 2)
+        user_card_damage = round(user_card_damage * 0.8, 2)
 
     try:
         amulet_user_card = user_card.amulet_card.get()
@@ -67,8 +67,20 @@ def fight_now(user_card: Card, enemy_card: Card) -> tuple[User, User, bool, list
             enemy_card_hp, heal = use_spell_dryad(enemy_card, enemy_card_hp)
             history_fight_turn.append(formation_of_history(enemy_card, heal))
 
-        enemy_card_hp -= user_card_damage
+        # Использование способности Жнеца атаки
+        if user_card.class_card.name == 'Жнец':
+            answer = use_spell_reaper(user_card, user_card_damage, enemy_card_damage)
+            if answer:
+                user_card_damage, enemy_card_damage, change = answer
+                history_fight_turn.append(formation_of_history(user_card, change))
+
+        enemy_card_hp = round(enemy_card_hp - user_card_damage, 2)
         history_fight_turn.append(f'{user_card.owner.username} наносит {user_card_damage} урона')
+
+        # Использование способности Берсерка атаки
+        if user_card.class_card.name == 'Берсерк':
+            user_card_damage, change = use_spell_berserk(user_card, user_card_damage)
+            history_fight_turn.append(formation_of_history(user_card, change))
 
         # Использование способности Демона атаки
         if user_card.class_card.name == 'Демон':
@@ -125,8 +137,20 @@ def fight_now(user_card: Card, enemy_card: Card) -> tuple[User, User, bool, list
             user_card_hp, heal = use_spell_dryad(user_card, user_card_hp)
             history_fight_turn.append(formation_of_history(user_card, heal))
 
-        user_card_hp -= enemy_card_damage
+        # Использование способности Дриады защиты
+        if enemy_card.class_card.name == 'Жнец':
+            answer = use_spell_reaper(enemy_card, enemy_card_damage, user_card_damage)
+            if answer:
+                enemy_card_damage, user_card_damage, change = answer
+                history_fight_turn.append(formation_of_history(enemy_card, change))
+
+        user_card_hp = round(user_card_hp - enemy_card_damage, 2)
         history_fight_turn.append(f'{enemy_card.owner.username} наносит {enemy_card_damage} урона')
+
+        # Использование способности Берсерка защиты
+        if enemy_card.class_card.name == 'Берсерк':
+            enemy_card_damage, change = use_spell_berserk(enemy_card, enemy_card_damage)
+            history_fight_turn.append(formation_of_history(enemy_card, change))
 
         # Использование способности Демона защиты
         if enemy_card.class_card.name == 'Демон':
@@ -196,8 +220,8 @@ def use_spell_demon(card: Card, card_damage: float, enemy_card_hp: float) -> tup
 
     chance = randint(1, 100)
     if chance <= card.class_card.chance_use:
-        additional_damage = round(card_damage * (card.class_card.numeric_value + 5 * card.merger) / 100)
-        enemy_card_hp -= additional_damage
+        additional_damage = round(card_damage * (card.class_card.numeric_value + 5 * card.merger) / 100, 2)
+        enemy_card_hp = round(enemy_card_hp - additional_damage, 2)
 
         return enemy_card_hp, additional_damage
 
@@ -205,13 +229,13 @@ def use_spell_demon(card: Card, card_damage: float, enemy_card_hp: float) -> tup
 def use_spell_werewolf(card: Card, card_hp: float, card_damage: float) -> tuple[float, float] | None:
     """ Использование способности оборотня.
         Если сработал шанс, то восстанавливает свое здоровье в зависимости от базового урона.
-        Возвращает итоговое количество своего здоровья и количество восполненного здоровья.
+        Возвращает итоговое количество своего здоровья и количество восполненного здоровья или None при неудаче.
     """
 
     chance = randint(1, 100)
     if chance <= card.class_card.chance_use:
-        regen_hp = round(card_damage * (card.class_card.numeric_value + 2 * card.merger) / 100)
-        card_hp += regen_hp
+        regen_hp = round(card_damage * (card.class_card.numeric_value + 2 * card.merger) / 100, 2)
+        card_hp = round(card_hp + regen_hp, 2)
 
         return card_hp, regen_hp
 
@@ -219,12 +243,12 @@ def use_spell_werewolf(card: Card, card_hp: float, card_damage: float) -> tuple[
 def use_spell_ghost(card: Card, card_hp: float, enemy_damage: float) -> tuple[float, float] | None:
     """ Использование способности призрака.
         Если сработал шанс, избегает урон от атаки противника (восполнятся здоровье)
-        Возвращает итоговое количество своего здоровья
+        Возвращает итоговое количество своего здоровья или None при неудаче.
     """
 
     chance = randint(1, 100)
     if chance <= card.class_card.chance_use + 2.5 * card.merger:
-        card_hp += enemy_damage
+        card_hp = round(card_hp + enemy_damage, 2)
 
         return card_hp, enemy_damage
 
@@ -235,10 +259,37 @@ def use_spell_emperor_mankind(card: Card, enemy_damage: float, enemy_hp: float) 
         Возвращает итоговое количество здоровья нападающего, и количество возвращенного урона.
     """
 
-    return_damage = round((card.class_card.numeric_value + 3 * card.merger) * enemy_damage / 100)
-    enemy_hp -= return_damage
+    return_damage = round((card.class_card.numeric_value + 3 * card.merger) * enemy_damage / 100, 2)
+    enemy_hp = round(enemy_hp - return_damage, 2)
 
     return enemy_hp, return_damage
+
+
+def use_spell_berserk(card: Card, card_damage: float) -> tuple[float, float]:
+    """ Использование способности берсерка.
+        Увеличивает свой урон.
+        Возвращает итоговое значение своего урона.
+    """
+
+    change = round(1 + 0.5 * card.merger, 2)
+    up_damage = round(card_damage + change, 2)
+
+    return up_damage, change
+
+
+def use_spell_reaper(card: Card, card_damage: float, enemy_card_damage: float) -> tuple[float, float, float] | None:
+    """ Использование способности жнеца.
+        Если сработал шанс, понижает урон противника и повышает свой.
+        Возвращает итоговые значения урона карты пользователя и карты противника или None при неудаче.
+    """
+
+    chance = randint(1, 100)
+    if chance <= card.class_card.chance_use + 0.8 * card.merger:
+        change = round(enemy_card_damage * (card.class_card.numeric_value + 2 * card.merger) / 100, 2)
+        card_damage = round(card_damage + change, 2)
+        enemy_card_damage = round(enemy_card_damage - change, 2)
+
+        return card_damage, enemy_card_damage, change
 
 
 def formation_of_history(card: Card, value: float) -> str:

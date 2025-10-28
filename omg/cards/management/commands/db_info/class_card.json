@@ -4,7 +4,7 @@
       "name": "Демон",
       "skill": "Темный поток",
       "description": "Демон имеет шанс 25% нанести в свой ход дополнительный неигнорируемый урон, равный 90+5*ур.слияния % от атаки.",
-      "description_for_history_fight": "наносит дополнительный урон",
+      "description_for_history_fight": "наносит дополнительный урон в размере",
       "numeric_value": 90,
       "chance_use": 25,
       "image": "/image/class/demon.png"
@@ -13,7 +13,7 @@
       "name": "Оборотень",
       "skill": "Кровожадность",
       "description": "Оборотень с вероятностью 50+3*ур.слияния % может восстановить свое здоровье при атаке в размере 80+2*ур.слияния % от своей атаки.",
-      "description_for_history_fight": "восстанавливает свое здоровье",
+      "description_for_history_fight": "восстанавливает свое здоровье на",
       "numeric_value": 80,
       "chance_use": 50,
       "image": "/image/class/oboroten.png"
@@ -22,7 +22,7 @@
       "name": "Бог Император",
       "skill": "Превосходство",
       "description": "Бог Император с вероятностью 100% возвращает 60+3*ур.слияния % базового урона врага каждый вражеских ход.",
-      "description_for_history_fight": "возвращает полученный урон",
+      "description_for_history_fight": "возвращает полученный урон в размере",
       "numeric_value": 60,
       "chance_use": 100,
       "image": "/image/class/bog_imperator.png"
@@ -30,7 +30,7 @@
     {
       "name": "Эльф",
       "skill": "Провиденье",
-      "description": "Эльф повышает шанс выпадения наград на 50+4*ур.слияния %.",
+      "description": "Эльф повышает шанс выпадения наград на 50+4*ур.слияния%.",
       "description_for_history_fight": "повышает шанс на",
       "numeric_value": 50,
       "chance_use": 100,
@@ -40,7 +40,7 @@
       "name": "Дриада",
       "skill": "Сила жизни",
       "description": "Дриада каждый свой ход восстанавливает свое здоровье в размере 7+5*ур.слияния единиц. Восстановление здоровья имеет приоритет в ходу.",
-      "description_for_history_fight": "восстанавливает свое здоровье",
+      "description_for_history_fight": "восстанавливает свое здоровье на",
       "numeric_value": 7,
       "chance_use": 100,
       "image": "/image/class/driada.png"
@@ -48,11 +48,29 @@
     {
       "name": "Призрак",
       "skill": "Бесплотность",
-      "description": "Призрак с вероятностью 25%+2.5*ур.слияния может стать бесплотным и избежать урон от базовой атаки при ходе врага.",
+      "description": "Призрак с вероятностью 25+2.5*ур.слияния% может стать бесплотным и избежать урон от базовой атаки при ходе врага.",
       "description_for_history_fight": "избегает урон от атаки",
       "numeric_value": 0,
       "chance_use": 25,
       "image": "/image/class/prizrak.png"
+    },
+    {
+      "name": "Берсерк",
+      "skill": "Глубокие раны",
+      "description": "После каждого своего хода Берсерк накапливает ярость и увеличивает свой урон на 1+0.5*ур.слияния.",
+      "description_for_history_fight": "увеличивает свою атаку на",
+      "numeric_value": 1,
+      "chance_use": 100,
+      "image": "/image/class/berserk.png"
+    },
+    {
+      "name": "Жнец",
+      "skill": "Касание смерти",
+      "description": "Жнец с вероятностью 17+0.8*ур.слияния% может забрать себе 10+2*ур.слияния% от атаки противника",
+      "description_for_history_fight": "понижает атаку противника и увеличивает свою атаку на",
+      "numeric_value": 8,
+      "chance_use": 17,
+      "image": "/image/class/reaper.png"
     }
   ]
 }
