@@ -204,7 +204,7 @@ def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedi
             return HttpResponseRedirect(f'/users/{user_id}')
 
         except FavoriteUsers.DoesNotExist:
-            messages.error(request, 'Вы пытаетесь убрать из избранных несуществующего пользователя!')
+            messages.error(request, 'Этот участник не находится в вашем списке избранных!')
             return HttpResponseRedirect(reverse('home'))
     else:
         messages.error(request, 'Вы не можете убрать себя из избранных!')
@@ -216,8 +216,6 @@ def view_favorite_users(request: HttpRequest) -> HttpResponse:
     """ Вывод списка избранных пользователей """
 
     favorite_users = FavoriteUsers.objects.filter(user=request.user.id)
-    for num in favorite_users:
-        print(num)
     context = {'title': f'Избранные пользователи',
                'header': f'Избранные пользователи {request.user.username}',
                'favorite_users': favorite_users,
