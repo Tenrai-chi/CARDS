@@ -34,6 +34,27 @@ EXCHANGE
 - remove_amulet (без изменений)
 - sale_amulet (без изменений добавлена атомик)
 - buy_and_open_box_amulet
--
+- buy_and_open_box_book
+- buy_box_card
+- buy_upgrade_item
+- menu_enhance_card (без изменений)
 
 USERS
+- класс CustomLoginView (без изменений)
+- класс CustomRegistrationView (без изменений)
+- create_profile_user (без изменений)
+- view_profile (без изменений)
+- view_rating (без изменений)
+- edit_profile (гет и пост)
+- view_transactions (без изменений)
+- add_favorite_user (пока без изменений)
+- delete_favorite_user (пока без изменений)
+- view_favorite_users (без изменений)
+- view_guild (без изменений)
+- view_all_guilds (без изменений)
+- create_guild (get post)
+- edit_guild_info (get post)
+- change_leader_guild_choice (без изменений)
+- change_leader_guild (без изменений)
+- delete_member_guild (пока без изменений)
+-

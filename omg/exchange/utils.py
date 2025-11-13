@@ -13,11 +13,11 @@ def preparation_battle_event():
     """
 
     delete_all_battle_event_participants()
-    fill_battle_event_participants()
-    fill_battle_event_enemies()
+    if fill_battle_event_participants():
+        fill_battle_event_enemies()
 
 
-def fill_battle_event_participants():
+def fill_battle_event_participants() -> bool:
     """ Заполнение таблицы участников боевого события.
         Заполняет таблицы участниками, у которых заняты все слоты команды.
     """
@@ -39,9 +39,14 @@ def fill_battle_event_participants():
                                                   points=0)
         battle_participants_to_create.append(new_participant)
 
-    with transaction.atomic():
-        BattleEventParticipants.objects.bulk_create(battle_participants_to_create)
-        print(f'Зарегистрировано {len(battle_participants_to_create)} участников в battle_event_participants')
+    if len(battle_participants_to_create) >= 2:
+        with transaction.atomic():
+            BattleEventParticipants.objects.bulk_create(battle_participants_to_create)
+            print(f'Зарегистрировано {len(battle_participants_to_create)} участников в battle_event_participants')
+            return True
+    else:
+        print(f'Не хватает участников для боевого события')
+        return False
 
 
 def fill_battle_event_enemies():

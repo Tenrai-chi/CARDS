@@ -26,8 +26,8 @@
             <tbody>
             {% for user_info in favorite_users %}
                 <tr>
-                    <td>{{ user_info.id }}</td>
-                    <td><a href="{% url 'view_profile' user_id=user_info.id %}">{{ user_info.favorite_user.username }}</a></td>
+                    <td>{{ user_info.favorite_user.id }}</td>
+                    <td><a href="{% url 'view_profile' user_id=user_info.favorite_user.id %}">{{ user_info.favorite_user.username }}</a></td>
                 </tr>
             {% endfor %}
             </tbody>

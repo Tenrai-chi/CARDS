@@ -177,7 +177,7 @@ def get_card(request: HttpRequest) -> HttpResponse:
                    'rarity_chance_drop': rarity_chance_drop}
         return render(request, 'cards/get_card.html', context)
 
-    user_profile = Profile.objects.get(user=request.user)
+    user_profile = Profile.objects.get(user=request.user.id)
     take_card, hours = time_difference_check(user_profile.receiving_timer, 6)
 
     context = {'title': 'Получить карту',
@@ -225,7 +225,7 @@ def view_user_cards(request: HttpRequest, user_id: int) -> HttpResponse:
 
     user = get_object_or_404(User, pk=user_id)
     cards = Card.objects.filter(owner=user).order_by('rarity', 'class_card', 'id')
-    max_count_cards = Profile.objects.get(pk=user_id).card_slots
+    max_count_cards = Profile.objects.get(user=user_id).card_slots
 
     context = {'title': 'Карты пользователя',
                'header': f'Карты пользователя {user.username}',
@@ -262,7 +262,7 @@ def select_favorite_card(request: HttpRequest, selected_card_id: int) -> HttpRes
     """
 
     card = Card.objects.get(pk=selected_card_id)
-    user_profile = Profile.objects.get(user=request.user)
+    user_profile = Profile.objects.get(user=request.user.id)
     user_profile.current_card = card
     user_profile.save()
 
@@ -330,9 +330,9 @@ def card_sale(request: HttpRequest, card_id: int) -> HttpResponseRedirect | Http
         messages.error(request, 'Вы не можете выставить на продажу чужую карту!')
         return HttpResponseRedirect(reverse('home'))
 
-    team_card_pks = BattleEventParticipants.objects.filter(user=request.user).values_list('first_card__pk',
-                                                                                          'second_card__pk',
-                                                                                          'third_card__pk').last()
+    team_card_pks = BattleEventParticipants.objects.filter(user=request.user.id).values_list('first_card__pk',
+                                                                                             'second_card__pk',
+                                                                                             'third_card__pk').last()
 
     if card.id in team_card_pks:
         messages.error(request, 'Вы не можете выставить на продажу эту карту! Карта в отряде боевого события')
@@ -433,7 +433,7 @@ def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> Http
     if request.method == 'POST':
         form = UseItemForm(request.POST)
         if form.is_valid():
-            profile = Profile.objects.get(user=request.user)
+            profile = Profile.objects.get(user=request.user.id)
             inventory_change = form.save(commit=False)
             if profile.gold < inventory_change.amount * item.item.gold_for_use:
                 messages.error(request, 'Вам не хватает денег!')
@@ -568,7 +568,7 @@ def merge_card_menu(request: HttpRequest, current_card_id: int) -> HttpResponseR
         messages.error(request, 'Вы не являетесь владельцем карты')
         return HttpResponseRedirect(reverse('home'))
 
-    team_card_pks = BattleEventParticipants.objects.filter(user=request.user).values_list('first_card__pk',
+    team_card_pks = BattleEventParticipants.objects.filter(user=request.user.id).values_list('first_card__pk',
                                                                                           'second_card__pk',
                                                                                           'third_card__pk').last()
 

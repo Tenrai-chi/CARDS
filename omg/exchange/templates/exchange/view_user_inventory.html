@@ -9,7 +9,7 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'home' theme='news'%}">Главная</a></li>
             <li class="breadcrumb-item"><a href="{% url 'view_profile' user_id=user.id %}">{{ user.username }}</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Инвентарь: {{ count_amulets }} из {{ max_count_amulets }}</li>
+            <li class="breadcrumb-item active" aria-current="page">Инвентарь: амулетов {{ count_amulets }} из {{ max_count_amulets }}</li>
         </ol>
     </nav>
 {% endblock navigation %}

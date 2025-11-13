@@ -1,5 +1,3 @@
-from random import randint, choice
-
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import F
@@ -7,14 +5,14 @@ from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
-from cards.models import Card, HistoryReceivingCards, ClassCard, Type, Rarity
+from cards.models import Card, Type
 from common.decorators import auth_required, owner_required
-from common.utils import date_time_now, create_new_card
+from common.utils import date_time_now
 from users.models import Transactions, Profile
 
 from .forms import BuyItemForm
 from .services import (purchase_amulet, set_amulet_on_card, open_box_amulet, open_box_book,
-                       )
+                       open_box_card, purchase_upgrade_item, process_enhance_card)
 from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsType, UpgradeItemsUsers
 
 
@@ -36,28 +34,26 @@ def view_inventory_user(request: HttpRequest, user_id: int,
                }
 
     if inventory_filter == 'all':
-        context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
-        # context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
+        context['max_count_amulets'] = Profile.objects.get(user=user_id).amulet_slots
         context['user_items'] = UsersInventory.objects.filter(owner=request.user).order_by('id')
-        # context['user_amulets'] = AmuletItem.objects.filter(owner=request.user).order_by('id')
         context['upgrade_items'] = UpgradeItemsUsers.objects.filter(owner=request.user).order_by('id')
         amulets = AmuletItem.objects.filter(owner=request.user).order_by('id')
         context['user_amulets'] = amulets
         context['count_amulets'] = len(amulets)
 
     elif inventory_filter == 'amulets':
-        context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
+        context['max_count_amulets'] = Profile.objects.get(user=user_id).amulet_slots
         amulets = AmuletItem.objects.filter(owner=request.user).order_by('id')
         context['user_amulets'] = amulets
         context['count_amulets'] = len(amulets)
 
     elif inventory_filter == 'upgrade_items':
-        # context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
-        # context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
+        context['max_count_amulets'] = Profile.objects.get(user=user_id).amulet_slots
+        context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
         context['upgrade_items'] = UpgradeItemsUsers.objects.filter(owner=request.user).order_by('id')
 
     elif inventory_filter == 'books_exp':
-        context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
+        context['max_count_amulets'] = Profile.objects.get(user=user_id).amulet_slots
         context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
         context['user_items'] = UsersInventory.objects.filter(owner=request.user).order_by('id')
 
@@ -129,7 +125,7 @@ def buy_item(request: HttpRequest, item_id: int) -> HttpResponseRedirect | HttpR
         item = get_object_or_404(ExperienceItems,
                                  pk=item_id)
         if form.is_valid():
-            profile = Profile.objects.get(user=request.user)
+            profile = Profile.objects.get(user=request.user.id)
             new_record_history = form.save(commit=False)
             if profile.gold < item.price * new_record_history.amount:
                 messages.error(request, 'Вам не хватает денег!')
@@ -254,7 +250,7 @@ def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpRespo
     """
 
     amulet = get_object_or_404(AmuletItem, pk=amulet_id)
-    profile = Profile.objects.get(pk=request.user.id)
+    profile = Profile.objects.get(user=request.user.id)
     if amulet.owner == request.user:
         new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                       user=request.user,
@@ -267,7 +263,9 @@ def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpRespo
         new_transaction.save()
         messages.success(request, 'Вы успешно продали амулет!')
 
-        return HttpResponseRedirect(f'/inventory/{request.user.id}')
+        return HttpResponseRedirect(reverse('inventory_user',
+                                            kwargs={'inventory_filter': 'amulets', 'user_id': request.user.id}))
+
     else:
         messages.error(request, 'Произошла ошибка!')
 
@@ -283,7 +281,7 @@ def buy_and_open_box_amulet(request: HttpRequest) -> HttpResponseRedirect | Http
         messages.error(request, 'У вас не хватает места для покупки амулета!')
         return HttpResponseRedirect(reverse('items_store'))
     else:
-        context = {'amulets': answer.get('new_amulets')}
+        context = {'amulets': answer.get('new_amulets'), 'title': 'Награда сундука с амулетами'}
         return render(request, 'exchange/open_box_amulets.html', context)
 
 
@@ -291,144 +289,39 @@ def buy_and_open_box_amulet(request: HttpRequest) -> HttpResponseRedirect | Http
 def buy_and_open_box_book(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
     """ Вывод содержимого купленного сундука с книгами """
 
-    profile_user = Profile.objects.get(user=request.user)
-    if profile_user.gold < 1600:
-        messages.error(request, 'Вам не хватает денег!')
+    answer: dict = open_box_book(request.user.id)
+    if answer.get('error_message'):
+        messages.error(request, answer['error_message'])
         return HttpResponseRedirect(reverse('home'))
-
-    all_items = ExperienceItems.objects.all().order_by('rarity')  # мал, сре, больш
-
-    # Всегда как минимум 1 книга будет UR
-    items_reward_for_view = [all_items[2]]
-    count_ur_books = 1
-    count_sr_books = 0
-    count_r_books = 0
-
-    for _ in range(9):
-        chance = randint(1, 100)
-        if chance <= all_items[0].chance_drop_on_box:
-            items_reward_for_view.append(all_items[0])
-            count_r_books += 1
-        elif all_items[0].chance_drop_on_box <= (all_items[0].chance_drop_on_box + all_items[1].chance_drop_on_box):
-            items_reward_for_view.append(all_items[1])
-            count_sr_books += 1
-        else:
-            items_reward_for_view.append(all_items[2])
-            count_ur_books += 1
-
-    r_items_user, _ = UsersInventory.objects.get_or_create(owner=request.user, item=all_items[0])
-    sr_items_user, _ = UsersInventory.objects.get_or_create(owner=request.user, item=all_items[1])
-    ur_items_user, _ = UsersInventory.objects.get_or_create(owner=request.user, item=all_items[2])
-
-    r_items_user.amount += count_r_books
-    sr_items_user.amount += count_sr_books
-    ur_items_user.amount += count_ur_books
-    for_transaction = [r_items_user, sr_items_user, ur_items_user]
-
-    with transaction.atomic():
-        UsersInventory.objects.bulk_update(for_transaction, ['amount'])
-
-    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                  user=request.user,
-                                                  before=profile_user.gold,
-                                                  after=profile_user.gold - 1600,
-                                                  comment='Покупка в магазине предметов'
-                                                  )
-    new_transaction.save()
-    profile_user.gold -= 1600
-    profile_user.save()
-
-    context = {'books': sorted(items_reward_for_view, key=lambda item: item.rarity, reverse=True)}
-    return render(request, 'exchange/open_box_books.html', context)
+    else:
+        context = {'books': answer.get('books'),
+                   'title': 'Награда сундука с книгами',
+                   }
+        return render(request, 'exchange/open_box_books.html', context)
 
 
 @auth_required(error_message='Для покупки необходимо авторизоваться')
 def buy_box_card(request: HttpRequest) -> HttpResponseRedirect:
-    """ Покупка и открытие пользователем сундука с UR картой стоимостью 20 000.
-        Создает карту UR редкости с максимальным значение начального здоровья или урона.
-        У пользователя снимаются деньги.
-        Создается запись в Transaction.
-        Создается новая запись в HistoryReceivingCards.
-    """
+    """ Вывод карты, полученной из сундука """
 
-    profile_user = Profile.objects.get(user=request.user)
-
-    if profile_user.card_slots <= Card.objects.filter(owner=request.user.id).count():
-        messages.error(request, 'У вас не хватает места для получения новой карты!')
+    answer_data: dict = open_box_card(request.user.id)
+    if answer_data.get('error_message'):
+        messages.error(request, answer_data['error_message'])
         return HttpResponseRedirect(reverse('items_store'))
-
-    if profile_user.gold < 20000:
-        messages.error(request, 'Вам не хватает денег!')
-        return HttpResponseRedirect(reverse('home'))
-
-    attributes = ('damage', 'hp')
-    max_attribute = choice(attributes)
-    new_card = create_new_card(user_id=request.user.id,
-                               ur_box=True,
-                               max_attribute=max_attribute)
-
-    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                  user=request.user,
-                                                  before=profile_user.gold,
-                                                  after=profile_user.gold-20000,
-                                                  comment='Покупка в магазине предметов'
-                                                  )
-    new_transaction.save()
-    profile_user.gold -= 20000
-    profile_user.save()
-
-    new_history_receiving_cards = HistoryReceivingCards.objects.create(card=new_card,
-                                                                       date_and_time=date_time_now(),
-                                                                       user=request.user,
-                                                                       method_receiving='Покупка сундука'
-                                                                       )
-    new_history_receiving_cards.save()
-
-    return HttpResponseRedirect(f'/cards/card-{new_card.id}')
+    else:
+        return HttpResponseRedirect(f'/cards/card-{answer_data["new_card_id"]}')
 
 
 @auth_required(error_message='Для покупки необходимо авторизоваться', redirect_url_name='items_store')
 def buy_upgrade_item(request: HttpRequest, upgrade_item_id: int) -> HttpResponseRedirect:
-    """ Покупка предмета усиления.
-        Добавляет или создает предмет усиления в инвентаре пользователя в таблице UpgradeItemsUsers.
-        Создает запись в Transactions.
-        Изменяет gold в Profile текущего пользователя.
-    """
+    """ Покупка предмета усиления """
 
-    profile_user = Profile.objects.get(user=request.user)
-    current_upgrade_item = get_object_or_404(UpgradeItemsType, pk=upgrade_item_id)
-
-    if profile_user.gold < current_upgrade_item.price:
-        messages.error(request, 'Для покупки вам не хватает денег!')
-        return HttpResponseRedirect(reverse('items_store'))
-
-    # Сделать ОБНОВИТЬ ИЛИ СОЗДАТЬ
-    upgrade_item = UpgradeItemsType.objects.get(id=upgrade_item_id)
-    try:
-        upgrade_item_user = UpgradeItemsUsers.objects.get(owner=request.user,
-                                                          upgrade_item_type=upgrade_item)
-
-        upgrade_item_user.amount += 1
-        upgrade_item_user.save()
-
-    except UpgradeItemsUsers.DoesNotExist:
-        new_upgrade_item_user = UpgradeItemsUsers.objects.create(owner=request.user,
-                                                                 upgrade_item_type=upgrade_item,
-                                                                 amount=1)
-        new_upgrade_item_user.save()
-
-    new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                         user=request.user,
-                                                         before=profile_user.gold,
-                                                         after=profile_user.gold - upgrade_item.price,
-                                                         comment='Покупка в магазине предметов')
-
-    profile_user.gold = new_record_transaction.after
-    new_record_transaction.save()
-    profile_user.save()
-    messages.success(request, 'Вы успешно совершили покупку!')
-
-    return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'all'}))
+    answer_data: dict = purchase_upgrade_item(request.user.id, upgrade_item_id)
+    if answer_data.get('error_message'):
+        messages.error(request, answer_data['error_message'])
+    else:
+        messages.success(request, answer_data['success_message'])
+    return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'upgrade_items'}))
 
 
 @auth_required(redirect_url_name='items_store')
@@ -440,7 +333,7 @@ def menu_enhance_card(request: HttpRequest, card_id: int) -> HttpResponseRedirec
         messages.error(request, 'Вы не можете усиливать эту карту!')
         return HttpResponseRedirect(reverse('home'))
 
-    inventory = UpgradeItemsUsers.objects.filter(owner=request.user)
+    inventory = UpgradeItemsUsers.objects.filter(owner=request.user.id)
     context = {'title': 'Усиление карты',
                'header': f'Усиление карты {card_id}',
                'card': card,
@@ -451,55 +344,15 @@ def menu_enhance_card(request: HttpRequest, card_id: int) -> HttpResponseRedirec
 
 @auth_required()
 def enhance_card(request: HttpRequest, card_id: int, up_item_id: int) -> HttpResponseRedirect:
-    """ Усиление карты с помощью предмета.
-        Карта улучшает свои характеристики в зависимости от выбранного предмета.
-        Удаляет выбранный предмет из инвентаря пользователя UpgradeItemsUsers.
-        Создает запись в Transactions.
-        Изменяет gold в Profile текущего пользователя.
-    """
+    """ Усиление карты с помощью предмета """
 
-    current_card = get_object_or_404(Card, pk=card_id)
-
-    if current_card.owner != request.user:
-        messages.error(request, 'Вы не можете улучшать эту карту!')
-        return HttpResponseRedirect(reverse('home'))
-
-    current_up_item = UpgradeItemsUsers.objects.filter(owner=request.user,
-                                                       upgrade_item_type=up_item_id).last()
-    if current_up_item is None:
-        messages.error(request, 'У вас недостаточно предметов усиления!')
+    answer_data: dict = process_enhance_card(request.user.id, card_id, up_item_id)
+    if answer_data.get('error_message') and answer_data.get('url_name_redirect'):
+        messages.error(request, answer_data['error_message'])
+        return HttpResponseRedirect(reverse(answer_data['url_name_redirect']))
+    elif answer_data.get('error_message'):
+        messages.error(request, answer_data['error_message'])
         return HttpResponseRedirect(f'/inventory/card-{card_id}')
-    elif current_up_item.amount <= 0:
-        messages.error(request, 'У вас недостаточно предметов усиления!')
+    else:
+        messages.success(request, answer_data['success_message'])
         return HttpResponseRedirect(f'/inventory/card-{card_id}')
-
-    profile_user = Profile.objects.get(user=request.user)
-    if profile_user.gold < current_up_item.upgrade_item_type.price_of_use:
-        messages.error(request, 'У вас недостаточно денег!')
-        return HttpResponseRedirect(f'/inventory/card-{card_id}')
-
-    if current_card.enhancement >= current_card.max_enhancement:
-        messages.error(request, 'Эта карта имеет максимальный уровень усиления!')
-        return HttpResponseRedirect(reverse('home'))
-
-    if current_up_item.upgrade_item_type.type == 'hp':
-        current_card.enhance_hp()
-    elif current_up_item.upgrade_item_type.type == 'attack':
-        current_card.enhance_attack()
-    elif current_up_item.upgrade_item_type.type == 'random':
-        current_card.enhance_random()
-
-    current_up_item.amount -= 1
-    new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                         user=request.user,
-                                                         before=profile_user.gold,
-                                                         after=profile_user.gold - current_up_item.upgrade_item_type.price_of_use,
-                                                         comment='Усиление карты')
-
-    profile_user.gold = new_record_transaction.after
-    new_record_transaction.save()
-    profile_user.save()
-    current_up_item.save()
-
-    messages.success(request, 'Вы улучшили карту!')
-    return HttpResponseRedirect(f'/inventory/card-{card_id}')

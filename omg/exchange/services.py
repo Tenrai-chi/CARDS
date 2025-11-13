@@ -1,19 +1,11 @@
 from random import randint, choice
-
-from django.contrib import messages
 from django.db import transaction
-from django.db.models import F
-from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
-from django.shortcuts import render, get_object_or_404
-from django.urls import reverse
+from django.shortcuts import get_object_or_404
 
-from cards.models import Card, HistoryReceivingCards, ClassCard, Type, Rarity
-from common.decorators import auth_required, owner_required
+from cards.models import Card, HistoryReceivingCards, Type, Rarity
 from common.utils import date_time_now, create_new_card
-from prompt_toolkit.formatted_text.ansi import ansi_escape
 from users.models import Transactions, Profile
 
-from .forms import BuyItemForm
 from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsType, UpgradeItemsUsers
 
 
@@ -71,7 +63,9 @@ def purchase_amulet(user_id: int, amulet_id: int) -> dict:
 @transaction.atomic
 def set_amulet_on_card(user_id: int, card_id: int, amulet_id: int) -> dict:
     """ Устанавливает выбранный амулет на выбранную карту.
-        Если у карты был установлен амулет, то отвязывает текущий """
+        Если у карты был установлен амулет, то отвязывает текущий.
+        Возвращает сообщение об успехе или ошибке.
+    """
 
     answer_data = {}
     current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
@@ -168,56 +162,201 @@ def open_box_book(user_id: int) -> dict:
         Случайно генерирует 9 книг и создает 1 книгу UR редкости.
         У пользователя снимаются деньги.
         Создается запись в Transaction.
-        Книги, полученные из сундука выводятся пользователю
+        Возвращает книги, полученные из сундука выводятся пользователю
+        или сообщение об ошибке.
     """
 
-    # answer_data = {}
-    # profile_user = Profile.objects.get(user=user_id)
-    # if profile_user.gold < 1600:
-    #     answer_data['error_message'] = 'Вам не хватает денег!'
-    #     return answer_data
-    #
-    # all_items = ExperienceItems.objects.all().order_by('rarity')
-    #
-    # # Всегда как минимум 1 книга будет UR
-    # items_reward_for_view = [all_items[2]]
-    # count_ur_books = 1
-    # count_sr_books = 0
-    # count_r_books = 0
-    #
-    # for _ in range(9):
-    #     chance = randint(1, 100)
-    #     if chance <= all_items[0].chance_drop_on_box:
-    #         items_reward_for_view.append(all_items[0])
-    #         count_r_books += 1
-    #     elif all_items[0].chance_drop_on_box <= (all_items[0].chance_drop_on_box + all_items[1].chance_drop_on_box):
-    #         items_reward_for_view.append(all_items[1])
-    #         count_sr_books += 1
-    #     else:
-    #         items_reward_for_view.append(all_items[2])
-    #         count_ur_books += 1
-    #
-    # r_items_user, _ = UsersInventory.objects.get_or_create(owner=request.user, item=all_items[0])
-    # sr_items_user, _ = UsersInventory.objects.get_or_create(owner=request.user, item=all_items[1])
-    # ur_items_user, _ = UsersInventory.objects.get_or_create(owner=request.user, item=all_items[2])
-    #
-    # r_items_user.amount += count_r_books
-    # sr_items_user.amount += count_sr_books
-    # ur_items_user.amount += count_ur_books
-    # for_transaction = [r_items_user, sr_items_user, ur_items_user]
-    #
-    # with transaction.atomic():
-    #     UsersInventory.objects.bulk_update(for_transaction, ['amount'])
-    #
-    # new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-    #                                               user=request.user,
-    #                                               before=profile_user.gold,
-    #                                               after=profile_user.gold - 1600,
-    #                                               comment='Покупка в магазине предметов'
-    #                                               )
-    # new_transaction.save()
-    # profile_user.gold -= 1600
-    # profile_user.save()
-    #
-    # context = {'books': sorted(items_reward_for_view, key=lambda item: item.rarity, reverse=True)}
-    pass
+    answer_data = {}
+    profile_user = Profile.objects.get(user=user_id)
+    if profile_user.gold < 1600:
+        answer_data['error_message'] = 'Вам не хватает денег!'
+        return answer_data
+
+    all_items = ExperienceItems.objects.all().order_by('rarity')
+
+    # Всегда как минимум 1 книга будет UR
+    items_reward_for_view = [all_items[2]]
+    count_ur_books = 1
+    count_sr_books = 0
+    count_r_books = 0
+
+    for _ in range(9):
+        chance = randint(1, 100)
+        if chance <= all_items[0].chance_drop_on_box:
+            items_reward_for_view.append(all_items[0])
+            count_r_books += 1
+        elif all_items[0].chance_drop_on_box <= (all_items[0].chance_drop_on_box + all_items[1].chance_drop_on_box):
+            items_reward_for_view.append(all_items[1])
+            count_sr_books += 1
+        else:
+            items_reward_for_view.append(all_items[2])
+            count_ur_books += 1
+
+    r_items_user, _ = UsersInventory.objects.get_or_create(owner=profile_user.user, item=all_items[0])
+    sr_items_user, _ = UsersInventory.objects.get_or_create(owner=profile_user.user, item=all_items[1])
+    ur_items_user, _ = UsersInventory.objects.get_or_create(owner=profile_user.user, item=all_items[2])
+
+    r_items_user.amount += count_r_books
+    sr_items_user.amount += count_sr_books
+    ur_items_user.amount += count_ur_books
+
+    r_items_user.save()
+    sr_items_user.save()
+    ur_items_user.save()
+
+    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                  user=profile_user.user,
+                                                  before=profile_user.gold,
+                                                  after=profile_user.gold - 1600,
+                                                  comment='Покупка в магазине предметов'
+                                                  )
+    new_transaction.save()
+    profile_user.gold -= 1600
+    profile_user.save()
+
+    answer_data['books'] = sorted(items_reward_for_view, key=lambda item: item.rarity, reverse=True)
+    return answer_data
+
+
+@transaction.atomic
+def open_box_card(user_id: int) -> dict:
+    """ Покупка и открытие пользователем сундука с UR картой стоимостью 20 000.
+        Создает карту UR редкости с максимальным значение начального здоровья или урона.
+        У пользователя снимаются деньги.
+        Создается запись в Transaction.
+        Создается новая запись в HistoryReceivingCards.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    profile_user = Profile.objects.get(user=user_id)
+    answer_data = {}
+
+    if profile_user.card_slots <= Card.objects.filter(owner=profile_user.user.id).count():
+        answer_data['error_message'] = 'У вас не хватает места для получения новой карты!'
+        return answer_data
+
+    if profile_user.gold < 20000:
+        answer_data['error_message'] = 'Вам не хватает денег!'
+        return answer_data
+
+    attributes = ('damage', 'hp')
+    max_attribute = choice(attributes)
+    new_card = create_new_card(user_id=profile_user.user.id,
+                               ur_box=True,
+                               max_attribute=max_attribute)
+
+    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                  user=profile_user.user,
+                                                  before=profile_user.gold,
+                                                  after=profile_user.gold - 20000,
+                                                  comment='Покупка в магазине предметов'
+                                                  )
+    new_transaction.save()
+    profile_user.gold -= 20000
+    profile_user.save()
+
+    new_history_receiving_cards = HistoryReceivingCards.objects.create(card=new_card,
+                                                                       date_and_time=date_time_now(),
+                                                                       user=profile_user.user,
+                                                                       method_receiving='Покупка сундука'
+                                                                       )
+    new_history_receiving_cards.save()
+    answer_data['new_card_id'] = new_card.id
+
+    return answer_data
+
+
+@transaction.atomic
+def purchase_upgrade_item(user_id: int, upgrade_item_id: int) -> dict:
+    """ Процесс покупки предмета усиления в магазине.
+        Добавляет или создает предмет усиления в инвентаре пользователя в таблице UpgradeItemsUsers.
+        Создает запись в Transactions.
+        Изменяет gold в Profile текущего пользователя.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    profile_user = Profile.objects.get(user=user_id)
+    current_upgrade_item = get_object_or_404(UpgradeItemsType, pk=upgrade_item_id)
+    answer_data = {}
+
+    if profile_user.gold < current_upgrade_item.price:
+        answer_data['error_message'] = 'Для покупки вам не хватает денег!'
+        return answer_data
+
+    upgrade_item = UpgradeItemsType.objects.get(id=upgrade_item_id)
+
+    new_upgrade_item_user, _ = UpgradeItemsUsers.objects.get_or_create(owner=profile_user.user,
+                                                                       upgrade_item_type=upgrade_item)
+    new_upgrade_item_user.amount += 1
+    new_upgrade_item_user.save()
+
+    new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                         user=profile_user.user,
+                                                         before=profile_user.gold,
+                                                         after=profile_user.gold - upgrade_item.price,
+                                                         comment='Покупка в магазине предметов')
+
+    profile_user.gold = new_record_transaction.after
+    new_record_transaction.save()
+    profile_user.save()
+
+    answer_data['success_message'] = 'Вы успешно совершили покупку!'
+    return answer_data
+
+
+@transaction.atomic
+def process_enhance_card(user_id: int, card_id: int, up_item_id: int) -> dict:
+    """ Карта улучшает свои характеристики в зависимости от выбранного предмета.
+        Удаляет выбранный предмет из инвентаря пользователя UpgradeItemsUsers.
+        Создает запись в Transactions.
+        Изменяет gold в Profile текущего пользователя.
+        Возвращает сообщение об успехе или ошибке и url_name для перенаправления при необходимости.
+    """
+
+    current_card = get_object_or_404(Card, pk=card_id)
+    profile_user = Profile.objects.get(user=user_id)
+    answer_data = {}
+
+    if current_card.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не являетесь владельцем этой карты!'
+        answer_data['url_name_redirect'] = 'home'
+        return answer_data
+
+    current_up_item = UpgradeItemsUsers.objects.filter(owner=user_id,
+                                                       upgrade_item_type=up_item_id).last()
+
+    # Ленивое условие
+    if current_up_item is None or current_up_item.amount <= 0:
+        answer_data['error_message'] = 'У вас недостаточно предметов усиления!'
+        return answer_data
+
+    if profile_user.gold < current_up_item.upgrade_item_type.price_of_use:
+        answer_data['error_message'] = 'У вас недостаточно денег!'
+        return answer_data
+
+    if current_card.enhancement >= current_card.max_enhancement:
+        answer_data['error_message'] = 'Эта карта имеет максимальный уровень усиления!'
+        answer_data['url_name_redirect'] = 'home'
+        return answer_data
+
+    if current_up_item.upgrade_item_type.type == 'hp':
+        current_card.enhance_hp()
+    elif current_up_item.upgrade_item_type.type == 'attack':
+        current_card.enhance_attack()
+    elif current_up_item.upgrade_item_type.type == 'random':
+        current_card.enhance_random()
+
+    current_up_item.amount -= 1
+    new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                         user=profile_user.user,
+                                                         before=profile_user.gold,
+                                                         after=profile_user.gold - current_up_item.upgrade_item_type.price_of_use,
+                                                         comment='Усиление карты')
+
+    profile_user.gold = new_record_transaction.after
+    new_record_transaction.save()
+    profile_user.save()
+    current_up_item.save()
+
+    answer_data['success_message'] = 'Вы улучшили карту!'
+    return answer_data

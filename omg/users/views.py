@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
+from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -111,7 +112,7 @@ def view_rating(request: HttpRequest) -> HttpResponse:
 def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Изменение профиля пользователя """
 
-    profile = Profile.objects.get(user=request.user)
+    profile = Profile.objects.get(user=request.user.id)
     if request.method == 'POST':
         edit_profile_form = EditProfileForm(request.POST, request.FILES, instance=profile)
         if edit_profile_form.is_valid():
@@ -178,7 +179,7 @@ def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirec
             messages.error(request, 'Вы не можете добавить этого пользователя в избранное!')
             return HttpResponseRedirect(reverse('home'))
 
-        favorite_users_count = FavoriteUsers.objects.filter(user=request.user).count()
+        favorite_users_count = FavoriteUsers.objects.filter(user=request.user.id).count()
         if favorite_users_count >= 50:
             message = 'Достигнут предел избранных пользователей! Для добавления новых освободите место'
             messages.error(request, message)
@@ -214,7 +215,9 @@ def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedi
 def view_favorite_users(request: HttpRequest) -> HttpResponse:
     """ Вывод списка избранных пользователей """
 
-    favorite_users = FavoriteUsers.objects.filter(user=request.user)
+    favorite_users = FavoriteUsers.objects.filter(user=request.user.id)
+    for num in favorite_users:
+        print(num)
     context = {'title': f'Избранные пользователи',
                'header': f'Избранные пользователи {request.user.username}',
                'favorite_users': favorite_users,
@@ -258,7 +261,7 @@ def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
         Лидером становится создатель.
     """
 
-    user_profile = Profile.objects.get(user=request.user)
+    user_profile = Profile.objects.get(user=request.user.id)
     if user_profile.guild:
         messages.error(request, 'Для создания гильдии покиньте текущую!')
 
@@ -340,7 +343,7 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
             new_name = edit_guild_info_form.cleaned_data.get('name')
 
             if old_name != new_name:
-                profile_leader = Profile.objects.get(user=request.user)
+                profile_leader = Profile.objects.get(user=request.user.id)
                 profile_gold_before = profile_leader.gold
                 profile_gold_after = profile_gold_before - 30000
                 profile_leader.gold = profile_gold_after
@@ -401,9 +404,9 @@ def change_leader_guild_choice(request: HttpRequest, guild_id: int) -> HttpRespo
         Выводит всех доступных для передачи лидерства участников гильдии.
     """
 
-    guild_info = Guild.objects.get(pk=guild_id)
+    guild_info = get_object_or_404(Guild, pk=guild_id)
     if request.user == guild_info.leader:
-        guild_members = Profile.objects.exclude(user=request.user).filter(guild=guild_id)
+        guild_members = Profile.objects.exclude(user=request.user.id).filter(guild=guild_id)
         context = {'title': f'Смена лидера',
                    'header': f'Смена лидера',
                    'guild_members': guild_members,
@@ -492,13 +495,14 @@ def delete_member_guild(request: HttpRequest, member_id: int, guild_id: int) -> 
 
 
 @auth_required()
+@transaction.atomic
 def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
     """ Вступление в гильдию текущим пользователем.
         В profile пользователя устанавливается выбранная гильдия.
         Количество участников гильдии увеличивается на 1.
     """
 
-    user_profile = Profile.objects.get(user=request.user)
+    user_profile = Profile.objects.get(user=request.user.id)
     guild_info = get_object_or_404(Guild, pk=guild_id)
 
     if guild_info.number_of_participants >= guild_info.max_number_of_participants:

@@ -134,22 +134,29 @@ def get_info_battle_event(today: int, user_id: int) -> BattleEventData:
 
     user = User.objects.get(pk=user_id)
     if today <= 10:
+        if len(BattleEventParticipants.objects.all()) < 2:
+            battle_event_data = BattleEventData(message_info='В этом сезоне недостаточно участников(')
+            return battle_event_data
+
         user_event_participant = BattleEventParticipants.objects.filter(user=user).last()
         if user_event_participant is None:
             battle_event_data = BattleEventData(message_info='Вы не участвуете в этом сезоне')
             return battle_event_data
+
         team_user_ids = (user_event_participant.first_card.id,
                          user_event_participant.second_card.id,
                          user_event_participant.third_card.id)
         enemy_id = user_event_participant.enemies.get(str(today))
         enemy = BattleEventParticipants.objects.get(user=enemy_id)
         team_enemy_ids = (enemy.first_card.id, enemy.second_card.id, enemy.third_card.id)
+
         team_user = []
         team_enemy = []
         for user_team_id in team_user_ids:
             team_user.append(Card.objects.get(pk=user_team_id))
         for team_enemy_id in team_enemy_ids:
             team_enemy.append(Card.objects.get(pk=team_enemy_id))
+
         battle_progress_this_day = user_event_participant.battle_progress.get(str(today))
         rating = BattleEventParticipants.objects.filter(points__gt=0).order_by('-points')[:5]
         be_event_awards = BattleEventAwards.objects.all().order_by('rank')
