@@ -23,7 +23,7 @@ urlpatterns = [
     path('guilds/<int:guild_id>/join/', add_member_guild, name='add_member_guild'),
     path('guilds/<int:guild_id>-<int:member_id>/', delete_member_guild, name='remove_member_guild'),
     path('login/', CustomLoginView.as_view(), name='login'),
-    path('logout/', views.LogoutView.as_view(template_name='users/logout.html'), name='logout'),
+    path('logout/', views.LogoutView.as_view(), name='logout'),
     path('signup/', CustomRegistrationView.as_view(), name='signup'),
     path('favorite_users/', view_favorite_users, name='view_favorite_users')
 ]

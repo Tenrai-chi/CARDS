@@ -25,9 +25,10 @@ def time_difference_check(check_time: datetime, need_hours: int) -> tuple[bool, 
     return hours >= need_hours, hours
 
 
-def create_new_card(user: User, ur_box=None, max_attribute=None):
-    """ Создание карты. Возвращает айди только что созданной карты """
+def create_new_card(user_id: int, ur_box=None, max_attribute=None) -> Card:
+    """ Создание карты. Возвращает объект созданной карты """
 
+    user = User.objects.get(pk=user_id)
     class_card = choice(ClassCard.objects.all())
     type_card = choice(Type.objects.all())
 

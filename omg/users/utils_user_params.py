@@ -5,7 +5,11 @@ from common.utils import create_new_card
 
 
 def user_level_up(user_id: int) -> None:
-    """ Увеличение уровня и количества слотов для карт и амулетов """
+    """ Обновление параметров профиля с увеличением уровня.
+        Увеличивает количество слотов для карт и амулетов.
+        Добавляет золото.
+        При уровне профиля кратное 5 генерирует карту UR
+    """
 
     profile = Profile.objects.get(user=user_id)
     profile.level += 1
@@ -23,4 +27,4 @@ def user_level_up(user_id: int) -> None:
     profile.save()
 
     if profile.level % 5 == 0:
-        create_new_card(profile.user, ur_box=True)
+        create_new_card(profile.user.id, ur_box=True)

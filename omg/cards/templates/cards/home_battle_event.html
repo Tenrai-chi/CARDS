@@ -78,7 +78,7 @@
                 </div>
             </div>
         </div>
-        {% if can_fight %}
+        {% if can_fight is True %}
         <div class="row">
             <div class="col-12 text-center">
                 <a href="{% url 'fight_day_battle_event' enemy_id=enemy_user.user.pk %}" class="btn btn-primary">Атака</a>

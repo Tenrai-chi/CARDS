@@ -1,0 +1,39 @@
+CARDS (Обновить комментарии)
+- УДАЛЕНЫ ЛИШНИЕ ИМПОРТЫ
+- view_cards
+- home: news, start_event, battle_event (start_event -> возможно переделать в dict)
+- menu_team_template_battle_event (без изменений)
+- set_team_template_battle_event (возможно переписать, чтобы возвращала не dict)
+- fight_day_battle_event (Проверить с 1 по 10)
+- buy_card
+- get_card (без изменений)
+- create_card
+- card_store (без изменений)
+- view_user_cards (без изменений)
+- view_card (без изменений)
+- select_favorite_card (без изменений)
+- fight
+- view_user_cards_for_sale (без изменений)
+- buy_card_user
+- card_sale (без изменений, спросить как выносить логику пост и гет запросы)
+- remove_from_sale_card (без изменений)
+- card_level_up (без изменений)
+- card_level_up (без изменений, тоже пост и гет запросы)
+- view_all_sale_card (без изменений)
+- get_award_start_event
+- merge_card_menu (без изменений)
+- merge_card
+
+EXCHANGE
+- view_inventory_user (в процессе)
+- item_store (без изменений)
+- buy_amulet
+- buy_item (без изменений post get) - добавила атоматик во вью
+- change_amulet_menu (без изменений)
+- change_amulet
+- remove_amulet (без изменений)
+- sale_amulet (без изменений добавлена атомик)
+- buy_and_open_box_amulet
+-
+
+USERS

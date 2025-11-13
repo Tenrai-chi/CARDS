@@ -13,6 +13,8 @@ from common.utils import date_time_now, create_new_card
 from users.models import Transactions, Profile
 
 from .forms import BuyItemForm
+from .services import (purchase_amulet, set_amulet_on_card, open_box_amulet, open_box_book,
+                       )
 from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsType, UpgradeItemsUsers
 
 
@@ -35,19 +37,23 @@ def view_inventory_user(request: HttpRequest, user_id: int,
 
     if inventory_filter == 'all':
         context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
-        context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
+        # context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
         context['user_items'] = UsersInventory.objects.filter(owner=request.user).order_by('id')
-        context['user_amulets'] = AmuletItem.objects.filter(owner=request.user).order_by('id')
+        # context['user_amulets'] = AmuletItem.objects.filter(owner=request.user).order_by('id')
         context['upgrade_items'] = UpgradeItemsUsers.objects.filter(owner=request.user).order_by('id')
+        amulets = AmuletItem.objects.filter(owner=request.user).order_by('id')
+        context['user_amulets'] = amulets
+        context['count_amulets'] = len(amulets)
 
     elif inventory_filter == 'amulets':
         context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
-        context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
-        context['user_amulets'] = AmuletItem.objects.filter(owner=request.user).order_by('id')
+        amulets = AmuletItem.objects.filter(owner=request.user).order_by('id')
+        context['user_amulets'] = amulets
+        context['count_amulets'] = len(amulets)
 
     elif inventory_filter == 'upgrade_items':
-        context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
-        context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
+        # context['max_count_amulets'] = Profile.objects.get(pk=user_id).amulet_slots
+        # context['count_amulets'] = AmuletItem.objects.filter(owner=request.user).count()
         context['upgrade_items'] = UpgradeItemsUsers.objects.filter(owner=request.user).order_by('id')
 
     elif inventory_filter == 'books_exp':
@@ -97,57 +103,19 @@ def item_store(request: HttpRequest, store_filter: str = 'all') -> HttpResponse:
 
 @auth_required(error_message='Для покупки необходимо авторизоваться!', redirect_url_name='items_store')
 def buy_amulet(request: HttpRequest, amulet_id: int) -> HttpResponseRedirect:
-    """ Покупка амулета.
-        Создает амулет на основе амулета из магазина и присваивает его покупателю в таблице AmuletItem.
-        Создает запись в Transactions.
-        Изменяет gold в Profile текущего пользователя.
-    """
+    """ Покупка амулета """
 
-    profile_user = Profile.objects.get(user=request.user)
-    current_amulet = get_object_or_404(AmuletType, pk=amulet_id)
-
-    if request.user.profile.amulet_slots <= AmuletItem.objects.filter(owner=request.user.id).count():
-        messages.error(request, 'У вас не хватает места для покупки амулета!')
-
+    answer: dict = purchase_amulet(request.user.id, amulet_id)
+    if answer.get('error_message'):
+        messages.error(request, answer['error_message'])
         return HttpResponseRedirect(reverse('items_store'))
-
-    if current_amulet.discount_now:
-        if profile_user.gold < current_amulet.price * (100 - current_amulet.discount) / 100:
-            messages.error(request, 'Для покупки вам не хватает денег!')
-
-            return HttpResponseRedirect(reverse('items_store'))
     else:
-        if profile_user.gold < current_amulet.price:
-            messages.error(request, 'Для покупки вам не хватает денег!')
-
-            return HttpResponseRedirect(reverse('items_store'))
-
-    bought_amulet = AmuletItem.objects.create(amulet_type=current_amulet,
-                                              owner=request.user)
-
-    bought_amulet.save()
-    if current_amulet.discount_now:
-        new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                             user=request.user,
-                                                             before=profile_user.gold,
-                                                             after=profile_user.gold - current_amulet.price * (100 - current_amulet.discount) / 100,
-                                                             comment='Покупка в магазине предметов')
-    else:
-        new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                             user=request.user,
-                                                             before=profile_user.gold,
-                                                             after=profile_user.gold - current_amulet.price,
-                                                             comment='Покупка в магазине предметов')
-
-    profile_user.gold = new_record_transaction.after
-    new_record_transaction.save()
-    profile_user.save()
-    messages.success(request, 'Вы успешно совершили покупку!')
-
-    return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'amulets'}))
+        messages.success(request, answer['success_message'])
+        return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'amulets'}))
 
 
 @auth_required()
+@transaction.atomic
 def buy_item(request: HttpRequest, item_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Покупка книги опыта.
         Создает запись в Transactions.
@@ -249,22 +217,13 @@ def change_amulet(request: HttpRequest, card_id: int, amulet_id: int) -> HttpRes
         Если у карты был установлен амулет, то отвязывает его.
     """
 
-    current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
-    card = get_object_or_404(Card, pk=card_id)
-    if current_amulet.owner == request.user:
-        card_with_current_amulet = AmuletItem.objects.filter(card=card)
-        for elem in card_with_current_amulet:
-            elem.card = None
-            elem.save()
-        current_amulet.card = card
-        current_amulet.save()
-
-        messages.success(request, 'Вы успешно надели амулет!')
-        return HttpResponseRedirect(f'/cards/card-{card_id}')
-
-    else:
-        messages.error(request, 'Вы не можете поменять у карты амулет!')
+    answer: dict = set_amulet_on_card(request.user.id, card_id, amulet_id)
+    if answer.get('error_message'):
+        messages.error(request, answer['error_message'])
         return HttpResponseRedirect(reverse('home'))
+    else:
+        messages.success(request, answer['success_message'])
+        return HttpResponseRedirect(f'/cards/card-{card_id}')
 
 
 @auth_required()
@@ -286,6 +245,7 @@ def remove_amulet(request: HttpRequest, card_id: int, amulet_id: int) -> HttpRes
 
 @auth_required()
 @owner_required()
+@transaction.atomic
 def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpResponseRedirect:
     """ Продажа пользователем амулета внутриигровому магазину.
         Амулет удаляется из инвентаря и запись о нем так же удаляется.
@@ -296,18 +256,18 @@ def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpRespo
     amulet = get_object_or_404(AmuletItem, pk=amulet_id)
     profile = Profile.objects.get(pk=request.user.id)
     if amulet.owner == request.user:
-        transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                  user=request.user,
-                                                  before=profile.gold,
-                                                  after=profile.gold+round(amulet.amulet_type.price),
-                                                  comment='Продажа амулета')
+        new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                      user=request.user,
+                                                      before=profile.gold,
+                                                      after=profile.gold + round(amulet.amulet_type.price),
+                                                      comment='Продажа амулета')
         profile.gold += round(amulet.amulet_type.price)
         amulet.delete()
         profile.save()
-        transaction.save()
+        new_transaction.save()
         messages.success(request, 'Вы успешно продали амулет!')
 
-        return HttpResponseRedirect(f'/inventory/{user_id}')
+        return HttpResponseRedirect(f'/inventory/{request.user.id}')
     else:
         messages.error(request, 'Произошла ошибка!')
 
@@ -316,81 +276,20 @@ def sale_amulet(request: HttpRequest, user_id: int, amulet_id: int) -> HttpRespo
 
 @auth_required()
 def buy_and_open_box_amulet(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
-    """ Покупка и открытие пользователем сундука с амулетами стоимостью 15 000.
-        Случайно выбирает 5 амулетов и помещает в инвентарь пользователя.
-        У пользователя снимаются деньги.
-        Создается запись в Transaction.
-        Амулеты, полученные из сундука выводятся пользователю
-    """
+    """ Вывод содержимого купленного сундука с амулетами """
 
-    profile_user = Profile.objects.get(user=request.user)
-
-    if request.user.profile.amulet_slots - 5 <= AmuletItem.objects.filter(owner=request.user.id).count():
+    answer: dict = open_box_amulet(request.user.id)
+    if answer.get('error_message'):
         messages.error(request, 'У вас не хватает места для покупки амулета!')
         return HttpResponseRedirect(reverse('items_store'))
-
-    if profile_user.gold < 15000:
-        messages.error(request, 'Вам не хватает денег!')
-        return HttpResponseRedirect(reverse('home'))
-
-    amulets_ur = AmuletType.objects.filter(rarity__name='UR')
-    amulets_ur_count = AmuletType.objects.filter(rarity__name='UR').count()
-
-    amulets_sr = AmuletType.objects.filter(rarity__name='SR')
-    amulets_sr_count = AmuletType.objects.filter(rarity__name='SR').count()
-
-    amulets_r = AmuletType.objects.filter(rarity__name='R')
-    amulets_r_count = AmuletType.objects.filter(rarity__name='R').count()
-
-    amulet_reward = []
-    for _ in range(5):
-        chance = randint(1, 100)
-        # Если выпал R
-        if chance <= amulets_r[1].rarity.chance_drop_on_box:
-            random_amulet = randint(0, amulets_r_count-1)
-            new_amulet = AmuletItem.objects.create(amulet_type=amulets_r[random_amulet],
-                                                   owner=request.user)
-            amulet_reward.append(amulets_r[random_amulet])
-            new_amulet.save()
-
-        # Если выпал SR
-        elif chance <= (amulets_sr[1].rarity.chance_drop_on_box + amulets_r[1].rarity.chance_drop_on_box):
-            random_amulet = randint(0, amulets_sr_count-1)
-            new_amulet = AmuletItem.objects.create(amulet_type=amulets_sr[random_amulet],
-                                                   owner=request.user)
-            amulet_reward.append(amulets_sr[random_amulet])
-            new_amulet.save()
-
-        # Если выпал UR
-        else:
-            random_amulet = randint(0, amulets_ur_count-1)
-            new_amulet = AmuletItem.objects.create(amulet_type=amulets_ur[random_amulet],
-                                                   owner=request.user)
-            amulet_reward.append(amulets_ur[random_amulet])
-            new_amulet.save()
-
-    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                  user=request.user,
-                                                  before=profile_user.gold,
-                                                  after=profile_user.gold - 15000,
-                                                  comment='Покупка в магазине предметов'
-                                                  )
-    new_transaction.save()
-    profile_user.gold -= 15000
-    profile_user.save()
-
-    context = {'amulets': sorted(amulet_reward, key=lambda item: item.rarity.id, reverse=True)}
-    return render(request, 'exchange/open_box_amulets.html', context)
+    else:
+        context = {'amulets': answer.get('new_amulets')}
+        return render(request, 'exchange/open_box_amulets.html', context)
 
 
 @auth_required()
 def buy_and_open_box_book(request: HttpRequest) -> HttpResponseRedirect | HttpResponse:
-    """ Покупка и открытие пользователем сундука с книгами опыта стоимостью 1 600.
-        Случайно генерирует 9 книг и создает 1 книгу UR редкости.
-        У пользователя снимаются деньги.
-        Создается запись в Transaction.
-        Книги, полученные из сундука выводятся пользователю.
-    """
+    """ Вывод содержимого купленного сундука с книгами """
 
     profile_user = Profile.objects.get(user=request.user)
     if profile_user.gold < 1600:
@@ -464,8 +363,7 @@ def buy_box_card(request: HttpRequest) -> HttpResponseRedirect:
 
     attributes = ('damage', 'hp')
     max_attribute = choice(attributes)
-
-    new_card = create_new_card(user=request.user,
+    new_card = create_new_card(user_id=request.user.id,
                                ur_box=True,
                                max_attribute=max_attribute)
 
