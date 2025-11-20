@@ -93,7 +93,12 @@
                             <p class="card-text">Надето: ______</p>
                         {% endif %}
                         <p class="card-text">Цена продажи: {{ amulet.amulet_type.price }}</p>
-                        <a href="{% url 'sale_amulet' user_id=user.id amulet_id=amulet.id %}" class="btn btn-primary col-12 mx-auto">Продать</a>
+                        <div class="mt-auto">
+                            <form action="{% url 'sale_amulet' user_id=user.id amulet_id=amulet.id  %}" method="post" class="w-100">
+                                {% csrf_token %}
+                                <button type="submit" class=" btn btn-primary" style="width: 100%;">Продать</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 <br>

@@ -6,12 +6,13 @@ from cards.models import Card, HistoryReceivingCards, Type, Rarity
 from common.utils import date_time_now, create_new_card
 from users.models import Transactions, Profile
 
-from .models import ExperienceItems, UsersInventory, AmuletItem, AmuletType, UpgradeItemsType, UpgradeItemsUsers
+from .models import (ExperienceItems, UsersInventory, AmuletItem, AmuletType,
+                     UpgradeItemsType, UpgradeItemsUsers, HistoryPurchaseItems)
 
 
 @transaction.atomic
-def purchase_amulet(user_id: int, amulet_id: int) -> dict:
-    """ Процесс покупки амулета из магазина.
+def buy_amulet_service(user_id: int, amulet_id: int) -> dict:
+    """ Покупка амулета из магазина.
         Создает амулет на основе амулета из магазина и присваивает его покупателю в таблице AmuletItem.
         Создает запись в Transactions.
         Изменяет gold в Profile текущего пользователя.
@@ -61,7 +62,7 @@ def purchase_amulet(user_id: int, amulet_id: int) -> dict:
 
 
 @transaction.atomic
-def set_amulet_on_card(user_id: int, card_id: int, amulet_id: int) -> dict:
+def change_amulet_service(user_id: int, card_id: int, amulet_id: int) -> dict:
     """ Устанавливает выбранный амулет на выбранную карту.
         Если у карты был установлен амулет, то отвязывает текущий.
         Возвращает сообщение об успехе или ошибке.
@@ -70,8 +71,13 @@ def set_amulet_on_card(user_id: int, card_id: int, amulet_id: int) -> dict:
     answer_data = {}
     current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
     card = get_object_or_404(Card, pk=card_id)
-    if current_amulet.owner.id != user_id or card.owner.id != user_id:
-        answer_data['error_message'] = 'Вы не можете поменять у карты амулет!'
+
+    if current_amulet.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не можете использовать чужой амулет!'
+        return answer_data
+
+    if card.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не можете поменять амулет у чужой карты!'
         return answer_data
 
     another_amulet_in_card = AmuletItem.objects.filter(card=card).last()
@@ -267,11 +273,11 @@ def open_box_card(user_id: int) -> dict:
 
 
 @transaction.atomic
-def purchase_upgrade_item(user_id: int, upgrade_item_id: int) -> dict:
-    """ Процесс покупки предмета усиления в магазине.
+def buy_upgrade_item_service(user_id: int, upgrade_item_id: int) -> dict:
+    """ Покупка предмета усиления в магазине.
         Добавляет или создает предмет усиления в инвентаре пользователя в таблице UpgradeItemsUsers.
         Создает запись в Transactions.
-        Изменяет gold в Profile текущего пользователя.
+        У пользователя снимаются деньги.
         Возвращает сообщение об успехе или ошибке.
     """
 
@@ -305,11 +311,11 @@ def purchase_upgrade_item(user_id: int, upgrade_item_id: int) -> dict:
 
 
 @transaction.atomic
-def process_enhance_card(user_id: int, card_id: int, up_item_id: int) -> dict:
-    """ Карта улучшает свои характеристики в зависимости от выбранного предмета.
+def enhance_card_service(user_id: int, card_id: int, up_item_id: int) -> dict:
+    """ Улучшение характеристик карты в зависимости от выбранного предмета.
         Удаляет выбранный предмет из инвентаря пользователя UpgradeItemsUsers.
         Создает запись в Transactions.
-        Изменяет gold в Profile текущего пользователя.
+        У пользователя снимаются деньги.
         Возвращает сообщение об успехе или ошибке и url_name для перенаправления при необходимости.
     """
 
@@ -360,3 +366,101 @@ def process_enhance_card(user_id: int, card_id: int, up_item_id: int) -> dict:
 
     answer_data['success_message'] = 'Вы улучшили карту!'
     return answer_data
+
+
+@transaction.atomic()
+def buy_item_service(user_id: int, item_id: int, amount: int) -> dict:
+    """ Покупка книги опыта.
+        Создает запись в Transactions.
+        Создает запись в истории покупок предметов HistoryPurchaseItems.
+        Выбранный товар начисляется в инвентарь (или обновляется его количество).
+        Изменяет gold в Profile текущего пользователя.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    item = get_object_or_404(ExperienceItems, pk=item_id)
+    profile = Profile.objects.get(user=user_id)
+    answer_data = {}
+    if profile.gold < item.price * amount:
+        answer_data['error_message'] = 'Для покупки вам не хватает денег!'
+        return answer_data
+
+    profile_gold_after = profile.gold - item.price * amount
+    new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                         user=profile.user,
+                                                         before=profile.gold,
+                                                         after=profile_gold_after,
+                                                         comment='Покупка в магазине предметов'
+                                                         )
+    new_record_history = HistoryPurchaseItems.objects.create(date_and_time=date_time_now(),
+                                                             user=profile.user,
+                                                             item=item,
+                                                             amount=amount,
+                                                             transaction=new_record_transaction)
+
+    profile.gold = profile_gold_after
+    profile.save()
+
+    items_user, _ = UsersInventory.objects.get_or_create(owner=profile.user, item=item)
+    items_user.amount += amount
+    items_user.save()
+
+    new_record_history.save()
+    answer_data['success_message'] = 'Вы успешно совершили покупку!'
+    return answer_data
+
+
+def remove_service(user_id: int, amulet_id: int, card_id: int) -> dict:
+    """ Снятие амулета с карты.
+        Если амулета не существует, возвращает 404.
+        Если пользователь не владелец амулета или амулет не на выбранной карте, ошибка.
+        Если проверки прошли, снимает амулет.
+        Возвращает сообщение об успехе или ошибке
+    """
+
+    answer_data = {}
+    current_amulet = get_object_or_404(AmuletItem, pk=amulet_id)
+
+    if current_amulet.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не можете пользоваться чужим амулетом'
+
+    elif current_amulet.card.id != card_id:
+        answer_data['error_message'] = 'Этот амулет не надет на выбранную карту!'
+
+    else:
+        current_amulet.card = None
+        current_amulet.save()
+
+        answer_data['success_message'] = 'Вы успешно сняли амулет!'
+
+    return answer_data
+
+
+@transaction.atomic()
+def sale_amulet_service(user_id: int, amulet_id: int) -> dict:
+    """ Продажа пользователем амулета внутриигровому магазину.
+        Амулет удаляется из инвентаря и запись о нем так же удаляется.
+        Пользователь получает деньги за продажу.
+        Создается запись в Transactions.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    answer_data = {}
+    amulet = get_object_or_404(AmuletItem, pk=amulet_id)
+    profile = Profile.objects.get(user=user_id)
+    if amulet.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не можете пользоваться чужим амулетом!'
+        return answer_data
+
+    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                  user=profile.user,
+                                                  before=profile.gold,
+                                                  after=profile.gold + round(amulet.amulet_type.price, 2),
+                                                  comment='Продажа амулета')
+    profile.gold += round(amulet.amulet_type.price, 2)
+    amulet.delete()
+    profile.save()
+    new_transaction.save()
+    answer_data['success_message'] = f'Вы успешно продали амулет за {round(amulet.amulet_type.price, 2)}!'
+    return answer_data
+

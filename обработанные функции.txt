@@ -1,60 +1,64 @@
-CARDS (Обновить комментарии)
-- УДАЛЕНЫ ЛИШНИЕ ИМПОРТЫ
-- view_cards
-- home: news, start_event, battle_event (start_event -> возможно переделать в dict)
-- menu_team_template_battle_event (без изменений)
-- set_team_template_battle_event (возможно переписать, чтобы возвращала не dict)
-- fight_day_battle_event (Проверить с 1 по 10)
-- buy_card
-- get_card (без изменений)
-- create_card
-- card_store (без изменений)
-- view_user_cards (без изменений)
-- view_card (без изменений)
-- select_favorite_card (без изменений)
-- fight
-- view_user_cards_for_sale (без изменений)
-- buy_card_user
-- card_sale (без изменений, спросить как выносить логику пост и гет запросы)
-- remove_from_sale_card (без изменений)
-- card_level_up (без изменений)
-- card_level_up (без изменений, тоже пост и гет запросы)
-- view_all_sale_card (без изменений)
-- get_award_start_event
-- merge_card_menu (без изменений)
-- merge_card
+CARDS
+
+*** view_cards - Данные не изменяются
+*** home: *news - service
+          *start_event - service
+          *battle_event - service
+*** menu_team_template_battle_event - Данные не меняются
+*** set_team_template_battle_event - post + service
+- fight_day_battle_event - post + service + Проверить с 1 по 10 как работает + шаблон
+*** buy_card - post + service
+*** get_card
+*** create_card - post + service
+*** card_store - Данные не меняются
+*** view_user_cards - Данные не меняются
+*** view_card - Данные не меняются
+*** select_favorite_card - post + service
+*** fight - service
+*** view_user_cards_for_sale - Данные не меняются
+*** buy_card_user - post + service
+*** card_sale - post + get + service
+*** remove_from_sale_card - post + service
+*** card_level_up - Данные не меняются
+*** level_up_with_item - post + get + service
+*** view_all_sale_card - Данные не меняются
+*** get_award_start_event - post + service
+? merge_card_menu - Данные не меняются, НО ЕСТЬ ЛОГИКА СЛОЖНАЯ, ПОДУМАТЬ!
+*** merge_card - post + service
 
 EXCHANGE
-- view_inventory_user (в процессе)
-- item_store (без изменений)
-- buy_amulet
-- buy_item (без изменений post get) - добавила атоматик во вью
-- change_amulet_menu (без изменений)
-- change_amulet
-- remove_amulet (без изменений)
-- sale_amulet (без изменений добавлена атомик)
-- buy_and_open_box_amulet
-- buy_and_open_box_book
-- buy_box_card
-- buy_upgrade_item
-- menu_enhance_card (без изменений)
+
+*** view_inventory_user - Данные не меняются
+*** item_store - Данные не меняются
+*** buy_amulet - post + service
+*** buy_item - post + get + service
+*** change_amulet_menu - Данные не меняются
+*** change_amulet - post + service
+*** remove_amulet - post + service
+*** sale_amulet - post + service
+*** buy_and_open_box_amulet - post + service
+*** buy_and_open_box_book - post + service
+*** buy_box_card - post + service
+*** buy_upgrade_item - post + service
+*** menu_enhance_card - Данные не меняются
+*** enhance_card - post + service
 
 USERS
-- класс CustomLoginView (без изменений)
-- класс CustomRegistrationView (без изменений)
-- create_profile_user (без изменений)
-- view_profile (без изменений)
-- view_rating (без изменений)
-- edit_profile (гет и пост)
-- view_transactions (без изменений)
-- add_favorite_user (пока без изменений)
-- delete_favorite_user (пока без изменений)
-- view_favorite_users (без изменений)
-- view_guild (без изменений)
-- view_all_guilds (без изменений)
-- create_guild (get post)
-- edit_guild_info (get post)
-- change_leader_guild_choice (без изменений)
-- change_leader_guild (без изменений)
-- delete_member_guild (пока без изменений)
--
+Обновить комментарии
+
+*** view_profile - Данные не меняются
+*** view_rating - Данные не меняются
+*** edit_profile - get + post + service
+*** view_transactions - Данные не меняются
+*** add_favorite_user - post + service
+*** delete_favorite_user - post + service
+*** view_favorite_users - Данные не меняются
+*** view_guild - Данные не меняются (Кнопки в шаблоне)
+*** view_all_guilds - Данные не меняются (Возможно сделать пагинацию)
+*** create_guild - post + get + service
+*** edit_guild_info - post + get + service
+*** change_leader_guild_choice - Данные не меняются
+*** change_leader_guild - post + service
+*** delete_member_guild - post + service
+*** add_member_guild - post + service
+*** delete_guild - post + service

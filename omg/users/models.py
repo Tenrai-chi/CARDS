@@ -63,6 +63,16 @@ class Guild(models.Model):
             self.number_of_participants += 1
             self.save()
 
+    def add_guild_points(self, win_or_lose: str):
+        """ Увеличивает очки гильдии """
+
+        if win_or_lose == 'win':
+            self.rating += 30
+        elif win_or_lose == 'lose':
+            self.rating += 6
+
+        self.save()
+
 
 class Profile(models.Model):
     """ Профиль пользователя """

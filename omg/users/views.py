@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
-from django.db import transaction
 from django.db.models import F, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -13,10 +12,14 @@ from django.views.generic import CreateView
 
 from cards.models import Card, FightHistory
 from common.decorators import auth_required, owner_required
-from common.utils import date_time_now, time_difference_check
+from common.utils import date_time_now
 from exchange.models import AmuletItem
 
 from .forms import LoginForm, RegistrationForm, EditProfileForm, CreateGuildForm, EditGuildInfoForm
+from .services import (add_favorite_user_service, delete_favorite_user_service,
+                       change_leader_guild_service, delete_guild_service, delete_member_guild_service,
+                       add_member_guild_service, edit_profile_service, edit_guild_info_service,
+                       create_guild_service, view_rating_service, view_all_guilds_service)
 from .models import Profile, Transactions, FavoriteUsers, Guild
 
 
@@ -52,7 +55,9 @@ class CustomRegistrationView(CreateView):
 
 @receiver(post_save, sender=User)
 def create_profile_user(sender, instance, created, **kwargs):
-    """ Создание профиля пользователя """
+    """ Создание профиля пользователя.
+        Создает профиль пользователя при создании экземпляра User.
+    """
 
     if created and not Profile.objects.filter(user=instance).exists():
         Profile.objects.create(user=instance,
@@ -61,7 +66,10 @@ def create_profile_user(sender, instance, created, **kwargs):
 
 
 def view_profile(request: HttpRequest, user_id: int) -> HttpResponse:
-    """ Просмотр профиля пользователя """
+    """ Просмотр профиля пользователя.
+        У гостей профиля и хозяина выводятся разные данные.
+        Если пользователь не авторизован, то информации по минимуму.
+    """
 
     user = get_object_or_404(User, pk=user_id)
     if user == request.user:
@@ -96,12 +104,17 @@ def view_profile(request: HttpRequest, user_id: int) -> HttpResponse:
 
 
 def view_rating(request: HttpRequest) -> HttpResponse:
-    """ Просмотр таблицы рейтинга пользователей """
+    """ Выводит таблицу рейтинга пользователей с учетом пагинации """
 
-    users = User.objects.all().annotate(rating=500 + F('profile__win') * 25 - F('profile__lose') * 20).order_by('-rating')
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except ValueError:
+        page_num = 1
+    users_data: dict = view_rating_service(page_num)
     context = {'title': 'Таблица рейтинга',
                'header': 'Таблица рейтинга',
-               'users': users,
+               'users': users_data.get('users'),
+               'page': users_data.get('page'),
                }
 
     return render(request, 'users/rating.html', context)
@@ -110,18 +123,28 @@ def view_rating(request: HttpRequest) -> HttpResponse:
 @auth_required()
 @owner_required()
 def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | HttpResponse:
-    """ Изменение профиля пользователя """
+    """ Изменение профиля пользователя
+        При GET запросе выводит форму изменения профиля.
+        При POST запросе и валидных данных изменяет данные в профиле.
+        Вызывает сервис изменения данных профиля и направляет на страницу просмотра профиля.
+        При невалидных данных снова показывает форму.
+        При других запросах направляет на домашнюю страницу.
+    """
 
     profile = Profile.objects.get(user=request.user.id)
     if request.method == 'POST':
         edit_profile_form = EditProfileForm(request.POST, request.FILES, instance=profile)
         if edit_profile_form.is_valid():
-            edit_profile_form.save()
+            about_user = edit_profile_form.cleaned_data['about_user']
+            profile_pic = edit_profile_form.cleaned_data['profile_pic']
+            edit_profile_service(user_id, about_user, profile_pic)
 
-            return HttpResponseRedirect(f'/users/{user_id}')
+            return HttpResponseRedirect(reverse('view_profile', kwargs={'user_id': user_id}))
+
         else:
             edit_profile_form = EditProfileForm(instance=profile, initial={'about_user': profile.about_user,
                                                                            'profile_pic': profile.profile_pic})
+            messages.warning(request, 'Некорректные данные!')
             context = {'title': f'Редактирование профиля',
                        'header': f'Редактирование профиля {request.user.username}',
                        'user_info': profile,
@@ -130,14 +153,15 @@ def edit_profile(request: HttpRequest, user_id: int) -> HttpResponseRedirect | H
 
             return render(request, 'users/edit_profile.html', context)
     elif request.method == 'GET':
-        edit_profile_form = EditProfileForm(instance=profile, initial={'about_user': profile.about_user,
-                                                                       'profile_pic': profile.profile_pic})
+        edit_profile_form = EditProfileForm(instance=profile,
+                                            initial={'about_user': profile.about_user, 'profile_pic': profile.profile_pic})
         context = {'title': f'Редактирование профиля',
                    'header': f'Редактирование профиля {request.user.username}',
                    'user_info': profile,
                    'form': edit_profile_form,
                    }
         return render(request, 'users/edit_profile.html', context)
+
     else:
         messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
@@ -161,53 +185,47 @@ def view_transactions(request: HttpRequest, user_id: int) -> HttpResponseRedirec
 
 @auth_required()
 def add_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
-    """ Добавление в избранное выбранного пользователя """
+    """ Добавление в избранное выбранного пользователя.
+        Обрабатывает только POST запросы.
+        Вызывает сервис для добавления в избранное.
+        При ошибке направляет на главную страницу.
+        При успехе направляет на страницу пользователя.
+        Выводит пользователю сообщение об успехе или ошибке.
+    """
 
-    if request.user.id == user_id:
-        messages.error(request, 'Вы не можете добавить себя из избранных')
-        return HttpResponseRedirect(reverse('home'))
-
-    try:
-        _ = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
-        messages.error(request, 'Этот пользователь уже в избранном!')
-
-        return HttpResponseRedirect(reverse('home'))
-
-    except FavoriteUsers.DoesNotExist:
-        user = User.objects.filter(pk=user_id).last()
-        if not user:
-            messages.error(request, 'Вы не можете добавить этого пользователя в избранное!')
+    if request.method == 'POST':
+        answer: dict = add_favorite_user_service(request.user.id, user_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
             return HttpResponseRedirect(reverse('home'))
-
-        favorite_users_count = FavoriteUsers.objects.filter(user=request.user.id).count()
-        if favorite_users_count >= 50:
-            message = 'Достигнут предел избранных пользователей! Для добавления новых освободите место'
-            messages.error(request, message)
-
-            return HttpResponseRedirect(f'/users/{user_id}')
-
-        new_favorite_user = FavoriteUsers.objects.create(user=request.user,
-                                                         favorite_user=user)
-        new_favorite_user.save()
-        return HttpResponseRedirect(f'/users/{user_id}')
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('view_profile', kwargs={'user_id': user_id}))
+    else:
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
 def delete_favorite_user(request: HttpRequest, user_id: int) -> HttpResponseRedirect:
-    """ Удаление пользователя из списка избранных """
+    """ Удаление пользователя из списка избранных.
+        Обрабатывает только POST запросы.
+        Вызывает сервис для удаления пользователя из избранного.
+        При ошибке направляет на главную страницу.
+        При успехе направляет на страницу пользователя.
+        Выводит пользователю сообщение об успехе или ошибке.
+    """
 
-    if request.user.id != user_id:
-        try:
-            record = FavoriteUsers.objects.get(user=request.user, favorite_user=user_id)
-            record.delete()
-
-            return HttpResponseRedirect(f'/users/{user_id}')
-
-        except FavoriteUsers.DoesNotExist:
-            messages.error(request, 'Этот участник не находится в вашем списке избранных!')
+    if request.method == 'POST':
+        answer: dict = delete_favorite_user_service(request.user.id, user_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
             return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('view_profile', kwargs={'user_id': user_id}))
     else:
-        messages.error(request, 'Вы не можете убрать себя из избранных!')
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -240,13 +258,17 @@ def view_guild(request: HttpRequest, guild_id: int) -> HttpResponse:
 
 
 def view_all_guilds(request: HttpRequest) -> HttpResponse:
-    """ Просмотр всех гильдий """
+    """ Вывод списка всех существующих гильдий с пагинацией. """
 
-    guilds = Guild.objects.all().order_by('-rating')
-
-    context = {'title': f'Избранные пользователи',
-               'header': f'Избранные пользователи {request.user.username}',
-               'guilds': guilds,
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except ValueError:
+        page_num = 1
+    guilds_data: dict = view_all_guilds_service(page_num)
+    context = {'title': 'Таблица рейтинга',
+               'header': 'Таблица рейтинга',
+               'guilds': guilds_data.get('guilds'),
+               'page': guilds_data.get('page'),
                }
 
     return render(request, 'users/view_all_guilds.html', context)
@@ -255,53 +277,35 @@ def view_all_guilds(request: HttpRequest) -> HttpResponse:
 @auth_required(error_message='Для создания гильдии необходимо авторизоваться!')
 def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
     """ Создание гильдии.
-        Создается запись в Transaction.
-        Лидером становится создатель.
+        При GET запросе выводит форму для создания гильдии.
+        При POST запросе и валидных данных вызывает сервис создания гильдии.
+        При невалидных данных снова выводит форму.
+        При ошибке направляет на домашнюю страницу.
+        При успехе направляет на страницу просмотра созданной гильдии.
+        При других запросах направляет на домашнюю страницу.
     """
-
-    user_profile = Profile.objects.get(user=request.user.id)
-    if user_profile.guild:
-        messages.error(request, 'Для создания гильдии покиньте текущую!')
-
-        return HttpResponseRedirect(reverse('home'))
-
-    if user_profile.gold < 50000:
-        messages.error(request, 'Вам не хватает денег!')
-
-        return HttpResponseRedirect(reverse('home'))
 
     if request.method == 'POST':
         new_guild_form = CreateGuildForm(request.POST, request.FILES)
         if new_guild_form.is_valid():
-            new_guild_info = new_guild_form.save(commit=False)
-            new_guild_info.leader = request.user
-            new_guild_info.date_create = date_time_now()
-            new_guild_info.date_last_change_buff = date_time_now()
-            new_guild_info.rating = 1
-            new_guild_info.save()
+            buff = new_guild_form.cleaned_data.get('buff')
+            guild_pic = new_guild_form.cleaned_data.get('guild_pic')
+            name = new_guild_form.cleaned_data.get('name')
+            answer: dict = create_guild_service(request.user.id, name, guild_pic, buff)
+            if answer.get('error_message'):
+                messages.error(request, answer['error_message'])
+                return HttpResponseRedirect(reverse('home'))
 
-            user_gold_before = user_profile.gold
-            user_gold_after = user_gold_before - 50000
-            new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                          user=request.user,
-                                                          before=user_gold_before,
-                                                          after=user_gold_after,
-                                                          comment='Создание гильдии'
-                                                          )
-            new_transaction.save()
-            user_profile.gold -= 50000
-            user_profile.guild = new_guild_info
-            user_profile.guild_point = 0
-            user_profile.date_guild_accession = date_time_now()
-            user_profile.save()
+            else:
+                messages.success(request, answer['success_message'])
+                return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': answer["guild_id"]}))
 
-            return HttpResponseRedirect(f'/users/guilds/{new_guild_info.id}')
         else:
+            messages.error(request, 'Некорректные данные')
             context = {'title': f'Создание гильдии',
                        'header': f'Создание гильдии',
                        'form': new_guild_form,
                        }
-            messages.error(request, 'Произошла ошибка')
 
             return render(request, 'users/create_guild.html', context)
 
@@ -320,64 +324,33 @@ def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
 @auth_required()
 def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpResponseRedirect:
     """ Редактирование информации о гильдии.
-        Выводит страницу с формой для смены названия, картинки и усиления гильдии.
-        Если было изменено название, то с лидера гильдии снимается 30 000.
-        Если было изменено усиление, то обновляется дата последнего изменения усиления.
-        Поменять усиление можно раз в 2 недели.
+        При GET запросе выводит форму изменения информации гильдии.
+        При POST запросе и валидных данных вызывает сервис изменения информации гильдии.
+        При ошибке выводит сообщение пользователю.
+        Направляет на страницу просмотра гильдии.
+        При других запросах направляет на домашнюю страницу.
     """
 
     guild_info = get_object_or_404(Guild, pk=guild_id)
-    old_name = guild_info.name
-    old_buff = guild_info.buff
-    if guild_info.leader != request.user:
-        messages.error(request, 'У вас нет таких прав!')
-        return HttpResponseRedirect(reverse('home'))
-
     if request.method == 'POST':
         edit_guild_info_form = EditGuildInfoForm(request.POST, request.FILES, instance=guild_info)
         if edit_guild_info_form.is_valid():
-            edit_guild_info_form.save(commit=False)
-
-            new_name = edit_guild_info_form.cleaned_data.get('name')
-
-            if old_name != new_name:
-                profile_leader = Profile.objects.get(user=request.user.id)
-                profile_gold_before = profile_leader.gold
-                profile_gold_after = profile_gold_before - 30000
-                profile_leader.gold = profile_gold_after
-                profile_leader.save()
-
-                new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                              user=request.user,
-                                                              before=profile_gold_before,
-                                                              after=profile_gold_after,
-                                                              comment='Смена названия гильдии'
-                                                              )
-                new_transaction.save()
-
-            edit_guild_info_form.save()
-            current_update_guild_info = Guild.objects.get(pk=guild_id)
-            if old_buff != current_update_guild_info.buff:
-                can_edit_buff, hours = time_difference_check(current_update_guild_info.date_last_change_buff, 336)
-                days = hours // 24
-
-                if can_edit_buff:
-                    current_update_guild_info.date_last_change_buff = date_time_now()
-                    current_update_guild_info.save()
-
-                    messages.success(request, 'Вы успешно изменили информацию о гильдии!')
-                else:
-                    current_update_guild_info.buff = old_buff
-                    current_update_guild_info.save()
-
-                    message = f'Вы пока что не можете поменять усиление гильдии! До следующего изменения {14-days} дней'
-                    messages.warning(request, message)
-
-            messages.success(request, 'Вы успешно изменили информацию о гильдии!')
-            return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
+            buff = edit_guild_info_form.cleaned_data.get('buff')
+            guild_pic = edit_guild_info_form.cleaned_data.get('guild_pic')
+            name = edit_guild_info_form.cleaned_data.get('name')
+            answer: dict = edit_guild_info_service(request.user.id, guild_id, name, guild_pic, buff)
+            if answer.get('error_message'):
+                messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': guild_info.id}))
         else:
             messages.error(request, 'Некорректные данные!')
-            return HttpResponseRedirect(reverse('home'))
+
+            context = {'title': f'Редактирование гильдии {guild_info.name}',
+                       'header': f'Редактирование гильдии {guild_info.name}',
+                       'guild_info': guild_info,
+                       'form': edit_guild_info_form,
+                       }
+            return render(request, 'users/edit_guild.html', context)
 
     elif request.method == 'GET':
         edit_guild_info_form = EditGuildInfoForm(instance=guild_info,
@@ -385,8 +358,8 @@ def edit_guild_info(request: HttpRequest, guild_id: int) -> HttpResponse | HttpR
                                                           'guild_pic': guild_info.guild_pic,
                                                           'buff': guild_info.buff})
 
-        context = {'title': f'Редактирование гильдии {old_name}',
-                   'header': f'Редактирование гильдии {old_name}',
+        context = {'title': f'Редактирование гильдии {guild_info.name}',
+                   'header': f'Редактирование гильдии {guild_info.name}',
                    'guild_info': guild_info,
                    'form': edit_guild_info_form,
                    }
@@ -420,132 +393,96 @@ def change_leader_guild_choice(request: HttpRequest, guild_id: int) -> HttpRespo
 
 @auth_required()
 def change_leader_guild(request: HttpRequest, guild_id: int, user_id: int) -> HttpResponseRedirect:
-    """ Смена лидера гильдии на выбранного пользователя """
+    """ Смена лидера гильдии на выбранного пользователя.
+        Обрабатывает только POST запросы.
+        Вызывает сервис для смены лидера.
+        При ошибке направляет на домашнюю страницу.
+        При удаче направляет на страницу просмотра гильдии.
+        Выводит пользователю сообщение об успехе или ошибке.
+    """
 
-    guild_info = Guild.objects.get(pk=guild_id)
-    new_leader = User.objects.get(pk=user_id)
-    if request.user == guild_info.leader:
-        guild_info.leader = new_leader
-        guild_info.save()
-        messages.success(request, 'Вы удачно сменили лидера!')
+    if request.method == 'POST':
+        answer: dict = change_leader_guild_service(request.user.id, guild_id, user_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('home'))
 
-        return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': guild_id}))
+
     else:
-        messages.error(request, 'У вас нет таких прав!')
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
 def delete_member_guild(request: HttpRequest, member_id: int, guild_id: int) -> HttpResponseRedirect:
-    """ Удалить пользователя из гильдии.
-        Вычитает очки гильдии пользователя из общего показателя гильдии.
-        У пользователя обнуляются очки гильдии.
+    """ Удаление пользователя из гильдии.
+        Обрабатывает только POST запросы.
+        Вызывает сервис удаление пользователя.
+        Если был получен параметр redirect_name_url, то направляет на эту страницу (просмотр всех гильдий)
+        Если параметр не был получен, то направляет на страницу просмотра гильдии.
+        Выводит пользователю сообщение об успехе или ошибке.
     """
 
-    profile_user = get_object_or_404(Profile, user=member_id)
-    guild = get_object_or_404(Guild, pk=guild_id)
-
-    if guild.leader == request.user:
-        if profile_user == request.user.profile:
-            if guild.number_of_participants == 1:
-                profile_user.guild = None
-                profile_user.date_guild_accession = None
-                profile_user.guild_point = 0
-
-                guild.delete()
-                profile_user.save()
-
-                return HttpResponseRedirect(reverse('view_all_guilds'))
-            else:
-                messages.error(request, 'Сначала передайте лидерство другому члену гильдии!')
-
-                return HttpResponseRedirect(reverse('home'))
-
+    if request.method == 'POST':
+        answer: dict = delete_member_guild_service(request.user.id, member_id, guild_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
         else:
-            guild.rating -= profile_user.guild_point
-            guild.number_of_participants -= 1
+            messages.success(request, answer['success_message'])
 
-            profile_user.guild = None
-            profile_user.date_guild_accession = None
-            profile_user.guild_point = 0
-
-            guild.save()
-            profile_user.save()
-
-            return HttpResponseRedirect(f'/users/guilds/{guild.id}')
-
-    elif request.user.id == member_id:
-        guild.rating -= profile_user.guild_point
-        guild.number_of_participants -= 1
-
-        profile_user.guild = None
-        profile_user.date_guild_accession = None
-        profile_user.guild_point = 0
-
-        guild.save()
-        profile_user.save()
-
-        return HttpResponseRedirect(reverse('view_all_guilds'))
-
+        if answer.get('redirect_name_url'):
+            return HttpResponseRedirect(reverse(answer['redirect_name_url']))
+        else:
+            return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': guild_id}))
     else:
-        messages.error(request, 'Вы должны быть лидером!')
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
-@transaction.atomic
 def add_member_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
     """ Вступление в гильдию текущим пользователем.
-        В profile пользователя устанавливается выбранная гильдия.
-        Количество участников гильдии увеличивается на 1.
+        Обрабатывает только POST запросы.
+        Вызывает сервис добавления пользователя в гильдию.
+        При ошибке направляет на домашнюю страницу.
+        При успехе направляет на страницу просмотра гильдии.
+        Выводит пользователю сообщение об успехе или ошибке.
     """
 
-    user_profile = Profile.objects.get(user=request.user.id)
-    guild_info = get_object_or_404(Guild, pk=guild_id)
-
-    if guild_info.number_of_participants >= guild_info.max_number_of_participants:
-        messages.error(request, 'В этой гильдии заняты все места!')
-
-        return HttpResponseRedirect(reverse('home'))
-
-    if user_profile.guild is None:
-        user_profile.guild = guild_info
-        user_profile.date_guild_accession = date_time_now()
-        user_profile.guild_point = 0
-
-        guild_info.add_user_in_guild()
-        user_profile.save()
-
-        messages.success(request, 'Вы успешно вступили в гильдию!')
-        return HttpResponseRedirect(f'/users/guilds/{guild_info.id}')
-
+    if request.method == 'POST':
+        answer: dict = add_member_guild_service(request.user.id, guild_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': guild_id}))
     else:
-        messages.error(request, 'Чтобы вступить в новую гильдию, покиньте текущую!')
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
 def delete_guild(request: HttpRequest, guild_id: int) -> HttpResponseRedirect:
-    """ Удаление гильдии.
-        Удалить гильдию может только лидер.
-        У всех текущих участников гильдии изменяются guild, date_guild_accession на None, а guild_point на 0.
-        Удаляется запись о гильдии в Guild.
+    """ Расформирование гильдии.
+        Обрабатывает только POST запросы.
+        Вызывает сервис удаления гильдии.
+        При ошибке направляет на домашнюю страницу.
+        При успехе направляет на страницу просмотра всех гильдий.
+        Выводит пользователю сообщение об успехе или ошибке.
     """
 
-    guild_info = get_object_or_404(Guild, pk=guild_id)
-    members_guild = Profile.objects.filter(guild=guild_info)
-    if request.user == guild_info.leader:
-        for member in members_guild:
-            member.guild = None
-            member.date_guild_accession = None
-            member.guild_point = 0
-            member.save()
-
-        guild_info.delete()
-
-        messages.success(request, 'Вы успешно расформировали гильдию!')
-        return HttpResponseRedirect(reverse('view_all_guilds'))
-
+    if request.method == 'POST':
+        answer: dict = delete_guild_service(request.user.id, guild_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('view_all_guilds'))
     else:
-        messages.error(request, 'У вас нет таких прав!')
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))

@@ -45,8 +45,12 @@
                             <p class="card-text">Цена использования: <span style="color:#009933">{{ item.upgrade_item_type.price_of_use }}</span></p>
                             {% endif %}
                             {% if card.level < card.rarity.max_level %}
-                                <div class="btn-group-vertical col-12 mx-auto">
-                                    <a href="{% url 'enhance_card' card_id=card.pk up_item_id=item.upgrade_item_type.pk %}" class="btn btn-primary">Использовать</a>
+                                <div class="mt-auto">
+                                    <form action="{% url 'enhance_card' card_id=card.pk up_item_id=item.upgrade_item_type.pk  %}" method="post"
+                                          class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Использовать</button>
+                                    </form>
                                 </div>
                             {% endif %}
                         </div>

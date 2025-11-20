@@ -39,12 +39,21 @@
                     <a href="{% url 'view_favorite_users' %}" class="btn btn-primary">Избранные</a>
                     <a href="{% url 'view_transactions' user_id=user_info.id %}" class="btn btn-primary">Транзакции</a>
                     <a href="{% url 'edit_profile' user_id=user.id %}" class="btn btn-primary">Редактировать</a>
-                    <a href="{% url 'logout' %}" class="btn btn-primary">Выйти</a>
+                    <form action="{% url 'logout' %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Выйти</button>
+                    </form>
                 {% elif user.is_authenticated %}
                     {% if favorite_user %}
-                        <a href="{% url 'delete_favorite_user' user_id=user_info.id %}" class="btn btn-primary">Убрать из избранного</a>
+                        <form action="{% url 'delete_favorite_user' user_id=user_info.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Убрать из избранного</button>
+                        </form>
                     {% else %}
-                        <a href="{% url 'add_favorite_user' user_id=user_info.id %}" class="btn btn-primary">В избранное</a>
+                        <form action="{% url 'add_favorite_user' user_id=user_info.id %}" method="post" style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">В избранное</button>
+                        </form>
                     {% endif %}
                 {% endif %}
             </div>

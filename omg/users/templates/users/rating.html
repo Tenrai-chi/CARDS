@@ -30,4 +30,44 @@
             {% endfor %}
         </ol>
     </div>
+
+    <div class="container">
+        <nav aria-label="...">
+            <ul class="pagination justify-content-center">
+                {% if page.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page.previous_page_number }}">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item"><a class="page-link" href="?page={{ page.previous_page_number }}">{{  page.previous_page_number }}</a></li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active" aria-current="page">
+                    <a class="page-link" href="#">{{ page.number }}</a>
+                </li>
+
+                {% if page.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page.next_page_number }}">{{ page.next_page_number }}</a></li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page.next_page_number }}">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
 {% endblock content %}

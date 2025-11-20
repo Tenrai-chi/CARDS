@@ -38,7 +38,10 @@
     <div class="container col-10 text-center">
         {% if user.is_authenticated %}
             {% if take_card == True %}
-                <a href="{% url 'create_card' %}" class="btn btn-primary btn-lg">Получить карту</a>
+            <form action="{% url 'create_card' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Получить карту</button>
+            </form>
             {% else %}
                 Извините, сейчас вы не можете получить бесплатную карту. Следующая попытка будет доступна через: {{ hours }} часов
             {% endif %}

@@ -42,9 +42,12 @@
                             <p class="card-text">Количество: {{ item.amount }}</p>
                             <p class="card-text">Получаемый опыт: {{ item.item.experience_amount }}</p>
                             {% if card.level < card.rarity.max_level %}
-                                <div class="btn-group-vertical col-12 mx-auto">
-                                    <a href="{% url 'level_up_with_item' card_id=card.id item_id=item.pk %}" class="btn btn-primary">Использовать</a>
-                                </div>
+                            <div class="mt-auto">
+                                <form action="{% url 'level_up_with_item' card_id=card.id item_id=item.pk %}" method="get" class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Использовать</button>
+                                </form>
+                        </div>
                             {% endif %}
                         </div>
                     </div>

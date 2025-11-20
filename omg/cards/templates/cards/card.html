@@ -46,28 +46,33 @@
         <p>Усиление: {{ card.enhancement }} из {{ card.max_enhancement }} </p>
         <p>Слияние: {{ card.merger }} из {{ card.max_merger }} </p>
 
-
+        <div class="mt-auto">
         {% if user == card.owner %}
             {% if card.level < card.rarity.max_level %}
                 <p>Прогресс: {{ card.experience_bar}} / {{need_exp}} </p>
-                    <div class="text-center">
-                        <a href="{% url 'level_up' card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Улучшить</a><br><br>
-                    </div>
+                <form action="{% url 'level_up' card_id=card.pk %}" method="get" class="w-100">
+                    {% csrf_token %}
+                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Улучшить</button>
+                </form><br>
             {% endif %}
             {% if card.enhancement < card.max_enhancement %}
-                <div class="text-center">
-                    <a href="{% url 'menu_enhance_card' card_id=card.pk %}" class="btn btn-primary col-md-12">Усилить</a><br><br>
-                </div>
+                <form action="{% url 'menu_enhance_card' card_id=card.pk %}" method="post" class="w-100">
+                    {% csrf_token %}
+                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Усилить</button>
+                </form><br>
             {% endif %}
             {% if card.merger < card.max_merger %}
-                <div class="text-center">
-                    <a href="{% url 'merge_card_menu' current_card_id=card.pk %}"
-                       class="btn btn-primary col-md-12">Слияние</a><br><br>
-                </div>
+                <form action="{% url 'merge_card_menu' current_card_id=card.pk %}" method="post" class="w-100">
+                    {% csrf_token %}
+                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Слияние</button>
+                </form><br>
             {% endif %}
         {% endif %}
-        <div class="text-center">
-            <a href="{% url 'change_amulet_menu' card_id=card.pk %}" class="btn btn-primary col-md-12">Амулет</a><br><br>
+        <form action="{% url 'change_amulet_menu' card_id=card.pk %}" method="post" class="w-100">
+            {% csrf_token %}
+            <button type="submit" class=" btn btn-primary" style="width: 100%;">Амулет</button>
+        </form><br>
         </div>
+
     </div>
 {% endblock content %}

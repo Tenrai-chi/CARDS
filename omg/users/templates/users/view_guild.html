@@ -35,13 +35,23 @@
                 {% if user == guild_info.leader %}
                     <a href="{% url 'edit_guild_info' guild_id=guild_info.pk %}" class="btn btn-primary">Редактировать</a>
                     <a href="{% url 'change_leader_guild_choice' guild_id=guild_info.pk %}" class="btn btn-primary">Передать управление</a>
-                    <a href="{% url 'delete_guild' guild_id=guild_info.pk %}" class="btn btn-primary">Расформировать</a>
+                    <form action="{% url 'delete_guild' guild_id=guild_info.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Расформировать</button>
+                    </form>
 
                 {% elif user.profile.guild == guild_info %}
-                    <a href="{% url 'remove_member_guild' member_id=user.id guild_id=guild_info.id %}" class="btn btn-primary">Покинуть</a>
+                <form action="{% url 'remove_member_guild' member_id=user.id guild_id=guild_info.id %}" method="post"
+                      style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-primary">Покинуть</button>
+                </form>
 
                 {% elif user.is_authenticated and user.profile.guild == None and guild_info.number_of_participants < guild_info.max_number_of_participants %}
-                    <a href="{% url 'add_member_guild' guild_id=guild_info.id %}" class="btn btn-primary">Вступить</a>
+                    <form action="{% url 'add_member_guild' guild_id=guild_info.id %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-primary">Вступить</button>
+                    </form>
                 {% endif %}
 
             </div>
@@ -77,8 +87,13 @@
                     <td>{{ participant.guild_point }}</td>
                     <td>{{ participant.date_guild_accession }}</td>
                     {% if user == guild_info.leader %}
-                        <td><a href="{% url 'remove_member_guild' member_id=participant.id guild_id=guild_info.id %}" class="btn btn-primary">Выгнать
-                        </a></td>
+                    <td>
+                        <form action="{% url 'remove_member_guild' member_id=participant.id guild_id=guild_info.id %}" method="post"
+                              style="display:inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-primary">Выгнать</button>
+                        </form>
+                    </td>
                     {% endif %}
 
                 </tr>

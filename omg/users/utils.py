@@ -26,3 +26,8 @@ def new_size(image: Image) -> Image:
         image = image.crop(img_area)
 
     return image
+
+
+
+
+

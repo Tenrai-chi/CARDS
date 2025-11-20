@@ -32,7 +32,7 @@
             <div class="col-4">
                 <div class="card card border-dark h-100" style="width: 23rem;">
                     <img src="{% static 'box/1.png' %}" class="card-img-top" alt="box_image">
-                    <div class="card-body">
+                    <div class="card-body ">
                         <h5 class="card-title">Сундук опыта</h5>
                         <p class="card-text">
                             Вы получите 10 книг опыта. Одна из них гарантированно будет UR.
@@ -43,8 +43,11 @@
                             {% else %}
                                 <p class="card-text">Цена: <span style="color:#009933">1600</span></p>
                             {% endif %}
-                            <div class="btn-group-vertical col-12 mx-auto">
-                                <a href="{% url 'buy_box_book' %}" class="btn btn-primary">Купить</a>
+                            <div class="mt-auto">
+                                <form action="{% url 'buy_box_book' %}" method="post" class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class=" btn btn-primary"  style="width: 100%;">Купить</button>
+                                </form>
                             </div>
                         {% endif %}
                     </div>
@@ -65,8 +68,11 @@
                             {% else %}
                                 <p class="card-text">Цена: <span style="color:#009933">15000</span></p>
                             {% endif %}
-                            <div class="btn-group-vertical col-12 mx-auto">
-                                <a href="{% url 'buy_box_amulet' %}" class="btn btn-primary">Купить</a>
+                            <div class="mt-auto">
+                                <form action="{% url 'buy_box_amulet' %}" method="post" class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Купить</button>
+                                </form>
                             </div>
                         {% endif %}
                     </div>
@@ -87,8 +93,11 @@
                             {% else %}
                                 <p class="card-text">Цена: <span style="color:#009933">20000</span></p>
                             {% endif %}
-                            <div class="btn-group-vertical col-12 mx-auto">
-                                <a href="{% url 'buy_box_card' %}" class="btn btn-primary">Купить</a>
+                            <div class="mt-auto">
+                                <form action="{% url 'buy_box_card' %}" method="post" class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Купить</button>
+                                </form>
                             </div>
                         {% endif %}
                     </div>
@@ -136,13 +145,6 @@
     {% if upgrade_items != None %}
     <div class="container col-12">
         <h4 class="text-center">Предметы усиления</h4><br>
-
-        {{ up_item.name }}
-        {{ up_item.description }}
-        {{ up_item.type }}
-        {{ up_item.amount_up }}
-
-
         <div class="row">
             {% for up_item in upgrade_items %}
             <div class="col-md-4">
@@ -158,9 +160,13 @@
                                 <a href="{% url 'buy_upgrade_item' upgrade_item_id=up_item.pk %}" class="btn btn-primary">Купить</a>
                             {% else %}
                                 <p class="card-text">Цена: <span style="color:#009933">{{ up_item.price }}</span></p>
-                                <div class="btn-group-vertical col-12 mx-auto">
-                                <a href="{% url 'buy_upgrade_item' upgrade_item_id=up_item.pk %}" class="btn btn-primary">Купить</a>
+                                <div class="mt-auto">
+                                    <form action="{% url 'buy_upgrade_item' upgrade_item_id=up_item.pk %}" method="post" class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Купить</button>
+                                    </form>
                                 </div>
+
                             {% endif %}
                         {% else %}
                             <p style="color:#000000" class="card-text">Цена: {{ up_item.price }}</p>
@@ -195,17 +201,25 @@
                             {% else %}
                                 <p class="card-text">Цена: <span style="color:#ff0000">{{ amulet.price }}</span></p>
                             {% endif %}
-                        <div class="btn-group-vertical col-12 mx-auto">
-                        <a href="{% url 'buy_amulet' amulet_id=amulet.pk %}" class="btn btn-primary">Купить</a>
+
+                        <div class="mt-auto">
+                            <form action="{% url 'buy_amulet' amulet_id=amulet.pk %}" method="post" class="w-100">
+                                {% csrf_token %}
+                                <button type="submit" class=" btn btn-primary" style="width: 100%;">Купить</button>
+                            </form>
                         </div>
+
                         {% else %}
                         {% if amulet.discount_now == True %}
                             <p class="card-text">Цена: <del><span style="color:#009933">{{ amulet.price }}</span></del>   {{ amulet.new_price }}</p>
                         {% else %}
                             <p class="card-text">Цена: <span style="color:#009933">{{ amulet.price }}</span></p>
                         {% endif %}
-                        <div class="btn-group-vertical col-12 mx-auto">
-                            <a href="{% url 'buy_amulet' amulet_id=amulet.pk %}" class="btn btn-primary">Купить</a>
+                        <div class="mt-auto">
+                            <form action="{% url 'buy_amulet' amulet_id=amulet.pk %}" method="post" class="w-100">
+                                {% csrf_token %}
+                                <button type="submit" class=" btn btn-primary" style="width: 100%;">Купить</button>
+                            </form>
                         </div>
                         {% endif %}
                         {% else %}

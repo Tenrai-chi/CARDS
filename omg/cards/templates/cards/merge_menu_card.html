@@ -46,8 +46,11 @@
                             <p>Редкость: {{ current_card.rarity.name }}</p>
                             <p>Уровень: {{ current_card.level }}</p>
                             <p>Слияние: {{ current_card.merger }} из {{ current_card.max_merger}}
-                            <div class="btn-group-vertical col-12 mx-auto">
-                                <a href="{% url 'merge_card' current_card_id=current_card.id card_for_merge_id=card.id %}" class="btn btn-primary">Использовать</a>
+                            <div class="mt-auto">
+                                <form action="{% url 'merge_card' current_card_id=current_card.id card_for_merge_id=card.id %}" method="post" class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Использовать</button>
+                                </form>
                             </div>
                         </div>
                     </div>

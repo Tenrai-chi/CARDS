@@ -43,18 +43,31 @@
                         <p class="card-text">Уровень: {{ card.level }} из {{ card.rarity.max_level }}</p>
                         <p class="card-text">Улучшение: {{ card.enhancement }} из {{ card.max_enhancement }}</p>
                         <p class="card-text">Слияние: {{ card.merger }} из {{ card.max_merger }}</p>
-                        <div class="btn-group-vertical col-12 mx-auto">
+
+                        <div class="mt-auto">
                             {% if user.id == card.owner.id %}
                                 {% if user.profile.current_card != card %}
-                                    <a href="{% url 'select_favorite_card' selected_card_id=card.id %}" class="btn btn-primary">Сделать избранной</a><br>
+                                    <form action="{% url 'select_favorite_card' selected_card_id=card.id %}" method="post" class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Сделать избранной</button>
+                                    </form><br>
                                 {% endif %}
                                 {% if card.sale_status %}
-                                    <a href="{% url 'remove_from_sale_card' card_id=card.pk %}" class="btn btn-primary">Убрать с продажи</a>
+                                    <form action="{% url 'remove_from_sale_card' card_id=card.pk %}" method="post"
+                                          class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Убрать с продажи</button>
+                                    </form>
                                 {% else %}
-                                    <a href="{% url 'card_sale' card_id=card.pk %}" class="btn btn-primary">Выставить на продажу</a>
+                                    <form action="{% url 'card_sale' card_id=card.pk %}" method="get"
+                                          class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Выставить на продажу</button>
+                                    </form>
                                 {% endif %}
                             {% endif %}
                         </div>
+
                     </div>
                 </div>
                 <br>

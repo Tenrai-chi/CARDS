@@ -34,11 +34,15 @@
                         {% else %}
                             <p class="card-text">Цена: <span style="color:#009933">{{ card.price }}</span></p>
                         {% endif %}
-                        <div class="btn-group-vertical col-12 mx-auto">
+
                         {% if user.is_authenticated %}
-                            <a href="{% url 'buy_card' card_id=card.pk %}" class="btn btn-primary">Купить</a>
-                        {% endif %}
+                            <div class="mt-auto">
+                            <form action="{% url 'buy_card' card_id=card.pk %}" method="post" class="w-100">
+                                {% csrf_token %}
+                                <button type="submit" class=" btn btn-primary" style="width: 100%;">Купить</button>
+                            </form>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
                 <br>

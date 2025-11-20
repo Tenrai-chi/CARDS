@@ -33,9 +33,13 @@
                         <p class="card-text">Урон: {{ card.damage }}</p>
                         <p>Способность: {{ card.class_card.skill }}</p>
 
-                        <div class="btn-group-vertical col-12 mx-auto">
-                            <a href="{% url 'be_team_set' place=place current_card_id=card.pk %}" class="btn btn-primary">Установить</a>
+                        <div class="mt-auto">
+                            <form action="{% url 'be_team_set' place=place current_card_id=card.pk %}" method="post" class="w-100">
+                                {% csrf_token %}
+                                <button type="submit" class=" btn btn-primary" style="width: 100%;">Установить</button>
+                            </form>
                         </div>
+
                     </div>
                 </div>
                 <br>

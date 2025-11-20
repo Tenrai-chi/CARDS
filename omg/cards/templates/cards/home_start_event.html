@@ -59,7 +59,10 @@
     </div>
         {% if show_button is True %}
         <div class="mt-4">
-            <a href="{% url 'get_start_event_award' %}" class="btn btn-primary btn-lg">Отметиться</a>
+            <form action="{% url 'get_start_event_award' %}" method="post">
+                {% csrf_token %}
+                <button type="submit" class=" btn btn-primary btn-lg">Отметиться</button>
+            </form>
         </div>
         {% endif %}
   {% endif %}

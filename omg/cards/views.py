@@ -1,5 +1,4 @@
 from datetime import date
-from math import ceil
 
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -9,23 +8,26 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .forms import SaleCardForm, UseItemForm
-from .services import (StartEventData, BattleEventData, FightBattleEventData, FightData,
+from .services import (BattleEventData, FightBattleEventData, FightData,
                        get_cards_with_pagination, get_news_with_pagination, get_info_start_event,
-                       create_free_card, get_info_battle_event, set_card_in_template_team, purchase_card,
+                       create_free_card, get_info_battle_event, set_card_in_template_team, buy_card_service,
                        fight_battle_event, fight_users, transfer_card_to_user, get_user_award_start_event,
-                       merge_user_card)
+                       merge_user_card, card_sale_service, level_up_with_item_service, select_favorite_card_service,
+                       remove_from_sale_card_service,)
 from .models import Card, Rarity, CardStore
-from .utils import accrue_experience, calculate_need_exp
+from .utils import calculate_need_exp
 
 from common.decorators import auth_required
-from common.utils import date_time_now, time_difference_check, create_new_card
-from exchange.models import (UsersInventory, AmuletItem, BattleEventParticipants,
-                             TeamsForBattleEvent)
-from users.models import Transactions, Profile
+from common.utils import time_difference_check
+from exchange.models import UsersInventory, AmuletItem, BattleEventParticipants, TeamsForBattleEvent
+from users.models import Profile
 
 
 def view_cards(request: HttpRequest) -> HttpResponse:
-    """ Вывод всех существующих карт """
+    """ Вывод всех существующих карт.
+        Вызывает сервис для получения карт с пагинацией.
+        Выводит полученные данные пользователю.
+    """
 
     try:
         page_num = int(request.GET.get('page', 1))
@@ -46,7 +48,8 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
         Theme: news, battle_event, start_event
         news: все новости с пагинацией
         start_event: награды боевого события и возможность их получения пользователем
-        battle_event: Информация о боевом событии в зависимости от текущего дня месяца
+        battle_event: Информация о боевом событии в зависимости от текущего дня месяца.
+        Вызывает сервисы в зависимости от темы.
     """
 
     context = {'title': 'Домашняя',
@@ -71,10 +74,10 @@ def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:
         return HttpResponseRedirect(reverse('home'))
 
     if theme == 'start_event':
-        start_event_data: StartEventData = get_info_start_event(request.user.id)
-        context['user_profile'] = start_event_data.user_profile
-        context['event_awards'] = start_event_data.event_awards
-        context['show_button'] = start_event_data.show_button
+        start_event_data: dict = get_info_start_event(request.user.id)
+        context['user_profile'] = start_event_data.get('user_profile')
+        context['event_awards'] = start_event_data.get('event_awards')
+        context['show_button'] = start_event_data.get('show_button')
         context['theme'] = 'start_event'
 
         return render(request, 'cards/home_start_event.html', context)
@@ -128,44 +131,69 @@ def menu_team_template_battle_event(request: HttpRequest, place: int) -> HttpRes
 
 @auth_required()
 def set_team_template_battle_event(request: HttpRequest, place: int, current_card_id: int) -> HttpResponseRedirect:
-    """ Установка карты в команду боевого события """
+    """ Установка карты в команду боевого события.
+        Обрабатывает только POST запросы.
+        Вызывает сервис установки шаблона команды.
+        Если при установке возникла ошибка, направляет на домашнюю страницу
+        и выводит сообщение пользователю.
+    """
 
-    answer: dict = set_card_in_template_team(request.user.id, place, current_card_id)
-    if answer.get('error_message'):
-        messages.error(request, answer['error_message'])
-    return HttpResponseRedirect(f'/battle_event')
+    if request.method == 'POST':
+        answer: dict = set_card_in_template_team(request.user.id, place, current_card_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+        return HttpResponseRedirect(reverse('home', kwargs={'theme': 'battle_event'}))
+    else:
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
 def fight_day_battle_event(request: HttpRequest, enemy_id: int) -> HttpResponseRedirect:
     """ Вывод итога боя.
-        Начисление очков события.
-        Ставится отметка о прошедшем бое.
+        Обрабатывает только POST запросы.
+        Вызывает сервис битвы боевого события.
+        Если битва состоялась, выводит итоги боя.
+        Если произошла ошибка направляет на домашнюю страницу с сообщением об ошибке.
     """
 
-    fight_result_data: FightBattleEventData = fight_battle_event(request.user.id, enemy_id)
-    if fight_result_data.error_message:
-        messages.error(request, fight_result_data.error_message)
-        return HttpResponseRedirect(reverse('home'))
-    else:
-        context = {'all_results': fight_result_data.result_fight,
-                   'add_points': fight_result_data.add_points}
+    if request.method == 'POST':
+        fight_result_data: FightBattleEventData = fight_battle_event(request.user.id, enemy_id)
+        if fight_result_data.error_message:
+            messages.error(request, fight_result_data.error_message)
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            context = {'all_results': fight_result_data.result_fight,
+                       'add_points': fight_result_data.add_points}
 
-        return render(request, 'cards/battle_event_fight.html', context)
+            return render(request, 'cards/battle_event_fight.html', context)
+    else:
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required(error_message='Для покупки необходимо авторизоваться!', redirect_url_name='card_store')
 def buy_card(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
-    """ Покупка карты в магазине """
+    """ Покупка карты в магазине.
+        Обрабатывает только POST запросы.
+        Вызывает сервис покупки карты.
+        При ошибке направляет на страницу магазина карт.
+        При успехе направляет на страницу просмотра купленной карты.
+        Выводит сообщение об успехе или ошибке.
+    """
 
-    answer_purchase_card: dict = purchase_card(request.user.id, card_id)
-    if answer_purchase_card.get('error_message'):
-        messages.error(request, answer_purchase_card['error_message'])
-        return HttpResponseRedirect(reverse('card_store'))
+    if request.method == 'POST':
+        answer_buy_card_service: dict = buy_card_service(request.user.id, card_id)
+        if answer_buy_card_service.get('error_message'):
+            messages.error(request, answer_buy_card_service['error_message'])
+            return HttpResponseRedirect(reverse('card_store'))
+        else:
+            new_card_id = answer_buy_card_service.get('new_card_id')
+            messages.success(request, 'Вы успешно совершили покупку!')
+            return HttpResponseRedirect(reverse('card', kwargs={'card_id': new_card_id}))
     else:
-        new_card_id = answer_purchase_card.get('new_card_id')
-        messages.success(request, 'Вы успешно совершили покупку!')
-        return HttpResponseRedirect(f'/cards/card-{new_card_id}')
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 def get_card(request: HttpRequest) -> HttpResponse:
@@ -193,18 +221,24 @@ def get_card(request: HttpRequest) -> HttpResponse:
 
 @auth_required(error_message='Чтобы получить бесплатную карту необходимо авторизоваться')
 def create_card(request: HttpRequest) -> HttpResponseRedirect:
-    """ Генерация новой карты при получении ее пользователем бесплатно.
-        При ошибке получает сообщение об ошибке и перенаправляет пользователя на нужную страницу.
-        При успешном создании перенаправляет пользователя на страницу просмотра созданной карты.
+    """ Получение бесплатной карты.
+        Обрабатывает только POST запросы.
+        Вызывает сервис получения бесплатной карты.
+        При ошибке направляет на страницу, полученную из сервиса.
+        При успехе направляет на страницу полученной карты.
     """
 
-    answer_create_free_card: dict = create_free_card(request.user.id)
-    if answer_create_free_card.get('error'):
-        messages.error(request, answer_create_free_card['message_error'])
-        return HttpResponseRedirect(reverse(answer_create_free_card['return_name']))
+    if request.method == 'POST':
+        answer_create_free_card: dict = create_free_card(request.user.id)
+        if answer_create_free_card.get('error'):
+            messages.error(request, answer_create_free_card['error_message'])
+            return HttpResponseRedirect(reverse(answer_create_free_card['return_name']))
+        else:
+            new_card_id = answer_create_free_card['new_card_id']
+            return HttpResponseRedirect(reverse('card', kwargs={'card_id': new_card_id}))
     else:
-        new_card_id = answer_create_free_card['new_card_id']
-        return HttpResponseRedirect(f'/cards/card-{new_card_id}')
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 def card_store(request: HttpRequest) -> HttpResponse:
@@ -257,16 +291,24 @@ def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
 
 @auth_required()
 def select_favorite_card(request: HttpRequest, selected_card_id: int) -> HttpResponseRedirect:
-    """ Выбор избранной карты.
-        Изменение current_card в Profile пользователя на выбранную карту.
+    """ Установка избранной карты.
+        Обрабатывает только POST запросы.
+        Вызывает сервис для установки избранной карты.
+        При ошибке направляет на домашнюю страницу.
+        При успехе направляет на страницу карт пользователя.
     """
 
-    card = Card.objects.get(pk=selected_card_id)
-    user_profile = Profile.objects.get(user=request.user.id)
-    user_profile.current_card = card
-    user_profile.save()
-
-    return HttpResponseRedirect(f'/cards/user_cards-{request.user.id}')
+    if request.method == 'POST':
+        answer: dict = select_favorite_card_service(request.user.id, selected_card_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('user_cards', kwargs={'user_id': request.user.id}))
+    else:
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required()
@@ -308,52 +350,56 @@ def view_user_cards_for_sale(request: HttpRequest, user_id: int) -> HttpResponse
 
 @auth_required(error_message='Для покупки необходимо авторизоваться!', redirect_url_name='view_all_sale_card')
 def buy_card_user(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
-    """ Обработка покупки карты у пользователя """
+    """ Покупка карты на торговой площадке.
+        Обрабатывает только POST запросы.
+        Вызывает сервис для покупки.
+        При успехе направляет на страницу просмотра карты с сообщением об успехе.
+        При ошибке направляет на домашнюю страницу с сообщением об ошибке.
+    """
 
-    purchase_answer: dict = transfer_card_to_user(card_id, request.user.id)
-    if purchase_answer.get('error_message'):
-        messages.error(request, purchase_answer['error_message'])
-        return HttpResponseRedirect(reverse('view_all_sale_card'))
+    if request.method == 'POST':
+        purchase_answer: dict = transfer_card_to_user(card_id, request.user.id)
+        if purchase_answer.get('error_message'):
+            messages.error(request, purchase_answer['error_message'])
+            return HttpResponseRedirect(reverse('view_all_sale_card'))
+        else:
+            messages.success(request, purchase_answer['success_message'])
+            return HttpResponseRedirect(reverse('card', kwargs={'card_id': card_id}))
     else:
-        messages.success(request, purchase_answer['success_message'])
-        return HttpResponseRedirect(f'/cards/card-{card_id}')
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))
 
 
 @auth_required(redirect_url_name='card_store')
 def card_sale(request: HttpRequest, card_id: int) -> HttpResponseRedirect | HttpResponse:
     """ Выставление на продажу карты.
-        С помощью формы задается цена карты, sale_status устанавливается на True автоматически.
+        При GET запросе выводит форму для установки цены.
+        При POST запросе вызывает сервис для выставления на продажу карты.
+        При ошибке направляет на домашнюю страницу с сообщением об ошибке.
+        При успехе направляет на страницу карт пользователя.
+        При других запросах направляет на стартовую страницу.
     """
 
     card = get_object_or_404(Card, pk=card_id)
-    if request.user != card.owner:
-        messages.error(request, 'Вы не можете выставить на продажу чужую карту!')
-        return HttpResponseRedirect(reverse('home'))
-
-    team_card_pks = BattleEventParticipants.objects.filter(user=request.user.id).values_list('first_card__pk',
-                                                                                             'second_card__pk',
-                                                                                             'third_card__pk').last()
-
-    if card.id in team_card_pks:
-        messages.error(request, 'Вы не можете выставить на продажу эту карту! Карта в отряде боевого события')
-        return HttpResponseRedirect(reverse('home'))
-
     if request.method == 'POST':
-        sale_card_form = SaleCardForm(request.POST, instance=card)
+        sale_card_form = SaleCardForm(request.POST)
         if sale_card_form.is_valid():
-            edit_card_status = sale_card_form.save(commit=False)
-            edit_card_status.sale_status = True
-            edit_card_status.save()
-
-            return HttpResponseRedirect(f'/cards/user_cards-{card.owner.id}')
+            price = sale_card_form.cleaned_data['price']
+            answer: dict = card_sale_service(request.user.id, card_id, price)
+            if answer.get('error_message'):
+                messages.error(request, answer['error_message'])
+                return HttpResponseRedirect(reverse('home'))
+            else:
+                messages.success(request, answer['success_message'])
+                return HttpResponseRedirect(reverse('user_cards', kwargs={'user_id': request.user.id}))
         else:
             context = {'form': sale_card_form,
                        'title': 'Выставление на продажу',
                        'header': 'Выставление на продажу',
                        'card': card,
                        }
-
             return render(request, 'cards/sale_card.html', context)
+
     elif request.method == 'GET':
         sale_card_form = SaleCardForm(instance=card, initial={'price': 1})
         context = {'form': sale_card_form,
@@ -369,21 +415,23 @@ def card_sale(request: HttpRequest, card_id: int) -> HttpResponseRedirect | Http
 
 
 def remove_from_sale_card(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
-    """ Убрать карту из продажи.
-        Устанавливает sale_status карты на False.
-        Цену карты устанавливает на None.
+    """ Удаление карты из торговой площадки.
+        Обрабатывает только POST запросы.
+        Вызывает сервис по удаления карты из торговой площадки.
+        При ошибке направляет на домашнюю страницу.
+        При успехе направляет на страницу карт пользователя.
     """
 
-    card = Card.objects.get(pk=card_id)
-    if request.user == card.owner:
-        card.sale_status = False
-        card.price = None
-        card.save()
-
-        messages.success(request, 'Вы успешно убрали карту с продажи')
-        return HttpResponseRedirect(f'/cards/user_cards-{card.owner.id}/')
+    if request.method == 'POST':
+        answer: dict = remove_from_sale_card_service(request.user.id, card_id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('user_cards', kwargs={'user_id': request.user.id}))
     else:
-        messages.error(request, 'Вы не можете убрать с продажи эту карту!')
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -411,99 +459,53 @@ def card_level_up(request: HttpRequest, card_id: int) -> HttpResponse:
 
 @auth_required()
 def level_up_with_item(request: HttpRequest, card_id: int, item_id: int) -> HttpResponseRedirect | HttpResponse:
-    """ Увеличение уровня с помощью книг опыта.
-        Если у пользователя хватает денег для использования предметов,
-        то увеличивает опыт карты, и изменяет ее уровень, если необходимо.
-        Использует только необходимое количество книг опыта.
-        В Profile пользователя уменьшается gold.
-        Создается транзакция.
+    """ Увеличение уровня карты с помощью книг опыта.
+        При GET запросе показывает форму с количеством книг.
+        При POST запросе и валидных данных вызывает сервис увеличения уровня.
+        При ошибке направляет на домашнюю страницу с сообщением об ошибке.
+        При успехе направляет на страницу меню увеличения уровня этой карты.
+        При других запросах направляет на домашнюю страницу с сообщением об ошибке.
     """
 
     card = get_object_or_404(Card, pk=card_id)
-    if request.user != card.owner:
-        messages.error(request, 'Вы не можете усиливать эту карту!')
-        return HttpResponseRedirect(reverse('home'))
-
-    if card.level >= card.rarity.max_level:
-        messages.error(request, 'Эту карту больше нельзя улучшить!')
-        return HttpResponseRedirect(reverse('home'))
-
-    item = get_object_or_404(UsersInventory, pk=item_id)
     need_exp = calculate_need_exp(card.level)
+    item = get_object_or_404(UsersInventory, pk=item_id)
+
     if request.method == 'POST':
-        form = UseItemForm(request.POST)
-        if form.is_valid():
-            profile = Profile.objects.get(user=request.user.id)
-            inventory_change = form.save(commit=False)
-            if profile.gold < inventory_change.amount * item.item.gold_for_use:
-                messages.error(request, 'Вам не хватает денег!')
-                context = {'form': form,
+        user_item_form = UseItemForm(request.POST)
+        if user_item_form.is_valid():
+            amount_item = user_item_form.cleaned_data['amount']
+            answer: dict = level_up_with_item_service(request.user.id, card_id, item_id, amount_item)
+
+            # Если доступ есть, но не хватает ресурсов
+            if answer.get('error_message') and answer.get('show_form'):
+                messages.error(request, answer['error_message'])
+                context = {'form': user_item_form,
                            'title': 'Улучшение карты',
                            'header': f'Улучшение карты {card_id} с помощью предмета {item_id}',
                            'card': card,
                            'need_exp': need_exp,
                            'item': item
                            }
-
                 return render(request, 'cards/card_level_up_with_item.html', context)
 
-            if item.amount < inventory_change.amount:
-                messages.error(request, 'У вас нет столько предметов!')
-                context = {'form': form,
-                           'title': 'Улучшение карты',
-                           'header': f'Улучшение карты {card_id} с помощью предмета {item_id}',
-                           'card': card,
-                           'need_exp': need_exp,
-                           'item': item
-                           }
+            # Если нет доступа или карта максимального уровня
+            elif answer.get('error_message'):
+                messages.error(request, answer['error_message'])
+                return HttpResponseRedirect(reverse('home'))
 
-                return render(request, 'cards/card_level_up_with_item.html', context)
-
-            accrued_experience = inventory_change.amount * item.item.experience_amount
-            if profile.guild.buff.name == 'Пытливый ум':
-                accrued_experience = round(accrued_experience * profile.guild.buff.numeric_value / 100)
-
-            answer = accrue_experience(accrued_experience=accrued_experience,
-                                       current_level=card.level,
-                                       max_level=card.rarity.max_level,
-                                       current_exp=card.experience_bar)
-
-            card.experience_bar = answer[0]
-            expended_experience = answer[2]
-
-            new_levels = answer[1] - card.level
-            card.increase_stats(new_levels)
-            card.level = answer[1]
-
-            # Проверка на бафф гильдиии
-            if profile.guild.buff.name == 'Пытливый ум':
-                expended_items = ceil((expended_experience / item.item.experience_amount) * 0.8)
             else:
-                expended_items = ceil(expended_experience / item.item.experience_amount)
-            transaction = Transactions.objects.create(date_and_time=date_time_now(),
-                                                      user=request.user,
-                                                      before=profile.gold,
-                                                      after=profile.gold-expended_items*item.item.gold_for_use,
-                                                      comment='Улучшение карты'
-                                                      )
-            transaction.save()
-            profile.gold -= expended_items * item.item.gold_for_use
-            item.amount -= expended_items
-
-            profile.save()
-            item.save()
-            card.save()
-
-            return HttpResponseRedirect(f'/cards/card-{card.id}/level_up/')
+                # Все прошло успешно
+                return HttpResponseRedirect(reverse('level_up', kwargs={'card_id': card.id}))
         else:
             context = {'title': 'Улучшение карты',
                        'header': f'Улучшение карты {card_id} с помощью предмета {item_id}',
-                       'form': form,
+                       'form': user_item_form,
                        'card': card,
                        'need_exp': need_exp,
                        'item': item
                        }
-            messages.error(request, 'Какая-то ошибка!')
+            messages.error(request, 'Введены неверные данные!')
 
             return render(request, 'cards/card_level_up_with_item.html', context)
 
@@ -541,17 +543,27 @@ def view_all_sale_card(request: HttpRequest) -> HttpResponse:
 
 @auth_required()
 def get_award_start_event(request: HttpRequest) -> HttpResponseRedirect:
-    """ Процесс получения награды за стартовое событие и перенаправление на стартовую страницу """
+    """ Получение награды стартового события.
+        Обрабатывает только POST запросы.
+        Вызывает сервис для отметки и получения награды.
+        Если наградой была карта, направляет на страницу просмотра полученной карты.
+        В остальных ситуациях направляет на стартовую страницу
+        с сообщением об успехе или ошибке.
+    """
 
-    answer: dict = get_user_award_start_event(request.user.id)
-    if answer.get('error_message'):
-        messages.error(request, answer['error_message'])
-        return HttpResponseRedirect(reverse('home'))
-    elif answer.get('card_id'):
-        messages.success(request, answer['success_message'])
-        return HttpResponseRedirect(f'/cards/card-{answer["card_id"]}')
+    if request.method == 'POST':
+        answer: dict = get_user_award_start_event(request.user.id)
+        if answer.get('error_message'):
+            messages.error(request, answer['error_message'])
+            return HttpResponseRedirect(reverse('home'))
+        elif answer.get('card_id'):
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('card', kwargs={'card_id': answer['card_id']}))
+        else:
+            messages.success(request, answer['success_message'])
+            return HttpResponseRedirect(reverse('home'))
     else:
-        messages.success(request, answer['success_message'])
+        messages.error(request, 'Неожиданный запрос')
         return HttpResponseRedirect(reverse('home'))
 
 
@@ -569,8 +581,8 @@ def merge_card_menu(request: HttpRequest, current_card_id: int) -> HttpResponseR
         return HttpResponseRedirect(reverse('home'))
 
     team_card_pks = BattleEventParticipants.objects.filter(user=request.user.id).values_list('first_card__pk',
-                                                                                          'second_card__pk',
-                                                                                          'third_card__pk').last()
+                                                                                             'second_card__pk',
+                                                                                             'third_card__pk').last()
 
     cards_for_merge = Card.objects.filter(owner=request.user,
                                           class_card=current_card.class_card,
@@ -590,12 +602,21 @@ def merge_card_menu(request: HttpRequest, current_card_id: int) -> HttpResponseR
 
 @auth_required()
 def merge_card(request: HttpRequest, current_card_id: int, card_for_merge_id: int) -> HttpResponseRedirect:
-    """ Слияние карты """
+    """ Слияние карты.
+        Обрабатывает только POST запросы.
+        Вызывает сервис слияния карты.
+        При успехе направляет на страницу меню слияния с сообщением об успехе.
+        При ошибке направляет на домашнюю страницу с сообщением об ошибке.
+    """
 
-    answer_card_merge: dict = merge_user_card(current_card_id, card_for_merge_id, request.user.id)
-    if answer_card_merge.get('error_message'):
-        messages.error(request, answer_card_merge['error_message'])
-        return HttpResponseRedirect(reverse('home'))
+    if request.method == 'POST':
+        answer_card_merge: dict = merge_user_card(current_card_id, card_for_merge_id, request.user.id)
+        if answer_card_merge.get('error_message'):
+            messages.error(request, answer_card_merge['error_message'])
+            return HttpResponseRedirect(reverse('home'))
+        else:
+            messages.success(request, answer_card_merge['success_message'])
+            return HttpResponseRedirect(reverse('merge_card_menu', kwargs={'current_card_id': current_card_id}))
     else:
-        messages.success(request, answer_card_merge['success_message'])
-        return HttpResponseRedirect(f'/cards/card-{current_card_id}/merge_menu')
+        messages.error(request, 'Неожиданный запрос')
+        return HttpResponseRedirect(reverse('home'))

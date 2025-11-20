@@ -31,16 +31,31 @@
                         {% if amulet.card %}
                             {% if amulet.card == card %}
                                 <p class="card-text">Надето: <a href="{% url 'card' card_id=card.pk %}">Выбранная карта</a></p>
-                                <a href="{% url 'remove_amulet' amulet_id=amulet.pk card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">
-                                    Снять</a>
+                                <div class="mt-auto">
+                                    <form action="{% url 'remove_amulet' amulet_id=amulet.pk card_id=card.pk %}" method="post" class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Снять</button>
+                                    </form>
+                                </div>
+
                             {% else %}
                                 <p class="card-text">Надето: <a href="{% url 'card' card_id=card.pk %}">{{ amulet.card.id }}</a></p>
-                                <a href="{% url 'change_amulet' amulet_id=amulet.pk card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Надеть
-                                </a>
+                                <div class="mt-auto">
+                                    <form action="{% url 'change_amulet' amulet_id=amulet.pk card_id=card.pk %}" method="post" class="w-100">
+                                        {% csrf_token %}
+                                        <button type="submit" class=" btn btn-primary" style="width: 100%;">Надеть</button>
+                                    </form>
+                                </div>
                             {% endif %}
                         {% else %}
                             <p class="card-text">Надето: ______</p>
-                            <a href="{% url 'change_amulet' amulet_id=amulet.pk card_id=card.pk %}" class="btn btn-primary col-12 mx-auto">Надеть</a>
+                            <div class="mt-auto">
+                                <form action="{% url 'change_amulet' amulet_id=amulet.pk card_id=card.pk %}" method="post"
+                                      class="w-100">
+                                    {% csrf_token %}
+                                    <button type="submit" class=" btn btn-primary" style="width: 100%;">Надеть</button>
+                                </form>
+                            </div>
                         {% endif %}
                     </div>
                 </div>

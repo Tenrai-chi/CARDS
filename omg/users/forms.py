@@ -56,17 +56,12 @@ class RegistrationForm(UserCreationForm):
 class EditProfileForm(forms.ModelForm):
     """ Форма редактирования профиля """
 
+    about_user = forms.CharField(label='Описание')
+    profile_pic = forms.ImageField(label='Аватарка')
+
     class Meta:
         model = Profile
         fields = ['about_user', 'profile_pic']
-        widgets = {
-            'about_user': forms.Textarea(attrs={'rows': 5}),  # Optional: Customize the widget
-        }
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.fields['about_user'].required = False
-        self.fields['profile_pic'].required = False
 
 
 class EditGuildInfoForm(forms.ModelForm):

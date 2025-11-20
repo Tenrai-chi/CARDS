@@ -1,4 +1,5 @@
 from datetime import datetime, date
+from math import ceil
 from random import choice, randint
 from typing import Optional
 
@@ -9,25 +10,12 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from .models import Card, Rarity, CardStore, HistoryReceivingCards, FightHistory, Type, ClassCard, News
-from .utils import calculate_need_exp, fight_now as f_n
+from .utils import calculate_need_exp, accrue_experience, fight_now as f_n
 
 from common.utils import time_difference_check, create_new_card, date_time_now
 from exchange.models import (SaleUserCards, UsersInventory, ExperienceItems, AmuletItem, AmuletType,
                              InitialEventAwards, BattleEventParticipants, TeamsForBattleEvent, BattleEventAwards)
 from users.models import Transactions, Profile, SaleStoreCards
-
-
-class StartEventData:
-    """ Класс для структурирования данных, необходимых для вывода информации о стартовом событии """
-
-    user_profile: Profile
-    event_awards: list[InitialEventAwards]
-    show_button: bool = False
-
-    def __init__(self, user_profile: Profile, event_awards: list[InitialEventAwards], show_button: bool):
-        self.user_profile = user_profile
-        self.event_awards = event_awards
-        self.show_button = show_button
 
 
 class BattleEventData:
@@ -129,7 +117,7 @@ def get_info_battle_event(today: int, user_id: int) -> BattleEventData:
             - Если участвует, то возвращает текущего противника, команды обоих пользователей
             и возможность бросить сопернику вызов, полученные очки и таблицу рейтинга
         С 11 по 31:
-            - Выводит шаблон команды пользователя для изменения
+            - Шаблон команды пользователя для изменения
     """
 
     user = User.objects.get(pk=user_id)
@@ -211,24 +199,26 @@ def get_news_with_pagination(page_num: int = 1, item_per_page: int = 10) -> dict
     news = News.objects.all().order_by('-date_time_create')
     paginator = Paginator(news, item_per_page)
     page = paginator.get_page(page_num)
-    data = {'news': page.object_list,
+    answer_data = {'news': page.object_list,
             'page': page
             }
 
-    return data
+    return answer_data
 
 
-def get_info_start_event(user_id: int) -> StartEventData:
+def get_info_start_event(user_id: int) -> dict:
     """ Возвращает информацию о стартовом событии """
 
+    answer_data = {}
     user_profile = Profile.objects.get(user=user_id)
-    event_awards = InitialEventAwards.objects.all().order_by('id')
+    answer_data['user_profile'] = user_profile
+    answer_data['event_awards'] = InitialEventAwards.objects.all().order_by('id')
     if user_profile.date_event_visit is None or user_profile.date_event_visit < datetime.now().date():
-        show_button = True
+        answer_data['show_button'] = True
     else:
-        show_button = False
+        answer_data['show_button'] = False
 
-    return StartEventData(user_profile, event_awards, show_button)
+    return answer_data
 
 
 def get_cards_with_pagination(page_num: int = 1, item_per_page: int = 21) -> dict:
@@ -237,27 +227,27 @@ def get_cards_with_pagination(page_num: int = 1, item_per_page: int = 21) -> dic
     cards = Card.objects.all().order_by('-pk')
     paginator = Paginator(cards, item_per_page)
     page = paginator.get_page(page_num)
-    data = {'cards': page.object_list,
-            'page': page
-            }
+    answer_data = {'cards': page.object_list,
+                   'page': page
+                   }
 
-    return data
+    return answer_data
 
 
 @transaction.atomic
 def create_free_card(user_id: int) -> dict:
     """ Генерация новой карты пользователя при бесплатном получении.
-        Если возникла ошибка, то возвращает ошибку, сообщение об ошибке и имя для перенаправления
+        Если возникла ошибка, то возвращает сообщение об ошибке и имя для перенаправления
     """
 
-    data = {}
+    answer_data = {}
     user = User.objects.get(pk=user_id)
     user_profile = Profile.objects.get(user=user)
     if Card.objects.filter(owner=user_id).count() == user_profile.card_slots:
-        data['error'] = True
-        data['message_error'] = 'У вас не хватает места для получения новой карты!'
-        data['return_name'] = 'card_store'
-        return data
+        answer_data['error'] = True
+        answer_data['error_message'] = 'У вас не хватает места для получения новой карты!'
+        answer_data['return_name'] = 'card_store'
+        return answer_data
 
     take_card, hours = time_difference_check(user_profile.receiving_timer, 6)
 
@@ -272,13 +262,13 @@ def create_free_card(user_id: int) -> dict:
         new_record.save()
 
         user_profile.update_receiving_timer()
-        data['new_card_id'] = new_card.id
+        answer_data['new_card_id'] = new_card.id
 
     else:
-        data['error'] = True
-        data['message_error'] = 'Вы пока не можете получить бесплатную карту'
-        data['return_name'] = 'home'
-    return data
+        answer_data['error'] = True
+        answer_data['error_message'] = 'Вы пока не можете получить бесплатную карту'
+        answer_data['return_name'] = 'home'
+    return answer_data
 
 
 def set_card_in_template_team(user_id: int, place: int, current_card_id: int) -> dict:
@@ -288,11 +278,11 @@ def set_card_in_template_team(user_id: int, place: int, current_card_id: int) ->
         При ошибке возвращает сообщение для пользователя.
     """
 
-    data = {}
+    answer_data = {}
     current_card = get_object_or_404(Card, pk=current_card_id)
     if current_card.owner.id != user_id:
-        data['error_message'] = 'Вы не можете добавить эту карту в команду'
-        return data
+        answer_data['error_message'] = 'Вы не можете добавить эту карту в команду'
+        return answer_data
 
     user = User.objects.get(pk=user_id)
     user_team, _ = TeamsForBattleEvent.objects.get_or_create(user=user)
@@ -316,29 +306,30 @@ def set_card_in_template_team(user_id: int, place: int, current_card_id: int) ->
         user_team.third_card = current_card
         user_team.save()
     else:
-        data['error_message'] = 'Неправильная позиция в команде'
-    return data
+        answer_data['error_message'] = 'Неправильная позиция в команде'
+    return answer_data
 
 
 @transaction.atomic
-def purchase_card(user_id: int, card_id: int) -> dict:
+def buy_card_service(user_id: int, card_id: int) -> dict:
     """ Процесс покупки карты.
         Создает карту по шаблону выбранной карты в магазине и присваивает ее текущему пользователю.
         У пользователя в Profile изменяется gold на значение равное цене карты.
+        При ошибке возвращает сообщение об ошибке.
     """
 
-    data = {}
+    answer_data = {}
     user = User.objects.get(pk=user_id)
     user_profile = Profile.objects.get(user=user)
     selected_card = CardStore.objects.get(pk=card_id)
 
     if user_profile.gold < selected_card.price:
-        data['error_message'] = 'У вас не хватает средств для покупки!'
-        return data
+        answer_data['error_message'] = 'У вас не хватает средств для покупки!'
+        return answer_data
 
     if Card.objects.filter(owner=user).count() >= user_profile.card_slots:
-        data['error_message'] = 'У вас не хватает места для покупки новой карты!'
-        return data
+        answer_data['error_message'] = 'У вас не хватает места для покупки новой карты!'
+        return answer_data
 
     new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                   user=user,
@@ -372,9 +363,9 @@ def purchase_card(user_id: int, card_id: int) -> dict:
                                                       user=user
                                                       )
     new_record.save()
-    data['new_card_id'] = new_card.id
+    answer_data['new_card_id'] = new_card.id
 
-    return data
+    return answer_data
 
 
 def fight_battle_event(user_id: int, enemy_id: int) -> FightBattleEventData:
@@ -382,6 +373,8 @@ def fight_battle_event(user_id: int, enemy_id: int) -> FightBattleEventData:
         Проверяет возможность бросить вызов,
         Если вызов возможен, то начисляет очки в зависимости от исходов боев,
         отмечает факт битвы и возвращает команды противников и итоги каждого боя
+        При невозможности состязания, возвращает сообщение об ошибке.
+        При удаче возвращает данные о битве.
     """
 
     today = date.today().day
@@ -469,6 +462,7 @@ def fight_users(attacker_id: int, protector_id: int) -> FightData:
         Создается новая запись в FightHistory.
         Обрабатывается возможность получения книг опыта нападавшему,
         если сработал шанс, то книги появляются в инвентаре.
+        При не прохождении проверки, возвращает сообщение об ошибке.
     """
 
     attacker = User.objects.get(pk=attacker_id)
@@ -540,8 +534,13 @@ def fight_users(attacker_id: int, protector_id: int) -> FightData:
         protector.profile.win += 1
         attacker.profile.lose += 1
 
-    if winner == attacker and attacker.profile.guild is not None:
-        attacker.profile.get_guild_point('win')
+    if attacker.profile.guild is not None:
+        if winner == attacker:
+            attacker.profile.get_guild_point('win')
+            attacker.profile.guild.add_guild_points('win')
+        else:
+            attacker.profile.get_guild_point('lose')
+            attacker.profile.guild.add_guild_points('lose')
 
     attacker.profile.save()
     protector.profile.save()
@@ -618,24 +617,25 @@ def transfer_card_to_user(card_id: int, buyer_id: int) -> dict:
         Проверяет возможна ли покупка. Если нет, то возвращает сообщение об ошибке.
         Изменяет значения gold у обоих пользователей.
         Создает 2 записи в Transaction для продажи и покупки.
+        Возвращает сообщение об успехе или ошибке.
     """
 
     buyer_profile = Profile.objects.get(user=buyer_id)
     card = get_object_or_404(Card, pk=card_id)
     seller_profile = Profile.objects.get(user=card.owner.id)
-    answer = {}
+    answer_data = {}
 
     if not card.sale_status:
-        answer['error_message'] = 'Эта карта не продается!'
-        return answer
+        answer_data['error_message'] = 'Эта карта не продается!'
+        return answer_data
 
     if buyer_profile.card_slots <= Card.objects.filter(owner=buyer_id).count():
-        answer['error_message'] = 'У вас не хватает места для покупки новой карты!'
-        return answer
+        answer_data['error_message'] = 'У вас не хватает места для покупки новой карты!'
+        return answer_data
 
     if buyer_profile.gold < card.price:
-        answer['error_message'] = 'У вас не хватает средств для покупки!'
-        return answer
+        answer_data['error_message'] = 'У вас не хватает средств для покупки!'
+        return answer_data
 
     transaction_buyer = Transactions.objects.create(date_and_time=date_time_now(),
                                                     user=buyer_profile.user,
@@ -678,8 +678,8 @@ def transfer_card_to_user(card_id: int, buyer_id: int) -> dict:
         seller_profile.current_card = None
         seller_profile.save()
 
-    answer['success_message'] = 'Вы успешно совершили покупку!'
-    return answer
+    answer_data['success_message'] = 'Вы успешно совершили покупку!'
+    return answer_data
 
 
 @transaction.atomic
@@ -801,3 +801,153 @@ def merge_user_card(current_card_id: int, card_for_merge_id: int, user_id: int) 
     card_for_merge.delete()
     answer_data['success_message'] = 'Вы успешно выполнили слияние!'
     return answer_data
+
+
+def card_sale_service(user_id: int, card_id: int, price: int) -> dict:
+    """ Выставление на продажу карты.
+        Устанавливает sale_status на True.
+        Устанавливает указанную цену.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    answer_data = {}
+    card = get_object_or_404(Card, pk=card_id)
+    if card.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не можете выставить на продажу чужую карту!'
+        return answer_data
+
+    team_card_pks = BattleEventParticipants.objects.filter(user=user_id).values_list('first_card__pk',
+                                                                                     'second_card__pk',
+                                                                                     'third_card__pk').last()
+
+    if card_id in team_card_pks:
+        answer_data['error_message'] = 'Вы не можете выставить на продажу эту карту! Карта в отряде боевого события'
+        return answer_data
+
+    card.sale_status = True
+    card.price = price
+    card.save()
+    answer_data['success_message'] = 'Карта успешно выставлена на торговую площадку!'
+    return answer_data
+
+
+@transaction.atomic
+def level_up_with_item_service(user_id: int, card_id: int, item_id: int, amount_item: int) -> dict:
+    """ Увеличение уровня с помощью книг опыта.
+        Если у пользователя хватает денег для использования предметов,
+        то увеличивает опыт карты, и изменяет ее уровень, если необходимо.
+        Использует только необходимое количество книг опыта.
+        В Profile пользователя уменьшается gold.
+        Создается транзакция.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    answer_data = {}
+    card = get_object_or_404(Card, pk=card_id)
+    item = get_object_or_404(UsersInventory, pk=item_id)
+
+    if user_id != card.owner.id:
+        answer_data['error_message'] = 'Вы не можете улучшать чужую карту!'
+        answer_data['show_form'] = False
+        return answer_data
+
+    if card.level >= card.rarity.max_level:
+        answer_data['error_message'] = 'Эта карта имеет максимальный уровень!'
+        answer_data['show_form'] = False
+        return answer_data
+
+    profile = Profile.objects.get(user=user_id)
+
+    if item.amount < amount_item:
+        answer_data['error_message'] = 'У вас нет столько предметов!'
+        answer_data['show_form'] = True
+        return answer_data
+
+    if profile.gold < amount_item * item.item.gold_for_use:
+        answer_data['error_message'] = 'Вам не хватает денег!'
+        answer_data['show_form'] = True
+        return answer_data
+
+    accrued_experience = amount_item * item.item.experience_amount
+    if profile.guild.buff.name == 'Пытливый ум':
+        accrued_experience = round(accrued_experience * profile.guild.buff.numeric_value / 100)
+
+    answer = accrue_experience(accrued_experience=accrued_experience,
+                               current_level=card.level,
+                               max_level=card.rarity.max_level,
+                               current_exp=card.experience_bar)
+
+    card.experience_bar = answer[0]
+    expended_experience = answer[2]
+
+    new_levels = answer[1] - card.level
+    card.increase_stats(new_levels)
+    card.level = answer[1]
+
+    # Проверка на бафф гильдии
+    if profile.guild.buff.name == 'Пытливый ум':
+        expended_items = ceil((expended_experience / item.item.experience_amount) * 0.8)
+    else:
+        expended_items = ceil(expended_experience / item.item.experience_amount)
+
+    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                  user=profile.user,
+                                                  before=profile.gold,
+                                                  after=profile.gold - expended_items * item.item.gold_for_use,
+                                                  comment='Улучшение карты'
+                                                  )
+    new_transaction.save()
+    profile.gold -= expended_items * item.item.gold_for_use
+    item.amount -= expended_items
+
+    profile.save()
+    item.save()
+    card.save()
+
+    answer_data['success_message'] = 'Ваша карта успешно получила опыт'
+    return answer_data
+
+
+def select_favorite_card_service(user_id: int, card_id: int) -> dict:
+    """ Установка избранной карты пользователя.
+        Изменяет current_card в профиле пользователя на выбранную карту.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    answer_data = {}
+    card = get_object_or_404(Card, pk=card_id)
+    if card.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не являетесь владельцем карты!'
+        return answer_data
+
+    user_profile = Profile.objects.get(user=user_id)
+    user_profile.current_card = card
+    user_profile.save()
+
+    answer_data['success_message'] = 'Вы успешно установили избранную карту'
+    return answer_data
+
+
+def remove_from_sale_card_service(user_id: int, card_id: int) -> dict:
+    """ Удаление карты из торговой площадки.
+        Устанавливает sale_status на False, а price на None.
+        Возвращает сообщение об успехе или ошибке.
+    """
+
+    answer_data = {}
+    card = get_object_or_404(Card, pk=card_id)
+    if card.owner.id != user_id:
+        answer_data['error_message'] = 'Вы не являетесь владельцем этой карты!'
+        return answer_data
+
+    if card.sale_status is False:
+        answer_data['error_message'] = 'В данный момент вы не продаете эту карту и не можете убрать ее из продажи'
+        return answer_data
+
+    card.sale_status = False
+    card.price = None
+    card.save()
+
+    answer_data['success_message'] = 'Вы успешно убрали карту с продажи'
+    return answer_data
+
