@@ -1,10 +1,12 @@
 from django.urls import path
 from django.contrib.auth import views
 
-from .views import (view_profile, CustomLoginView, CustomRegistrationView, view_rating, edit_profile,
-                    view_transactions, add_favorite_user, delete_favorite_user, view_favorite_users,
-                    create_guild, view_guild, view_all_guilds, delete_member_guild, add_member_guild,
-                    change_leader_guild_choice, change_leader_guild, edit_guild_info, delete_guild)
+from .views_users import (view_profile, CustomLoginView, CustomRegistrationView, view_rating, edit_profile,
+                          view_transactions, add_favorite_user, delete_favorite_user, view_favorite_users)
+
+from .views_guild import (create_guild, view_guild, view_all_guilds, delete_member_guild,
+                          add_member_guild, change_leader_guild_choice, change_leader_guild,
+                          edit_guild_info, delete_guild)
 
 urlpatterns = [
     path('<int:user_id>/', view_profile, name='view_profile'),
@@ -25,5 +27,5 @@ urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('logout/', views.LogoutView.as_view(next_page='home'), name='logout'),
     path('signup/', CustomRegistrationView.as_view(), name='signup'),
-    path('favorite_users/', view_favorite_users, name='view_favorite_users')
+    path('favorite_users/', view_favorite_users, name='view_favorite_users'),
 ]

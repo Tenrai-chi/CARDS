@@ -1,5 +1,4 @@
 from django.contrib.auth.models import User
-from django.db.models import F, Q
 from django.core.files.uploadedfile import UploadedFile
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -9,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from cards.models import Card
 from common.utils import date_time_now, time_difference_check
 
-from .models import Profile, Transactions, FavoriteUsers, Guild, GuildBuff
+from .models import Profile, Transactions, Guild, GuildBuff
 
 
 def update_user_after_guild_removal(guild: Guild, profile_user: Profile) -> None:
@@ -26,76 +25,15 @@ def update_user_after_guild_removal(guild: Guild, profile_user: Profile) -> None
     guild.save()
 
 
-def add_favorite_user_service(user_id: int, favorite_user_id: int) -> dict:
-    """ Добавляет пользователя в список избранных.
-        Возвращает сообщение об успехе или ошибке.
-    """
+def view_all_guilds_service(page_num: int = 1, item_per_page: int = 15) -> dict:
+    """ Возвращает список всех гильдий с учетом пагинации """
 
-    answer_data = {}
-    if user_id == favorite_user_id:
-        answer_data['error_message'] = 'Вы не можете добавить себя в избранное'
-        return answer_data
-
-    try:
-        _ = FavoriteUsers.objects.get(user=user_id, favorite_user=favorite_user_id)
-        answer_data['error_message'] = 'Этот пользователь уже в избранном!'
-        return answer_data
-
-    except FavoriteUsers.DoesNotExist:
-        new_favorite_user = get_object_or_404(User, pk=favorite_user_id)
-
-    favorite_users_count = FavoriteUsers.objects.filter(user=user_id).count()
-    user = User.objects.get(pk=user_id)
-    if favorite_users_count >= 50:
-        answer_data['error_message'] = 'Достигнут предел избранных пользователей! Для добавления новых освободите место'
-        return answer_data
-
-    FavoriteUsers.objects.create(user=user, favorite_user=new_favorite_user)
-
-    answer_data['success_message'] = 'Вы успешно добавили пользователя в избранное'
-    return answer_data
-
-
-def delete_favorite_user_service(user_id: int, favorite_user: int) -> dict:
-    """ Удаляет пользователя из списка избранных.
-        Возвращает сообщение об успехе или ошибке.
-    """
-
-    answer_data = {}
-    if user_id == favorite_user:
-        answer_data['error_message'] = 'Вы не можете убрать себя из избранных!'
-        return answer_data
-
-    try:
-        record = FavoriteUsers.objects.get(user=user_id, favorite_user=favorite_user)
-        record.delete()
-        answer_data['success_message'] = 'Вы успешно удалили пользователя из списка избранных!'
-
-    except FavoriteUsers.DoesNotExist:
-        answer_data['error_message'] = 'Этот участник не находится в вашем списке избранных!'
-
-    return answer_data
-
-
-def change_leader_guild_service(user_id: int, guild_id: int, new_lead_id: int) -> dict:
-    """ Смена лидера гильдии.
-        Возвращает сообщение об ошибке или успехе.
-    """
-
-    answer_data = {}
-    guild_info = get_object_or_404(Guild, pk=guild_id)
-    new_leader = get_object_or_404(User, pk=new_lead_id)
-    if user_id != guild_info.leader.id:
-        answer_data['error_message'] = 'Вы не являетесь лидером гильдии!'
-        return answer_data
-
-    if user_id == new_lead_id:
-        answer_data['error_message'] = 'Вы уже являетесь лидером!'
-        return answer_data
-
-    guild_info.leader = new_leader
-    guild_info.save()
-    answer_data['success_message'] = 'Вы успешно сменили лидера!'
+    guilds = Guild.objects.all().order_by('-rating')
+    paginator = Paginator(guilds, item_per_page)
+    page = paginator.get_page(page_num)
+    answer_data = {'guilds': page.object_list,
+                   'page': page
+                   }
 
     return answer_data
 
@@ -224,17 +162,6 @@ def add_member_guild_service(user_id: int, guild_id: int) -> dict:
     return answer_data
 
 
-def edit_profile_service(user_id: int, about_user: str | None, profile_pic: UploadedFile | None) -> None:
-    """ Изменение профиля.
-        Устанавливает переданные поля у профиля пользователя.
-    """
-
-    profile = Profile.objects.get(user=user_id)
-    profile.about_user = about_user
-    profile.profile_pic = profile_pic
-    profile.save()
-
-
 def edit_guild_info_service(user_id: int, guild_id: int, name: str,
                             guild_pic: UploadedFile, buff: GuildBuff) -> dict:
     """ Изменение информации о гильдии.
@@ -331,28 +258,24 @@ def create_guild_service(user_id: int, name: str, guild_pic: UploadedFile, buff:
     return answer_data
 
 
-def view_rating_service(page_num: int = 1, item_per_page: int = 25) -> dict:
-    """ Возвращает список всех пользователей и их рейтинга с учетом пагинации """
+def change_leader_guild_service(user_id: int, guild_id: int, new_lead_id: int) -> dict:
+    """ Смена лидера гильдии.
+        Возвращает сообщение об ошибке или успехе.
+    """
 
-    users = (User.objects.all()
-             .annotate(rating=500 + F('profile__win') * 25 - F('profile__lose') * 20).order_by('-rating'))
-    paginator = Paginator(users, item_per_page)
-    page = paginator.get_page(page_num)
-    answer_data = {'users': page.object_list,
-                   'page': page
-                   }
+    answer_data = {}
+    guild_info = get_object_or_404(Guild, pk=guild_id)
+    new_leader = get_object_or_404(User, pk=new_lead_id)
+    if user_id != guild_info.leader.id:
+        answer_data['error_message'] = 'Вы не являетесь лидером гильдии!'
+        return answer_data
 
-    return answer_data
+    if user_id == new_lead_id:
+        answer_data['error_message'] = 'Вы уже являетесь лидером!'
+        return answer_data
 
-
-def view_all_guilds_service(page_num: int = 1, item_per_page: int = 15) -> dict:
-    """ Возвращает список всех гильдий с учетом пагинации """
-
-    guilds = Guild.objects.all().order_by('-rating')
-    paginator = Paginator(guilds, item_per_page)
-    page = paginator.get_page(page_num)
-    answer_data = {'guilds': page.object_list,
-                   'page': page
-                   }
+    guild_info.leader = new_leader
+    guild_info.save()
+    answer_data['success_message'] = 'Вы успешно сменили лидера!'
 
     return answer_data

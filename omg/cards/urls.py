@@ -1,8 +1,10 @@
 from django.urls import path
-from .views import (view_cards, view_user_cards, view_card, card_store, buy_card, get_card,
-                    create_card, card_sale, buy_card_user, view_user_cards_for_sale,
-                    select_favorite_card, fight, card_level_up, level_up_with_item,
-                    remove_from_sale_card, view_all_sale_card, merge_card_menu, merge_card)
+from .views_cards import (view_cards, view_user_cards, view_card, card_store, buy_card, get_card,
+                          create_card, card_sale, buy_card_user, view_user_cards_for_sale,
+                          card_level_up, level_up_with_item,
+                          remove_from_sale_card, view_all_sale_card, merge_card_menu, merge_card)
+
+from .views_events import select_favorite_card, fight
 
 from exchange.views import change_amulet_menu, remove_amulet, change_amulet
 

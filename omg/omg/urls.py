@@ -2,8 +2,8 @@ from django.conf.urls.static import static
 from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
-from cards.views import (home, get_award_start_event, menu_team_template_battle_event,
-                         set_team_template_battle_event, fight_day_battle_event)
+from cards.views_events import (home, get_award_start_event, menu_team_template_battle_event,
+                                set_team_template_battle_event, fight_day_battle_event)
 
 
 urlpatterns = [
