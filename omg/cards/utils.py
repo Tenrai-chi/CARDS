@@ -8,6 +8,10 @@ from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type
 from exchange.models import AmuletItem
 
 
+class FightResultsData:
+    """ Класс для структурирования данных о прошедшей битве между 2 картами. """
+
+
 def stats_calculation(user_card: Card, enemy_card: Card) -> tuple[float, float, float, float]:
     """ Вычисление боевых характеристик карт.
         Базовые характеристики на основе типа обеих карт.
@@ -45,8 +49,16 @@ def stats_calculation(user_card: Card, enemy_card: Card) -> tuple[float, float, 
     return user_card_hp, user_card_damage, enemy_card_hp, enemy_card_damage
 
 
-def fight_now(user_card: Card, enemy_card: Card) -> tuple[User, User, bool, list[list[str]]]:
-    """ Битва возвращает победителя, проигравшего и итог боя """
+def fight_now(user_card: Card, enemy_card: Card) -> dict:
+    """ Битва.
+        Возвращает итог боя и историю битвы.
+            - is_victory Есть ли победитель,
+            - winner Победитель или None
+            - loser Проигравший или None
+            - user Пользователь
+            - enemy Противник
+            - history_fight История боя
+    """
 
     user_card_hp, user_card_damage, enemy_card_hp, enemy_card_damage = stats_calculation(user_card, enemy_card)
 
@@ -197,7 +209,14 @@ def fight_now(user_card: Card, enemy_card: Card) -> tuple[User, User, bool, list
                 loser, winner = user_card.owner, enemy_card.owner
             break
 
-    return winner, loser, is_victory, history_fight
+    answer_data = {'is_victory': is_victory,
+                   'winner': winner,
+                   'loser': loser,
+                   'user': user_card.owner,
+                   'enemy': enemy_card.owner,
+                   'history_fight': history_fight}
+    print('answer_data')
+    return answer_data
 
 
 def use_spell_dryad(card: Card, card_hp: float) -> tuple[float, float]:

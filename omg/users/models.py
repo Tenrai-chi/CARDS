@@ -70,6 +70,8 @@ class Guild(models.Model):
             self.rating += 30
         elif win_or_lose == 'lose':
             self.rating += 6
+        elif win_or_lose == 'draw':
+            self.rating += 15
 
         self.save()
 
@@ -152,6 +154,8 @@ class Profile(models.Model):
             self.guild_point += 30
         elif win_or_lose == 'lose':
             self.guild_point += 6
+        elif win_or_lose == 'draw':
+            self.guild_point += 15
 
         self.save()
 

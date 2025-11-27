@@ -1,4 +1,4 @@
-from random import randint, choice
+from random import choice, randint
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 

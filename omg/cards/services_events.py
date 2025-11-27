@@ -1,7 +1,9 @@
-from datetime import datetime, date
+from datetime import date, datetime
 from random import choice, randint
 from typing import Optional
+from math import ceil
 
+from celery.utils.functional import pass1
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -9,7 +11,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 
 from .models import Card, Rarity, FightHistory, Type, ClassCard, News
-from .utils import calculate_need_exp, fight_now as f_n
+from .utils import calculate_need_exp, fight_now
 
 from common.utils import time_difference_check, date_time_now
 from exchange.models import (UsersInventory, ExperienceItems, AmuletItem, AmuletType,
@@ -18,7 +20,19 @@ from users.models import Transactions, Profile
 
 
 class BattleEventData:
-    """ Класс для структурирования данных, необходимых для вывода информации о боевом событии """
+    """ Класс для структурирования данных, необходимых для вывода информации о боевом событии.
+        С 1 по 10 день (активная фаза события):
+            - user_event_participant Участник (Пользователь)
+            - enemy_user Противник в этот день
+            - team_user, team_enemy Команды обоих участников
+            - points Очки пользователя
+            - rating Таблица рейтинга и наградами
+            - can_fight Возможность бросить вызов (если битва уже состоялась can_fight - False)
+        С 11 по конец месяца (стадия подготовки):
+            - user_team_template Шаблон команды для участия в следующем сезоне.
+        Общее:
+            - message_info - Сообщение для пользователя
+    """
 
     # Общие лдя всех дней
     message_info: Optional[str]
@@ -58,7 +72,13 @@ class BattleEventData:
 
 
 class FightBattleEventData:
-    """ Класс для структурирования данных о прошедшей битве в боевом событии """
+    """ Класс для структурирования данных о прошедшей битве в боевом событии.
+        При возникновении ошибки:
+            - error_message Сообщение об ошибке
+        При успешной битве:
+            - result_fight результат всех битв между пользователями (3 пары)
+            - add_points Полученные очки события
+    """
 
     result_fight: Optional[list[list]]
     add_points: Optional[int]
@@ -68,13 +88,26 @@ class FightBattleEventData:
                  result_fight: Optional[list[list]] = None,
                  add_points: Optional[int] = None,
                  error_message: Optional[str] = None):
+
         self.result_fight = result_fight
         self.add_points = add_points
         self.error_message = error_message
 
 
 class FightData:
-    """ Класс для структурирования данных, необходимых для вывода информации о битве между игроками """
+    """ Класс для структурирования данных, для вывода информации о битве между игроками.
+        Общие параметры:
+            - history_fight История битвы
+            - reward_item_user Выпавшие предметы
+            - reward_amulet_user Выпавшие амулеты
+            - is_victory Есть ли победитель
+        Если была ничья is_victory - False:
+            - user Напавший пользователь
+            - enemy Противник в битве
+        Если победитель определен:
+            - winner Победитель
+            - loser Проигравший
+    """
 
     reward_item_user: Optional[list]
     reward_amulet_user: Optional[list]
@@ -110,85 +143,16 @@ class FightData:
 
 
 def get_info_battle_event(today: int, user_id: int) -> BattleEventData:
-    """ Возвращает информацию о боевом событии в зависимости от текущего дня события.
-        С 1 по 10:
-            - Если пользователь не участвует, то возвращает сообщение об этом.
-            - Если участвует, то возвращает текущего противника, команды обоих пользователей
-            и возможность бросить сопернику вызов, полученные очки и таблицу рейтинга
-        С 11 по 31:
-            - Шаблон команды пользователя для изменения
-    """
+    """ Возвращает информацию о боевом событии в зависимости от текущего дня события """
 
-    user = User.objects.get(pk=user_id)
     if today <= 10:
-        if len(BattleEventParticipants.objects.all()) < 2:
-            battle_event_data = BattleEventData(message_info='В этом сезоне недостаточно участников(')
-            return battle_event_data
+        battle_event_data: BattleEventData = battle_event_fight_stage(today, user_id)
 
-        user_event_participant = BattleEventParticipants.objects.filter(user=user).last()
-        if user_event_participant is None:
-            battle_event_data = BattleEventData(message_info='Вы не участвуете в этом сезоне')
-            return battle_event_data
+    elif today <= 31:
+        battle_event_data: BattleEventData = battle_event_prepare_stage(user_id)
 
-        team_user_ids = (user_event_participant.first_card.id,
-                         user_event_participant.second_card.id,
-                         user_event_participant.third_card.id)
-        enemy_id = user_event_participant.enemies.get(str(today))
-        enemy = BattleEventParticipants.objects.get(user=enemy_id)
-        team_enemy_ids = (enemy.first_card.id, enemy.second_card.id, enemy.third_card.id)
-
-        team_user = []
-        team_enemy = []
-        for user_team_id in team_user_ids:
-            team_user.append(Card.objects.get(pk=user_team_id))
-        for team_enemy_id in team_enemy_ids:
-            team_enemy.append(Card.objects.get(pk=team_enemy_id))
-
-        battle_progress_this_day = user_event_participant.battle_progress.get(str(today))
-        rating = BattleEventParticipants.objects.filter(points__gt=0).order_by('-points')[:5]
-        be_event_awards = BattleEventAwards.objects.all().order_by('rank')
-
-        top_list = []
-        for ind in range(0, 5):
-            try:
-                place = [be_event_awards[ind].rank,
-                         rating[ind].user.username,
-                         rating[ind].points,
-                         be_event_awards[ind].amount]
-                top_list.append(place)
-            except IndexError as _:
-                place = [be_event_awards[ind].rank,
-                         None,
-                         None,
-                         be_event_awards[ind].amount]
-                top_list.append(place)
-        can_fight = not battle_progress_this_day
-
-        battle_event_data = BattleEventData(team_user=team_user,
-                                            team_enemy=team_enemy,
-                                            points=user_event_participant.points,
-                                            rating=top_list,
-                                            enemy_user=enemy,
-                                            can_fight=can_fight)
     else:
-        user_team_template, _ = TeamsForBattleEvent.objects.get_or_create(user=user)
-        team_template_ids = []
-        if user_team_template.first_card:
-            team_template_ids.append(user_team_template.first_card.id)
-        else:
-            team_template_ids.append(None)
-        if user_team_template.second_card:
-            team_template_ids.append(user_team_template.second_card.id)
-        else:
-            team_template_ids.append(None)
-        if user_team_template.third_card:
-            team_template_ids.append(user_team_template.third_card.id)
-        else:
-            team_template_ids.append(None)
-        team_template = []
-        for team_template_id in team_template_ids:
-            team_template.append(Card.objects.filter(pk=team_template_id).last())
-        battle_event_data = BattleEventData(user_team_template=team_template)
+        raise ValueError(f'Принят неверный день месяца today: {today}')
     return battle_event_data
 
 
@@ -199,8 +163,8 @@ def get_news_with_pagination(page_num: int = 1, item_per_page: int = 10) -> dict
     paginator = Paginator(news, item_per_page)
     page = paginator.get_page(page_num)
     answer_data = {'news': page.object_list,
-            'page': page
-            }
+                   'page': page
+                   }
 
     return answer_data
 
@@ -291,27 +255,19 @@ def fight_battle_event(user_id: int, enemy_id: int) -> FightBattleEventData:
         error_message = 'Вы уже сражались сегодня с этим участником'
         return FightBattleEventData(error_message=error_message)
 
-    user_first_card = Card.objects.get(pk=user_info.first_card.pk)
-    user_second_card = Card.objects.get(pk=user_info.second_card.pk)
-    user_third_card = Card.objects.get(pk=user_info.third_card.pk)
+    team_user: list[Card] = get_team_battle_event(user_id)
+    team_enemy: list[Card] = get_team_battle_event(enemy_id)
 
-    enemy_first_card = Card.objects.get(pk=enemy_info.first_card.pk)
-    enemy_second_card = Card.objects.get(pk=enemy_info.second_card.pk)
-    enemy_third_card = Card.objects.get(pk=enemy_info.third_card.pk)
+    all_results = [fight_now(team_user[pair], team_enemy[pair]) for pair in range(3)]
 
-    all_results = [f_n(user_first_card, enemy_first_card),
-                   f_n(user_second_card, enemy_second_card),
-                   f_n(user_third_card, enemy_third_card)]
-
-    team_user = [user_first_card, user_second_card, user_third_card]
-    team_enemy = [enemy_first_card, enemy_second_card, enemy_third_card]
     points_user = 0
     points_enemy = 0
     result_fight = []
     result_fight_ind = -1
     for result in all_results:
         result_fight_ind += 1
-        winner, loser, is_victory, _ = result
+        is_victory = result.get('is_victory')
+        winner = result.get('winner')
         if not is_victory:
             points_user += 2
             points_enemy += 2
@@ -341,167 +297,78 @@ def fight_battle_event(user_id: int, enemy_id: int) -> FightBattleEventData:
                                 add_points=add_points)
 
 
-
 @transaction.atomic
 def fight_users(attacker_id: int, protector_id: int) -> FightData:
     """ Рейтинговый бой между двумя игроками с использованием избранных карт.
-        Проверяет есть ли у обоих пользователей выбранная карта.
-        Проверяет время последнего боя между двумя пользователями. Если прошло больше 6 часов, происходит битва.
-        После битвы начисляются опыт в experience_bar карты пользователя.
-        Если опыта достаточно, то увеличивается уровень карты и ее характеристики.
-        В Profile пользователя увеличиваются gold, у обоих win, lose в зависимости от победителя.
-        В Transactions появляются запись о начислении денег за победу и проигрыш.
-        Создается новая запись в FightHistory.
-        Обрабатывается возможность получения книг опыта нападавшему,
-        если сработал шанс, то книги появляются в инвентаре.
-        При не прохождении проверки, возвращает сообщение об ошибке.
+        Запускает сервисы:
+            - Проверка возможности битвы.
+            - Ход и результат битвы.
+            - Начисление награды (золото) за участие в битве.
+            - Начисление опыта карте пользователя.
+            - Обновление статистики побед и поражений у обоих пользователей.
+            - Начисление очков гильдии пользователю
+            - Начисление награды за бой (выпадение лута)
+        Создает запись в FightHistory о прошедшем бое.
     """
 
-    attacker = User.objects.get(pk=attacker_id)
-    protector = get_object_or_404(User, pk=protector_id)
-
-    # Проверка не один и тот же это человек
-    if protector == attacker:
-        error_message = 'Для боя необходимо выбрать противника!'
-        return FightData(error_message=error_message)
-
-    last_fight = FightHistory.objects.filter(
-        Q(winner=protector, loser=attacker) | Q(winner=attacker, loser=protector)).order_by('-id').first()
-
-    # Проверка есть ли в истории боев бой между этими пользователями
-    if last_fight is not None:
-        can_fight, hours = time_difference_check(last_fight.date_and_time, 6)
-
-        # Если бой есть и прошло менее 6 часов, то нельзя
-        if not can_fight:
-            error_message = f'Вы пока не можете бросить вызов этому пользователю! Осталось времени: {6 - hours} часов'
-            return FightData(error_message=error_message)
-
-    if protector.profile.current_card is None or protector.profile.current_card is None:
-        error_message = 'Для боя необходимо чтобы у обоих соперников были выбраны карты'
-        return FightData(error_message=error_message)
-
-    #  Если все проверки пройдены, идет битва, где определяются победитель и проигравший, записывается история боя
-    winner, loser, is_victory, history_fight = f_n(attacker.profile.current_card, protector.profile.current_card)
-
-    old_user_gold = attacker.profile.gold
-    if winner == attacker and winner.profile.guild.buff.name == 'Бандитский улов':
-        attacker.profile.get_gold(200)
-        comment = 'Награда за победу в битве'
-    elif winner == attacker:
-        attacker.profile.get_gold(100)
-        comment = 'Награда за победу в битве'
+    # Проверка возможности битвы между пользователями
+    validate_result: dict = validate_battle_preconditions(attacker_id, protector_id)
+    if validate_result.get('error_message'):
+        return FightData(error_message=validate_result['error_message'])
     else:
-        attacker.profile.get_gold(50)
-        comment = 'Награда за проигрыш в битве'
+        attacker = validate_result.get('attacker')
+        protector = validate_result.get('protector')
 
-    transaction_user = Transactions.objects.create(date_and_time=date_time_now(),
-                                                   user=attacker,
-                                                   before=old_user_gold,
-                                                   after=attacker.profile.gold,
-                                                   comment=comment
-                                                   )
-    transaction_user.save()
+    # 2. Битва и ее итог
+    result_fight: dict = fight_now(attacker.profile.current_card, protector.profile.current_card)
+    is_victory = result_fight.get('is_victory')
+    history_fight = result_fight.get('history_fight')
+    winner = result_fight.get('winner')
+    loser = result_fight.get('loser')
+    user = result_fight.get('user')
+    enemy = result_fight.get('enemy')
 
-    # Начисление опыта, если не достигнут максимальный уровень карты (вынести)
-    if attacker.profile.current_card.level < attacker.profile.current_card.rarity.max_level:
-        attacker.profile.current_card.experience_bar += 75
+    # 3. Изменение статистики win\lose
+    update_win_lose(winner, loser, is_victory)
 
-    # Увеличение уровня карты победителя при достижении определенного опыта (вынести)
-    if attacker.profile.current_card.experience_bar >= calculate_need_exp(attacker.profile.current_card.level):
-        attacker.profile.current_card.experience_bar -= calculate_need_exp(attacker.profile.current_card.level)
-        attacker.profile.current_card.level += 1
+    # 4. Увеличение характеристик карты пользователя
+    update_card_experience(attacker.profile.current_card)
 
-        # Если достигнут максимальный уровень, прогресс опыта обнуляется
-        if attacker.profile.current_card.level == attacker.profile.current_card.rarity.max_level:
-            attacker.profile.current_card.experience_bar = 0
-
-        # Увеличение характеристик карты победителя (вынести)
-        attacker.profile.current_card.increase_stats()
-
-    if is_victory and winner == attacker:
-        attacker.profile.win += 1
-        protector.profile.lose += 1
-    elif is_victory and winner == protector:
-        protector.profile.win += 1
-        attacker.profile.lose += 1
-
-    if attacker.profile.guild is not None:
-        if winner == attacker:
-            attacker.profile.get_guild_point('win')
-            attacker.profile.guild.add_guild_points('win')
+    # 5. Начисление золота и очков гильдии в зависимости от исхода битвы
+    if is_victory:
+        if attacker == winner:
+            award_gold_for_attack(attacker, 2)
+            award_guild_points(attacker.profile, 2)
         else:
-            attacker.profile.get_guild_point('lose')
-            attacker.profile.guild.add_guild_points('lose')
+            award_gold_for_attack(attacker, 0)
+            award_guild_points(attacker.profile, 0)
+    else:
+        award_gold_for_attack(attacker, 1)
+        award_guild_points(attacker.profile, 1)
 
-    attacker.profile.save()
-    protector.profile.save()
+    # 6. Выпадение предметов после боя
+    loot: dict = award_loot_items(attacker.profile)
+    reward_item_user = loot.get('reward_item_user')
+    reward_amulet_user = loot.get('reward_amulet_user')
 
-    attacker.profile.current_card.save()
-
+    # 7. Создание записи о бое в истории
     new_record = FightHistory.objects.create(date_and_time=date_time_now(),
                                              winner=winner,
                                              loser=loser,
                                              card_winner=winner.profile.current_card,
                                              card_loser=loser.profile.current_card
                                              )
-    new_record.save()
-
-    # Предметы падают только нападавшему
-    items = ExperienceItems.objects.all()
-    amulets = AmuletType.objects.exclude(rarity__chance_drop_on_fight=0)
-    reward_item_user = []
-    reward_amulet_user = []
-    for item in items:  # Проверка выпадения предмета
-        chance = randint(1, 100)
-
-        # Использование способности эльфа
-        if attacker.profile.current_card.class_card.name == 'Эльф':
-            chance_drop = item.chance_drop_on_fight + (
-                        attacker.profile.current_card.class_card.numeric_value + 4 * attacker.profile.current_card.merger)
-        else:
-            chance_drop = item.chance_drop_on_fight
-
-        if chance <= chance_drop:
-            try:
-                items_user = UsersInventory.objects.get(owner=attacker,
-                                                        item=item)
-                items_user.amount += 1
-                items_user.save()
-                reward_item_user.append(item)
-            except UsersInventory.DoesNotExist:
-                new_record_inventory = UsersInventory.objects.create(owner=attacker,
-                                                                     item=item,
-                                                                     amount=1
-                                                                     )
-                new_record_inventory.save()
-                reward_item_user.append(item)
-    if attacker.profile.amulet_slots > AmuletItem.objects.filter(owner=attacker).count():
-        for amulet in amulets:  # Проверка выпадения амулета
-            # Использование способности эльфа
-            if attacker.profile.current_card.class_card.name == 'Эльф':
-                chance_drop = amulet.rarity.chance_drop_on_fight + attacker.profile.current_card.class_card.numeric_value
-            else:
-                chance_drop = amulet.rarity.chance_drop_on_fight
-
-            chance = randint(1, 100)
-            if chance <= chance_drop:
-                new_amulet = AmuletItem.objects.create(amulet_type=amulet,
-                                                       owner=attacker)
-                new_amulet.save()
-                reward_amulet_user.append(amulet)
 
     fight_data = FightData(reward_item_user=reward_item_user,
                            reward_amulet_user=reward_amulet_user,
                            history_fight=history_fight,
                            is_victory=is_victory,
-                           winner=winner if is_victory else None,
-                           loser=loser if is_victory else None,
-                           user=attacker if not is_victory else None,
-                           enemy=protector)
+                           winner=winner,
+                           loser=loser,
+                           user=user,
+                           enemy=enemy)
 
     return fight_data
-
 
 
 @transaction.atomic
@@ -599,4 +466,289 @@ def select_favorite_card_service(user_id: int, card_id: int) -> dict:
     user_profile.save()
 
     answer_data['success_message'] = 'Вы успешно установили избранную карту'
+    return answer_data
+
+
+def battle_event_fight_stage(today: int, user_id: int) -> BattleEventData:
+    """ Информация во время основного этапа боевого события с 1 по 10 день.
+        - Если пользователь не участвует, то возвращает сообщение об этом.
+        - Если участвует, то возвращает текущего противника, команды обоих пользователей
+        и таблицу текущего рейтинга события с наградами.
+    """
+
+    user = User.objects.get(pk=user_id)
+
+    if len(BattleEventParticipants.objects.all()) < 2:
+        battle_event_data = BattleEventData(message_info='В этом сезоне недостаточно участников(')
+        return battle_event_data
+
+    user_event_participant = BattleEventParticipants.objects.filter(user=user).last()
+    if user_event_participant is None:
+        battle_event_data = BattleEventData(message_info='Вы не участвуете в этом сезоне')
+        return battle_event_data
+
+    enemy_id = user_event_participant.enemies.get(str(today))
+    enemy = BattleEventParticipants.objects.get(user=enemy_id)
+
+    team_user: list[Card] = get_team_battle_event(user_id)
+    team_enemy: list[Card] = get_team_battle_event(enemy_id)
+
+    battle_progress_this_day = user_event_participant.battle_progress.get(str(today))
+
+    top_list: list = get_info_top_battle_event()
+    can_fight = not battle_progress_this_day
+
+    battle_event_data = BattleEventData(team_user=team_user,
+                                        team_enemy=team_enemy,
+                                        points=user_event_participant.points,
+                                        rating=top_list,
+                                        enemy_user=enemy,
+                                        can_fight=can_fight)
+
+    return battle_event_data
+
+
+def get_team_battle_event(user_id) -> list[Card]:
+    """ Возвращает список из карт в команде запрашиваемого пользователя.
+        Гарантируется, что пользователь существует,
+        а все карты в его команде не None.
+    """
+
+    participant = BattleEventParticipants.objects.select_related(
+        'first_card', 'second_card', 'third_card').get(user_id=user_id)
+
+    participant_team = [participant.first_card,
+                        participant.second_card,
+                        participant.third_card]
+
+    return participant_team
+
+
+def get_info_top_battle_event() -> list:
+    """ Возвращает данные для таблицы рейтинга в боевом событии """
+
+    max_top_rows = 5
+    top_list = []
+    rating = BattleEventParticipants.objects.filter(points__gt=0).order_by('-points')[:5]
+    be_event_awards = BattleEventAwards.objects.all().order_by('rank')
+
+    for ind in range(max_top_rows):
+        try:
+            place = [be_event_awards[ind].rank,
+                     rating[ind].user.username,
+                     rating[ind].points,
+                     be_event_awards[ind].amount]
+            top_list.append(place)
+        except IndexError as _:
+            place = [be_event_awards[ind].rank,
+                     None,
+                     None,
+                     be_event_awards[ind].amount]
+            top_list.append(place)
+
+    return top_list
+
+
+def battle_event_prepare_stage(user_id: int) -> BattleEventData:
+    """ Информация во время подготовительного этапа боевого события с 11 по 31 день.
+        Выводит шаблон команды для участия в боевом событии
+    """
+
+    user = User.objects.get(pk=user_id)
+    user_team_template, _ = TeamsForBattleEvent.objects.get_or_create(user=user)
+    team_template_ids = []
+    if user_team_template.first_card:
+        team_template_ids.append(user_team_template.first_card.id)
+    else:
+        team_template_ids.append(None)
+    if user_team_template.second_card:
+        team_template_ids.append(user_team_template.second_card.id)
+    else:
+        team_template_ids.append(None)
+    if user_team_template.third_card:
+        team_template_ids.append(user_team_template.third_card.id)
+    else:
+        team_template_ids.append(None)
+    team_template = []
+    for team_template_id in team_template_ids:
+        team_template.append(Card.objects.filter(pk=team_template_id).last())
+    battle_event_data = BattleEventData(user_team_template=team_template)
+    return battle_event_data
+
+
+def validate_battle_preconditions(attacker_id: int, protector_id: int) -> dict:
+    """ Проверка на возможность проведения рейтингового боя между 2 участниками.
+        Если проверки не прошли, возвращает error_message с сообщением об ошибке.
+        Если битва может состояться, то возвращает объекты пользователя нападения и защиты.
+    """
+
+    answer_data = {}
+    if attacker_id == protector_id:
+        answer_data['error_message'] = 'Для боя необходимо выбрать противника!'
+        return answer_data
+
+    attacker = User.objects.get(pk=attacker_id)
+    protector = get_object_or_404(User, pk=protector_id)
+
+    last_fight = FightHistory.objects.filter(
+        Q(winner=protector, loser=attacker) | Q(winner=attacker, loser=protector)).order_by('id').last()
+
+    # Проверка есть ли в истории боев бой между этими пользователями
+    if last_fight is not None:
+        can_fight, hours = time_difference_check(last_fight.date_and_time, 6)
+
+        # Если бой есть и прошло менее 6 часов, то нельзя
+        if not can_fight:
+            error_message = f'Вы пока не можете бросить вызов этому пользователю! Осталось времени: {6 - hours} часов'
+            answer_data['error_message'] = error_message
+            return answer_data
+
+    if protector.profile.current_card is None or protector.profile.current_card is None:
+        answer_data['error_message'] = 'Для боя необходимо чтобы у обоих соперников были выбраны карты'
+        return answer_data
+
+    answer_data['attacker'] = attacker
+    answer_data['protector'] = protector
+
+    return answer_data
+
+
+def award_gold_for_attack(user: User, result_battle: int) -> None:
+    """ Начисление золота пользователю в рейтинговой битве.
+        Начисляет золото в зависимости от итога боя и наличия усиления гильдии.
+        Создает транзакцию.
+        result_battle 0 - проигрыш, 1 - ничья, 2 - победа.
+    """
+
+    gold_for_win = 100
+    gold_for_draw = 75
+    gold_for_lose = 50
+
+    old_user_gold = user.profile.gold
+    if result_battle == 0:
+        comment = 'Награда за поражение в битве'
+        user.profile.get_gold(gold_for_lose)
+    elif result_battle == 1:
+        comment = 'Награда за ничью в битве'
+        user.profile.get_gold(gold_for_draw)
+    elif result_battle == 2:
+        comment = 'Награда за победу в битве'
+        if user.profile.guild.buff.name == 'Бандитский улов':
+            user.profile.get_gold(ceil(gold_for_win * user.profile.guild.buff.numeric_value / 100))
+        else:
+            user.profile.get_gold(gold_for_win)
+    else:
+        raise ValueError(f'Принят неверный результат битвы result_battle: {result_battle}')
+
+    transaction_user = Transactions.objects.create(date_and_time=date_time_now(),
+                                                   user=user,
+                                                   before=old_user_gold,
+                                                   after=user.profile.gold,
+                                                   comment=comment
+                                                   )
+
+
+def update_card_experience(card: Card) -> None:
+    """ Получение опыта карты в битве """
+
+    # Начисление опыта, если не достигнут максимальный уровень карты (вынести)
+    if card.level < card.rarity.max_level:
+        card.experience_bar += 75
+
+    # Увеличение уровня карты победителя при достижении определенного опыта (вынести)
+    if card.experience_bar >= calculate_need_exp(card.level):
+        card.experience_bar -= calculate_need_exp(card.level)
+        card.level += 1
+
+        # Если достигнут максимальный уровень, прогресс опыта обнуляется
+        if card.level == card.rarity.max_level:
+            card.experience_bar = 0
+
+        # Увеличение характеристик карты победителя (вынести)
+        card.increase_stats()
+        card.save()
+
+
+def update_win_lose(winner: Optional[Profile], loser: Optional[Profile], is_victory: bool) -> None:
+    """ Обновление статистики побед/поражений у обоих участников рейтинговой битвы.
+        result_battle 0 - проигрыш, 1 - ничья, 2 - победа.
+    """
+
+    if is_victory:
+        winner.profile.win += 1
+        loser.profile.lose += 1
+
+        winner.save()
+        loser.save()
+
+
+def award_guild_points(user: Profile, result_battle: str) -> None:
+    """ Начисление очков гильдии за участие в рейтинговом бою """
+
+    if user.guild is not None:
+        if result_battle == 0:
+            user.get_guild_point('lose')
+            user.guild.add_guild_points('lose')
+        elif result_battle == 1:
+            user.get_guild_point('draw')
+            user.guild.add_guild_points('draw')
+        elif result_battle == 2:
+            user.get_guild_point('win')
+            user.guild.add_guild_points('win')
+        else:
+            raise ValueError(f'Принят неверный результат битвы result_battle: {result_battle}')
+
+
+def award_loot_items(user: Profile) -> dict:
+    """ Выпадение предметов за бой.
+        Возвращает списки полученных амулетов и книг опыта.
+    """
+
+    answer_data = {}
+    # Предметы падают только нападавшему
+    items = ExperienceItems.objects.all()
+    amulets = AmuletType.objects.exclude(rarity__chance_drop_on_fight=0)
+    reward_item_user = []
+    reward_amulet_user = []
+    for item in items:  # Проверка выпадения предмета
+        chance = randint(1, 100)
+
+        # Использование способности эльфа
+        if user.current_card.class_card.name == 'Эльф':
+            chance_drop = item.chance_drop_on_fight + (
+                    user.current_card.class_card.numeric_value + 4 * user.current_card.merger)
+        else:
+            chance_drop = item.chance_drop_on_fight
+
+        if chance <= chance_drop:
+            try:
+                items_user = UsersInventory.objects.get(owner=user.user,
+                                                        item=item)
+                items_user.amount += 1
+                items_user.save()
+                reward_item_user.append(item)
+            except UsersInventory.DoesNotExist:
+                new_record_inventory = UsersInventory.objects.create(owner=user.user,
+                                                                     item=item,
+                                                                     amount=1
+                                                                     )
+                new_record_inventory.save()
+                reward_item_user.append(item)
+    if user.amulet_slots > AmuletItem.objects.filter(owner=user.user).count():
+        for amulet in amulets:  # Проверка выпадения амулета
+            # Использование способности эльфа
+            if user.current_card.class_card.name == 'Эльф':
+                chance_drop = amulet.rarity.chance_drop_on_fight + user.current_card.class_card.numeric_value
+            else:
+                chance_drop = amulet.rarity.chance_drop_on_fight
+
+            chance = randint(1, 100)
+            if chance <= chance_drop:
+                new_amulet = AmuletItem.objects.create(amulet_type=amulet,
+                                                       owner=user.user)
+                new_amulet.save()
+                reward_amulet_user.append(amulet)
+
+    answer_data['reward_item_user'] = reward_item_user
+    answer_data['reward_amulet_user'] = reward_amulet_user
     return answer_data
