@@ -1,15 +1,12 @@
 import pytz
 
 from datetime import datetime
-from django.contrib.auth.models import User
 from random import randint
 
-from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
+from django.contrib.auth.models import User
+
+from cards.models import Card, CardStore, HistoryReceivingCards, Type, Rarity
 from exchange.models import AmuletItem
-
-
-class FightResultsData:
-    """ Класс для структурирования данных о прошедшей битве между 2 картами. """
 
 
 def stats_calculation(user_card: Card, enemy_card: Card) -> tuple[float, float, float, float]:
@@ -215,7 +212,6 @@ def fight_now(user_card: Card, enemy_card: Card) -> dict:
                    'user': user_card.owner,
                    'enemy': enemy_card.owner,
                    'history_fight': history_fight}
-    print('answer_data')
     return answer_data
 
 

@@ -1,11 +1,15 @@
 import json
 import os
 
+from logging import getLogger
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from exchange.models import (ExperienceItems, AmuletRarity, AmuletType, UpgradeItemsType,
                              InitialEventAwards, BattleEventAwards)
+
+logger = getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -14,12 +18,14 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения exchange """
 
+        logger.info(f'Запуск функции загрузки данных для приложения EXCHANGE...')
         self._load_amulet_rarity()
         self._load_amulet_type()
         self._load_experience_items()
         self._load_upgrade_items_type()
         self._load_start_event_awards()
         self._load_battle_event_awards()
+        logger.info(f'Загрузка данных для приложения EXCHANGE завершена!')
 
     def _load_amulet_rarity(self):
         """ Заполняет редкость амулетов """
@@ -41,7 +47,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлена редкость амулета: {rarity["name"]}'))
             with transaction.atomic():
                 AmuletRarity.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} редкостей в amulet_rarity')
+                logger.info(f'Зарегистрировано {len(new_records)} редкостей в amulet_rarity')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_rarity.json" не найден.'))
@@ -77,7 +83,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлен тип амулета: {amulet_type["name"]}'))
             with transaction.atomic():
                 AmuletType.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} типов в amulet_type')
+                logger.info(f'Зарегистрировано {len(new_records)} типов в amulet_type')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_type.json" не найден.'))
@@ -111,7 +117,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлен предмет опыта: {experience_items["name"]}'))
             with transaction.atomic():
                 ExperienceItems.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} предметов опыта в experience_items')
+                logger.info(f'Зарегистрировано {len(new_records)} предметов опыта в experience_items')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "experience_items.json" не найден.'))
@@ -143,7 +149,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлен предмет улучшения амулета: {up_item["name"]}'))
             with transaction.atomic():
                 UpgradeItemsType.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} предметов улучшения в upgrade_items_type')
+                logger.info(f'Зарегистрировано {len(new_records)} предметов улучшения в upgrade_items_type')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "upgrade_items_type.json" не найден.'))
@@ -172,7 +178,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлен награда {event["day_event_visit"]} дня'))
             with transaction.atomic():
                 InitialEventAwards.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} наград в start_event_awards')
+                logger.info(f'Зарегистрировано {len(new_records)} наград в start_event_awards')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "start_event_awards.json" не найден.'))
@@ -202,7 +208,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлен награда {event["rank"]} ранга'))
             with transaction.atomic():
                 BattleEventAwards.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} наград в battle_event_awards')
+                logger.info(f'Зарегистрировано {len(new_records)} наград в battle_event_awards')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "battle_event_awards.json" не найден.'))

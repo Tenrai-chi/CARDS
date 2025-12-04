@@ -20,7 +20,7 @@ class SaleCardForm(forms.ModelForm):
 
 
 class UseItemForm(forms.ModelForm):
-    """ Форма выбора количества используемого предмета """
+    """ Форма выбора количества книг опыта для использования """
 
     amount = forms.IntegerField(label='Количество',
                                 validators=[validators.MinValueValidator(1)])

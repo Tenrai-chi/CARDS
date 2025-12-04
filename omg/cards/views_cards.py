@@ -97,7 +97,7 @@ def create_card(request: HttpRequest) -> HttpResponseRedirect:
 
     if request.method == 'POST':
         answer_create_free_card: dict = create_free_card(request.user.id)
-        if answer_create_free_card.get('error'):
+        if answer_create_free_card.get('error_message'):
             messages.error(request, answer_create_free_card['error_message'])
             return HttpResponseRedirect(reverse(answer_create_free_card['return_name']))
         else:

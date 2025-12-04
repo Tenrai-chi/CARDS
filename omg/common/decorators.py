@@ -1,7 +1,11 @@
+from functools import wraps
+from logging import getLogger
+
 from django.http import HttpResponseRedirect
 from django.contrib import messages
 from django.urls import reverse
-from functools import wraps
+
+logger = getLogger(__name__)
 
 
 def auth_required(error_message: str = 'Вы должны авторизоваться', redirect_url_name: str = 'home'):
@@ -15,6 +19,7 @@ def auth_required(error_message: str = 'Вы должны авторизоват
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 messages.error(request, error_message)
+                logger.warning('Неавторизованный пользователь попытался получить доступ к странице')
                 return HttpResponseRedirect(reverse(redirect_url_name))
             return view_func(request, *args, **kwargs)
         return wrapper
@@ -32,6 +37,8 @@ def owner_required(error_message: str = 'У вас нет доступа к эт
             target_user_id = kwargs.get('user_id')
             if request.user.id != target_user_id:
                 messages.error(request, error_message)
+                logger.warning(f'Пользователь ID {request.user.id} попытался '
+                               f'получить доступ к данным другого пользователя')
                 return HttpResponseRedirect(reverse(redirect_url_name))
             return view_func(request, *args, **kwargs)
         return wrapper

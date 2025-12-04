@@ -1,8 +1,12 @@
+from logging import getLogger
+
 from django.db import models
 from django.contrib.auth.models import User
 
 from cards.models import Card
 from users.models import Transactions
+
+logger = getLogger(__name__)
 
 
 class SaleUserCards(models.Model):
@@ -346,6 +350,7 @@ class BattleEventParticipants(models.Model):
         else:
             self.points += 40
         self.save()
+        logger.info(f'Участник гильдии ID {self.user.id} получил очки для гильдии')
 
 
 class BattleEventAwards(models.Model):

@@ -1,11 +1,17 @@
+from logging import getLogger
+from random import choice
+
 from django.contrib.auth.models import User
 from django.db import models
 
-from random import choice
+logger = getLogger(__name__)
 
 
 class ClassCard(models.Model):
-    """ Класс карты. Отвечает за способности и изображение """
+    """ Класс карты. Отвечает за:
+        - Картинку краты
+        - Способность, в т.ч как использование будет отображаться в истории боя
+    """
 
     name = models.CharField(max_length=50, verbose_name='Класс')
     skill = models.CharField(max_length=200, blank=True, verbose_name='Навык')
@@ -117,6 +123,7 @@ class Card(models.Model):
         self.hp += self.rarity.coefficient_hp_for_level * new_level
 
         self.save()
+        logger.info(f'Карта ID {self.id} изменила свои характеристики при получении уровня')
 
     def enhance_hp(self):
         """ Усиление здоровья """
@@ -125,6 +132,7 @@ class Card(models.Model):
             self.hp += 3
             self.enhancement += 1
             self.save()
+            logger.info(f'Карта ID {self.id} повысила свое здоровье')
 
     def enhance_attack(self):
         """ Усиление атаки """
@@ -133,6 +141,7 @@ class Card(models.Model):
             self.damage += 3
             self.enhancement += 1
             self.save()
+            logger.info(f'Карта ID {self.id} повысила свою атаку')
 
     def enhance_random(self):
         """ Усиление случайной характеристики """
@@ -146,21 +155,24 @@ class Card(models.Model):
                 self.damage += 5
                 self.enhancement += 1
             self.save()
+            logger.info(f'Карта ID {self.id} повысила свою случайную характеристику')
 
     def merge(self):
-        """ Слияние карты """
+        """ Увеличение уровня слияния """
 
         if self.merger < self.max_merger:
             self.merger += 1
             self.save()
+            logger.info(f'Карта ID {self.id} повысила уровень слияния')
 
     def remove_from_sale(self):
-        """ Удаляет карту с торговой площадки """
+        """ Обновление цены и статуса продажи при удалении карты с торговой площадки """
 
         if self.sale_status is True:
             self.sale_status = False
             self.price = None
             self.save()
+            logger.info(f'Карта ID {self.id} обновила цену и статус при удалении с торговой площадки')
 
 
 class CardStore(models.Model):

@@ -1,10 +1,14 @@
 import json
 import os
 
+from logging import getLogger
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from users.models import GuildBuff
+
+logger = getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -13,7 +17,9 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения users """
 
+        logger.info(f'Запуск функции загрузки данных для приложения USERS...')
         self._load_guild_buff()
+        logger.info(f'Загрузка данных для приложения USERS завершена!')
 
     def _load_guild_buff(self):
         """ Заполняет список усилений гильдии """
@@ -34,7 +40,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлено усиление гильдии: {guild_buff["name"]}'))
             with transaction.atomic():
                 GuildBuff.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} усилений в amulet_rarity')
+                logger.info(f'Зарегистрировано {len(new_records)} усилений в amulet_rarity')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_rarity.json" не найден.'))

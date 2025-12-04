@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from django.contrib.auth.models import User
 from django.db.models import F
 from django.core.files.uploadedfile import UploadedFile
@@ -7,6 +9,8 @@ from django.shortcuts import get_object_or_404
 from cards.models import Card
 
 from .models import Profile, FavoriteUsers
+
+logger = getLogger(__name__)
 
 
 def add_favorite_user_service(user_id: int, favorite_user_id: int) -> dict:
@@ -34,24 +38,26 @@ def add_favorite_user_service(user_id: int, favorite_user_id: int) -> dict:
         return answer_data
 
     FavoriteUsers.objects.create(user=user, favorite_user=new_favorite_user)
+    logger.info(f'Пользователь ID {user_id} добавил пользователя ID {favorite_user_id} в избранное')
 
     answer_data['success_message'] = 'Вы успешно добавили пользователя в избранное'
     return answer_data
 
 
-def delete_favorite_user_service(user_id: int, favorite_user: int) -> dict:
+def delete_favorite_user_service(user_id: int, favorite_user_id: int) -> dict:
     """ Удаляет пользователя из списка избранных.
         Возвращает сообщение об успехе или ошибке.
     """
 
     answer_data = {}
-    if user_id == favorite_user:
+    if user_id == favorite_user_id:
         answer_data['error_message'] = 'Вы не можете убрать себя из избранных!'
         return answer_data
 
     try:
-        record = FavoriteUsers.objects.get(user=user_id, favorite_user=favorite_user)
+        record = FavoriteUsers.objects.get(user=user_id, favorite_user=favorite_user_id)
         record.delete()
+        logger.info(f'Пользователь ID {user_id} удалил пользователя ID {favorite_user_id} в избранное')
         answer_data['success_message'] = 'Вы успешно удалили пользователя из списка избранных!'
 
     except FavoriteUsers.DoesNotExist:
@@ -69,6 +75,7 @@ def edit_profile_service(user_id: int, about_user: str | None, profile_pic: Uplo
     profile.about_user = about_user
     profile.profile_pic = profile_pic
     profile.save()
+    logger.info(f'Профиль пользователя ID {user_id} был изменен')
 
 
 def view_rating_service(page_num: int = 1, item_per_page: int = 25) -> dict:

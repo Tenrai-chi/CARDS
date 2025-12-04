@@ -2,10 +2,13 @@ import pytz
 
 from datetime import datetime
 from random import choice, randint
+from logging import getLogger
 
 from django.contrib.auth.models import User
 
 from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
+
+logger = getLogger(__name__)
 
 
 def date_time_now() -> datetime:
@@ -66,5 +69,6 @@ def create_new_card(user_id: int, ur_box=None, max_attribute=None) -> Card:
                                    rarity=rarity_card,
                                    hp=hp,
                                    damage=damage)
+    logger.info(f'Создана карта ID {new_card.id}')
 
     return new_card

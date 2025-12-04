@@ -1,4 +1,6 @@
+from logging import getLogger
 from random import choice, randint
+
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
@@ -8,6 +10,8 @@ from users.models import Transactions, Profile
 
 from .models import (ExperienceItems, UsersInventory, AmuletItem, AmuletType,
                      UpgradeItemsType, UpgradeItemsUsers, HistoryPurchaseItems)
+
+logger = getLogger(__name__)
 
 
 @transaction.atomic
@@ -38,8 +42,8 @@ def buy_amulet_service(user_id: int, amulet_id: int) -> dict:
 
     bought_amulet = AmuletItem.objects.create(amulet_type=current_amulet,
                                               owner=profile_user.user)
+    logger.info(f'Создан амулет ID {bought_amulet.id}')
 
-    bought_amulet.save()
     if current_amulet.discount_now:
         new_record_transaction = Transactions.objects.create(date_and_time=date_time_now(),
                                                              user=profile_user.user,
@@ -53,10 +57,11 @@ def buy_amulet_service(user_id: int, amulet_id: int) -> dict:
                                                              before=profile_user.gold,
                                                              after=profile_user.gold - current_amulet.price,
                                                              comment='Покупка в магазине предметов')
+    logger.info(f'Создана транзакция пользователя ID {profile_user.user.id}: ID {new_record_transaction.id}')
 
     profile_user.gold = new_record_transaction.after
-    new_record_transaction.save()
     profile_user.save()
+    logger.info(f'Пользователь ID {profile_user.user.id} потратил деньги на покупку амулета в магазине')
     answer_data['success_message'] = 'Вы успешно совершили покупку!'
     return answer_data
 

@@ -1,5 +1,6 @@
 from datetime import datetime
 from PIL import Image
+from logging import getLogger
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -8,6 +9,8 @@ from cards.models import Card, CardStore
 from common.utils import date_time_now
 
 from .utils import new_size
+
+logger = getLogger(__name__)
 
 
 class GuildBuff(models.Model):
@@ -55,6 +58,7 @@ class Guild(models.Model):
         if img.width != img.height:
             img = new_size(img)
             img.save(self.guild_pic.path)
+        logger.info(f'Гильдия ID {self.id} сменила картинку')
 
     def add_user_in_guild(self):
         """ Увеличение количества участников гильдии """
@@ -62,6 +66,7 @@ class Guild(models.Model):
         if self.number_of_participants < self.max_number_of_participants:
             self.number_of_participants += 1
             self.save()
+            logger.info(f'К гильдии ID {self.id} присоединился пользователь')
 
     def add_guild_points(self, win_or_lose: str):
         """ Увеличивает очки гильдии """
@@ -72,8 +77,11 @@ class Guild(models.Model):
             self.rating += 6
         elif win_or_lose == 'draw':
             self.rating += 15
-
+        else:
+            logger.error(f'ValueError: получено неожиданное значение win_or_lose: {win_or_lose}')
+            return
         self.save()
+        logger.info(f'Гильдия ID {self.id} получила очки гильдии')
 
 
 class Profile(models.Model):
@@ -116,36 +124,42 @@ class Profile(models.Model):
         if img.width != img.height:
             img = new_size(img)
             img.save(self.profile_pic.path)
+        logger.info(f'Пользователь ID {self.user.id} сменил аватар профиля')
 
     def update_receiving_timer(self):
         """ Обновление времени и даты получения карты """
 
         self.receiving_timer = date_time_now()
         self.save()
+        logger.info(f'Пользователь ID {self.user.id} обновились дата и время получения карты')
 
     def get_gold(self, gold):
         """ Начисление золота """
 
         self.gold += gold
         self.save()
+        logger.info(f'Пользователь ID {self.user.id} получил деньги: {gold}')
 
     def spend_gold(self, gold):
         """ Списание золота """
 
         self.gold -= gold
         self.save()
+        logger.info(f'В профиле {self.user.id} потратил деньги: {gold}')
 
     def get_diamond(self, diamond):
         """ Начисление кристалов """
 
         self.diamond += diamond
         self.save()
+        logger.info(f'Пользователь ID {self.user.id} получил кристалы: {diamond}')
 
     def spend_diamond(self, diamond):
         """ Списание кристалов """
 
         self.diamond -= diamond
         self.save()
+        logger.info(f'Пользователь ID {self.user.id} потратил кристалы: {diamond}')
 
     def get_guild_point(self, win_or_lose):
         """ Начисление очков рейтинга гильдии """
@@ -156,8 +170,11 @@ class Profile(models.Model):
             self.guild_point += 6
         elif win_or_lose == 'draw':
             self.guild_point += 15
-
+        else:
+            logger.error(f'ValueError: получено неожиданное значение win_or_lose: {win_or_lose}')
+            return
         self.save()
+        logger.info(f'Пользователь ID {self.id} получил очки гильдии')
 
     def add_event_visit(self):
         """ Увеличение количество входа пользователя (активаций) для получения наград стартового события,
@@ -168,6 +185,7 @@ class Profile(models.Model):
             self.event_visit += 1
             self.date_event_visit = datetime.now().date()
             self.save()
+            logger.info(f'Пользователь ID {self.id} увеличил количество входов в стартовом событии')
 
 
 class Transactions(models.Model):

@@ -1,3 +1,5 @@
+from logging import getLogger
+
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
@@ -19,6 +21,8 @@ from .forms import LoginForm, RegistrationForm, EditProfileForm
 from .services_users import (add_favorite_user_service, delete_favorite_user_service, edit_profile_service,
                              view_rating_service, )
 from .models import Profile, Transactions, FavoriteUsers
+
+logger = getLogger(__name__)
 
 
 class CustomLoginView(LoginView):

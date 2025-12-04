@@ -1,10 +1,14 @@
 import json
 import os
 
+from logging import getLogger
+
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from cards.models import ClassCard, Type, Rarity, CardStore, News
+
+logger = getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -13,11 +17,13 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения cards """
 
-        # self._load_class_card()
-        # self._load_type_card()
-        # self._load_rarity_card()
-        # self._load_card_store()
+        logger.info(f'Запуск загрузки данных для приложения CARDS...')
+        self._load_class_card()
+        self._load_type_card()
+        self._load_rarity_card()
+        self._load_card_store()
         self._load_news()
+        logger.info(f'Загрузка данных для приложения CARDS завершена!')
 
     def _load_class_card(self):
         """ Заполняет класс карт """
@@ -43,7 +49,7 @@ class Command(BaseCommand):
 
             with transaction.atomic():
                 ClassCard.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} классов в class_card')
+                logger.info(f'Зарегистрировано {len(new_records)} классов в class_card')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "class_card.json" не найден.'))
@@ -70,7 +76,7 @@ class Command(BaseCommand):
 
             with transaction.atomic():
                 Type.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} типов в type')
+                logger.info(f'Зарегистрировано {len(new_records)} типов в type')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "type_card.json" не найден.'))
@@ -127,7 +133,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлена редкость: {rarity["name"]}'))
             with transaction.atomic():
                 Rarity.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} редкостей в rarity')
+                logger.info(f'Зарегистрировано {len(new_records)} редкостей в rarity')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "rarity_card.json" не найден.'))
@@ -166,7 +172,7 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'Добавлена карта в магазин'))
             with transaction.atomic():
                 CardStore.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} карт в card_store')
+                logger.info(f'Зарегистрировано {len(new_records)} карт в card_store')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "card_store.json" не найден.'))
@@ -195,7 +201,7 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлена новость'))
             with transaction.atomic():
                 News.objects.bulk_create(new_records)
-                print(f'Зарегистрировано {len(new_records)} новостей в news')
+                logger.info(f'Зарегистрировано {len(new_records)} новостей в news')
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "news.json" не найден.'))

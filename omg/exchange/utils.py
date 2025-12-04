@@ -1,3 +1,4 @@
+from logging import getLogger
 from random import choice
 
 from django.db.models import Q
@@ -6,15 +7,20 @@ from django.db import transaction
 from .models import TeamsForBattleEvent, BattleEventParticipants, BattleEventAwards
 from users.models import Profile
 
+logger = getLogger(__name__)
+
 
 def preparation_battle_event():
     """ Подготовка участников к боевому событию.
         Запуск 1 числа каждого месяца в 0:01
     """
 
+    logger.info('Запуск подготовки к новому сезону боевого события...')
     delete_all_battle_event_participants()
     if fill_battle_event_participants():
+        logger.info('Подготовка списка участников...')
         fill_battle_event_enemies()
+    logger.info('Подготовка к новому сезону боевого события завершена!')
 
 
 def fill_battle_event_participants() -> bool:
@@ -42,10 +48,11 @@ def fill_battle_event_participants() -> bool:
     if len(battle_participants_to_create) >= 2:
         with transaction.atomic():
             BattleEventParticipants.objects.bulk_create(battle_participants_to_create)
-            print(f'Зарегистрировано {len(battle_participants_to_create)} участников в battle_event_participants')
+            logger.info(f'Зарегистрировано {len(battle_participants_to_create)} '
+                        f'участников в battle_event_participants')
             return True
     else:
-        print(f'Не хватает участников для боевого события')
+        logger.info(f'Не хватает участников для боевого события')
         return False
 
 
@@ -69,7 +76,8 @@ def fill_battle_event_enemies():
 
     with transaction.atomic():
         BattleEventParticipants.objects.bulk_update(participants_to_update, ['enemies'])
-        print(f'Установлено противники на каждый день у {len(participants_to_update)} участников в battle_event_participants')
+        logger.info(f'Установлено противников на каждый день у '
+                    f'{len(participants_to_update)} участников в battle_event_participants')
 
 
 def delete_all_battle_event_participants():
@@ -80,9 +88,9 @@ def delete_all_battle_event_participants():
     try:
         with transaction.atomic():
             deleted_count, _ = BattleEventParticipants.objects.all().delete()
-            print(f'Удалено {deleted_count} записей из таблицы battle_event_participants')
+            logger.info(f'Удалено {deleted_count} записей из таблицы battle_event_participants')
     except Exception as e:
-        print(f'Ошибка при удалении записей из battle_event_participants: {e}')
+        logger.error(f'Ошибка при удалении записей из battle_event_participants: {e}')
 
 
 def accrual_of_reward():
@@ -105,7 +113,7 @@ def accrual_of_reward():
 
     with transaction.atomic():
         Profile.objects.bulk_update(update_user, ['diamond'])
-        print(f'Отправлена награда для {len(update_user)} лидеров в battle_event_participants')
+        logger.info(f'Отправлена награда для {len(update_user)} лидеров в боевом событии')
 
 
 

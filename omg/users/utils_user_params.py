@@ -1,7 +1,11 @@
+from logging import getLogger
+
 from .models import Profile, Transactions
 
 from common.utils import date_time_now
 from common.utils import create_new_card
+
+logger = getLogger(__name__)
 
 
 def user_level_up(user_id: int) -> None:
@@ -17,14 +21,16 @@ def user_level_up(user_id: int) -> None:
     profile.amulet_slots += 8
 
     profile.gold += 2000
-    Transactions.objects.create(date_and_time=date_time_now(),
-                                user=profile.user,
-                                before=profile.gold - 2000,
-                                after=profile.gold,
-                                comment='Награда за повышение уровня'
-                                )
+    new_transaction = Transactions.objects.create(date_and_time=date_time_now(),
+                                                  user=profile.user,
+                                                  before=profile.gold - 2000,
+                                                  after=profile.gold,
+                                                  comment='Награда за повышение уровня'
+                                                  )
+    logger.info(f'Создана транзакция пользователя ID {user_id}: ID {new_transaction.id}')
 
     profile.save()
+    logger.info(f'Профиль пользователя ID {user_id} был изменен')
 
     if profile.level % 5 == 0:
         create_new_card(profile.user.id, ur_box=True)

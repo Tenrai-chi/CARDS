@@ -1,5 +1,7 @@
 import os
 from pathlib import Path
+
+from django.conf.global_settings import LOGGING
 from dotenv import load_dotenv
 from django.contrib.messages import constants as messages
 
@@ -151,4 +153,64 @@ MESSAGE_TAGS = {
     messages.SUCCESS: 'alert-success',
     messages.WARNING: 'alert-warning',
     messages.ERROR: 'alert-danger',
+}
+
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console_handler': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'console_formatter',
+        },
+        'django_server_handler': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'django_server_formatter',
+            'level': 'INFO',
+        },
+    },
+    'formatters': {
+        'console_formatter': {
+            'format': '[{asctime}] {levelname} {name} {message}',
+            'datefmt': '%d/%b/%Y %H:%M:%S',
+            'style': '{',
+        },
+        'django_server_formatter': {
+            'format': '[{asctime}] {levelname} {message}',
+            'datefmt': '%d/%b/%Y %H:%M:%S',
+            'style': '{',
+        },
+    },
+    'loggers': {
+        '': {
+            'handlers': ['console_handler'],
+            'level': 'INFO',
+        },
+        'django': {
+            'handlers': ['django_server_handler'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['django_server_handler'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'cards': {
+            'handlers': ['console_handler'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'exchange': {
+            'handlers': ['console_handler'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'users': {
+            'handlers': ['console_handler'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+    },
 }
