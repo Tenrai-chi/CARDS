@@ -90,3 +90,5 @@ def view_rating_service(page_num: int = 1, item_per_page: int = 25) -> dict:
                    }
 
     return answer_data
+
+

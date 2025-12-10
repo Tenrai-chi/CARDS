@@ -17,6 +17,7 @@ from common.utils import time_difference_check, date_time_now
 from exchange.models import (UsersInventory, ExperienceItems, AmuletItem, AmuletType,
                              InitialEventAwards, BattleEventParticipants, TeamsForBattleEvent, BattleEventAwards)
 from users.models import Transactions, Profile
+from celery import shared_task
 
 logger = getLogger(__name__)
 
@@ -794,3 +795,4 @@ def award_loot_items(user_profile: Profile) -> dict:
     answer_data['reward_item_user'] = reward_item_user
     answer_data['reward_amulet_user'] = reward_amulet_user
     return answer_data
+
