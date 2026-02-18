@@ -6,11 +6,11 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
 from .forms import SaleCardForm, UseItemForm
+from .models import Card, Rarity, CardStore
 from .services_cards import (get_cards_with_pagination, create_free_card, buy_card_service,
                              transfer_card_to_user, merge_user_card, card_sale_service,
                              level_up_with_item_service, remove_from_sale_card_service)
 
-from .models import Card, Rarity, CardStore
 from .utils import calculate_need_exp
 
 from common.decorators import auth_required
@@ -66,7 +66,7 @@ def buy_card(request: HttpRequest, card_id: int) -> HttpResponseRedirect:
 def get_card(request: HttpRequest) -> HttpResponse:
     """ Страница получения бесплатно карты """
 
-    rarity_chance_drop = Rarity.objects.values('name', 'drop_chance')
+    rarity_chance_drop: dict = Rarity.objects.values('name', 'drop_chance')
     if not request.user.is_authenticated:
         context = {'title': 'Получить карту', 'header': 'Получить бесплатную карту',
                    'rarity_chance_drop': rarity_chance_drop}
@@ -125,7 +125,7 @@ def view_user_cards(request: HttpRequest, user_id: int) -> HttpResponse:
     """ Вывод карт выбранного пользователя """
 
     user = get_object_or_404(User, pk=user_id)
-    cards = Card.objects.filter(owner=user).order_by('rarity', 'class_card', 'id')
+    cards = Card.objects.filter(owner=user_id).order_by('rarity', 'class_card', 'id')
     max_count_cards = Profile.objects.get(user=user_id).card_slots
 
     context = {'title': 'Карты пользователя',
@@ -159,8 +159,8 @@ def view_card(request: HttpRequest, card_id: int) -> HttpResponse:
 def view_user_cards_for_sale(request: HttpRequest, user_id: int) -> HttpResponse:
     """ Просмотр продаваемых карт пользователя """
 
+    owner = get_object_or_404(User, pk=user_id)
     cards = Card.objects.filter(owner=user_id, sale_status=True)
-    owner = User.objects.get(pk=user_id)
     context = {'title': 'Продаются',
                'header': 'Продаются',
                'cards': cards,

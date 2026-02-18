@@ -1,8 +1,9 @@
 from datetime import date, datetime
-from random import choice, randint
-from typing import Optional
+from dataclasses import dataclass, field
 from logging import getLogger
 from math import ceil
+from random import choice, randint
+from typing import Optional
 
 from django.core.paginator import Paginator
 from django.contrib.auth.models import User
@@ -17,11 +18,11 @@ from common.utils import time_difference_check, date_time_now
 from exchange.models import (UsersInventory, ExperienceItems, AmuletItem, AmuletType,
                              InitialEventAwards, BattleEventParticipants, TeamsForBattleEvent, BattleEventAwards)
 from users.models import Transactions, Profile
-from celery import shared_task
 
 logger = getLogger(__name__)
 
 
+@dataclass
 class BattleEventData:
     """ Класс для структурирования данных, необходимых для вывода информации о боевом событии.
         С 1 по 10 день (активная фаза события):
@@ -37,43 +38,22 @@ class BattleEventData:
             - message_info - Сообщение для пользователя
     """
 
-    # Общие лдя всех дней
-    message_info: Optional[str]
-
+    # Общие для всех дней
+    message_info: Optional[str] = None
     # Параметры для дней с 1 по 10
-    user_event_participant: Optional[BattleEventParticipants]
-    enemy_user: Optional[BattleEventParticipants]
-    team_user: Optional[list[Card]]
-    team_enemy: Optional[list[Card]]
-    points: Optional[int]
-    rating: Optional[list[list]]
-    can_fight: Optional[bool]
+    user_event_participant: Optional[BattleEventParticipants] = None
+    enemy_user: Optional[BattleEventParticipants] = None
+    team_user: Optional[tuple[Card, Card, Card]] = None
+    team_enemy: Optional[tuple[Card, Card, Card]] = None
+    points: Optional[int] = None
+    rating: Optional[list[list]] = None
+    can_fight: Optional[bool] = None
 
     # Параметры для дней с 11 по 31
-    user_team_template: Optional[list[Card]]
-
-    def __init__(self,
-                 user_event_participant: Optional[BattleEventParticipants] = None,
-                 enemy_user: Optional[BattleEventParticipants] = None,
-                 team_user: Optional[list[Card]] = None,
-                 team_enemy: Optional[list[Card]] = None,
-                 points: Optional[int] = None,
-                 rating: Optional[list[list]] = None,
-                 can_fight: Optional[bool] = None,
-                 message_info: Optional[str] = None,
-                 user_team_template: Optional[list[Card]] = None):
-
-        self.user_event_participant = user_event_participant
-        self.enemy_user = enemy_user
-        self.team_user = team_user
-        self.team_enemy = team_enemy
-        self.points = points
-        self.rating = rating
-        self.can_fight = can_fight
-        self.message_info = message_info
-        self.user_team_template = user_team_template
+    user_team_template: Optional[list[Card]] = None
 
 
+@dataclass
 class FightBattleEventData:
     """ Класс для структурирования данных о прошедшей битве в боевом событии.
         При возникновении ошибки:
@@ -83,20 +63,13 @@ class FightBattleEventData:
             - add_points Полученные очки события
     """
 
-    result_fight: Optional[list[list]]
-    add_points: Optional[int]
-    error_message: Optional[str]
-
-    def __init__(self,
-                 result_fight: Optional[list[list]] = None,
-                 add_points: Optional[int] = None,
-                 error_message: Optional[str] = None):
-
-        self.result_fight = result_fight
-        self.add_points = add_points
-        self.error_message = error_message
+    # todo Проверить с 1 по 10
+    result_fight: Optional[list[list]] = None
+    add_points: Optional[int] = None
+    error_message: Optional[str] = None
 
 
+@dataclass
 class FightData:
     """ Класс для структурирования данных, для вывода информации о битве между игроками.
         Общие параметры:
@@ -112,37 +85,16 @@ class FightData:
             - loser Проигравший
     """
 
-    reward_item_user: Optional[list]
-    reward_amulet_user: Optional[list]
-    history_fight: Optional[list[list]]
-    is_victory: Optional[bool]
+    reward_item_user: Optional[list] = None
+    reward_amulet_user: Optional[list] = None
+    history_fight: Optional[list[list]] = None
+    is_victory: Optional[bool] = None
 
-    winner: Optional[User]
-    loser: Optional[User]
-    user: Optional[User]
-    enemy: Optional[User]
-
-    def __init__(self,
-                 reward_item_user: Optional[list] = None,
-                 reward_amulet_user: Optional[list] = None,
-                 history_fight: Optional[list[list]] = None,
-                 is_victory: Optional[bool] = None,
-                 winner: Optional[User] = None,
-                 loser: Optional[User] = None,
-                 user: Optional[User] = None,
-                 enemy: Optional[User] = None,
-                 error_message: Optional[str] = None):
-
-        self.reward_item_user = reward_item_user
-        self.reward_amulet_user = reward_amulet_user
-        self.history_fight = history_fight
-        self.is_victory = is_victory
-
-        self.winner = winner
-        self.loser = loser
-        self.user = user
-        self.enemy = enemy
-        self.error_message = error_message
+    winner: Optional[User] = None
+    loser: Optional[User] = None
+    user: Optional[User] = None
+    enemy: Optional[User] = None
+    error_message: Optional[str] = None
 
 
 def get_info_battle_event(today: int, user_id: int) -> BattleEventData:
@@ -268,8 +220,8 @@ def fight_battle_event(user_id: int, enemy_id: int) -> FightBattleEventData:
         error_message = 'Вы уже сражались сегодня с этим участником'
         return FightBattleEventData(error_message=error_message)
 
-    team_user: list[Card] = get_team_battle_event(user_id)
-    team_enemy: list[Card] = get_team_battle_event(enemy_id)
+    team_user: tuple[Card, Card, Card] = get_team_battle_event(user_id)
+    team_enemy: tuple[Card, Card, Card] = get_team_battle_event(enemy_id)
 
     all_results = [fight_now(team_user[pair], team_enemy[pair]) for pair in range(3)]
 
@@ -344,7 +296,8 @@ def fight_users(attacker_id: int, protector_id: int) -> FightData:
     enemy = result_fight.get('enemy')
 
     # 3. Изменение статистики win\lose
-    update_win_lose(winner, loser, is_victory)
+    if is_victory:
+        update_win_lose(winner.profile, loser.profile)
 
     # 4. Увеличение характеристик карты пользователя
     update_card_experience(attacker.profile.current_card)
@@ -524,8 +477,8 @@ def battle_event_fight_stage(today: int, user_id: int) -> BattleEventData:
     enemy_id = user_event_participant.enemies.get(str(today))
     enemy = BattleEventParticipants.objects.get(user=enemy_id)
 
-    team_user: list[Card] = get_team_battle_event(user_id)
-    team_enemy: list[Card] = get_team_battle_event(enemy_id)
+    team_user: tuple[Card, Card, Card] = get_team_battle_event(user_id)
+    team_enemy: tuple[Card, Card, Card] = get_team_battle_event(enemy_id)
 
     battle_progress_this_day = user_event_participant.battle_progress.get(str(today))
 
@@ -542,7 +495,7 @@ def battle_event_fight_stage(today: int, user_id: int) -> BattleEventData:
     return battle_event_data
 
 
-def get_team_battle_event(user_id) -> list[Card]:
+def get_team_battle_event(user_id) -> tuple[Card, Card, Card]:
     """ Возвращает список из карт в команде запрашиваемого пользователя.
         Гарантируется, что пользователь существует,
         а все карты в его команде не None.
@@ -551,9 +504,9 @@ def get_team_battle_event(user_id) -> list[Card]:
     participant = BattleEventParticipants.objects.select_related(
         'first_card', 'second_card', 'third_card').get(user_id=user_id)
 
-    participant_team = [participant.first_card,
+    participant_team = (participant.first_card,
                         participant.second_card,
-                        participant.third_card]
+                        participant.third_card)
 
     return participant_team
 
@@ -600,11 +553,13 @@ def battle_event_prepare_stage(user_id: int) -> BattleEventData:
         team_template_ids.append(user_team_template.second_card.id)
     else:
         team_template_ids.append(None)
+
     if user_team_template.third_card:
         team_template_ids.append(user_team_template.third_card.id)
     else:
         team_template_ids.append(None)
     team_template = []
+
     for team_template_id in team_template_ids:
         team_template.append(Card.objects.filter(pk=team_template_id).last())
     battle_event_data = BattleEventData(user_team_template=team_template)
@@ -713,20 +668,16 @@ def update_card_experience(card: Card) -> None:
     logger.info(f'Обновлен опыт карты ID {card.id}')
 
 
-def update_win_lose(winner: Optional[User], loser: Optional[User], is_victory: bool) -> None:
+def update_win_lose(winner: Profile, loser: Profile) -> None:
     """ Обновление статистики побед/поражений у обоих участников рейтинговой битвы """
 
-    if is_victory:
-        winner_profile = winner.profile
-        loser_profile = loser.profile
+    winner.win += 1
+    loser.lose += 1
 
-        winner_profile.win += 1
-        loser_profile.lose += 1
+    winner.save()
+    loser.save()
 
-        winner_profile.save()
-        loser_profile.save()
-
-        logger.info(f'Обновлена статистика побед/поражений у пользователей ID {winner.id} и ID {loser.id}')
+    logger.info(f'Обновлена статистика побед/поражений у пользователей ID {winner.id} и ID {loser.id}')
 
 
 def award_guild_points(user_profile: Profile, result_battle: str) -> None:
@@ -772,10 +723,10 @@ def award_loot_items(user_profile: Profile) -> dict:
                 new_record_inventory.save()
                 reward_item_user.append(item)
 
-    if user_profile.user.amulet_slots > AmuletItem.objects.filter(owner=user_profile.user).count():
+    if user_profile.amulet_slots > AmuletItem.objects.filter(owner=user_profile.user).count():
         for amulet in amulets:  # Проверка выпадения амулета
             # Использование способности эльфа
-            if user_profile.user.current_card.class_card.name == 'Эльф':
+            if user_profile.current_card.class_card.name == 'Эльф':
                 chance_drop = amulet.rarity.chance_drop_on_fight + user_profile.current_card.class_card.numeric_value
             else:
                 chance_drop = amulet.rarity.chance_drop_on_fight

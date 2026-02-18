@@ -28,5 +28,3 @@ class UseItemForm(forms.ModelForm):
     class Meta:
         model = UsersInventory
         fields = ['amount']
-
-

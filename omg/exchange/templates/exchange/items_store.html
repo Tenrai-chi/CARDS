@@ -223,11 +223,11 @@
                         </div>
                         {% endif %}
                         {% else %}
-                        {% if amulet.discount_now == True %}
-                            <p style="color:#000000" class="card-text">Цена: <del>{{ amulet.price }}</del> {{ amulet.new_price }}</p>
-                        {% else %}
-                            <p style="color:#000000" class="card-text">Цена: {{ amulet.price }}</p>
-                        {% endif %}
+                            {% if amulet.discount_now == True %}
+                                <p style="color:#000000" class="card-text">Цена: <del>{{ amulet.price }}</del> {{ amulet.new_price }}</p>
+                            {% else %}
+                                <p style="color:#000000" class="card-text">Цена: {{ amulet.price }}</p>
+                            {% endif %}
                         {% endif %}
                     </div>
                 </div>

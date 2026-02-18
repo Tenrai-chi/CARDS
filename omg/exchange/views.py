@@ -110,7 +110,7 @@ def buy_amulet(request: HttpRequest, amulet_id: int) -> HttpResponseRedirect:
         answer: dict = buy_amulet_service(request.user.id, amulet_id)
         if answer.get('error_message'):
             messages.error(request, answer['error_message'])
-            return HttpResponseRedirect(reverse('items_store'))
+            return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'all'}))
         else:
             messages.success(request, answer['success_message'])
             return HttpResponseRedirect(reverse('items_store', kwargs={'store_filter': 'amulets'}))

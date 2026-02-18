@@ -56,19 +56,33 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'omg.wsgi.application'
 
+# Для докера
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': os.getenv('DB_NAME'),
+#         'USER': os.getenv('DB_USER'),
+#         'PASSWORD': os.getenv('DB_USER_PASSWORD'),
+#         # Для запуска через docker
+#         'HOST': 'host.docker.internal',
+#
+#         # 'HOST': os.getenv('DB_HOST'),  # DB_HOST,
+#         'PORT': os.getenv('DB_PORT'),
+#     }
+# }
+
+# Для обычного запуска
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_USER_PASSWORD'),
-        # Для запуска через docker
-        'HOST': 'host.docker.internal',
-
-        # 'HOST': os.getenv('DB_HOST'),  # DB_HOST,
-        'PORT': os.getenv('DB_PORT'),
+        'NAME': os.getenv('db_name'),  # DB_NAME
+        'USER': os.getenv('db_user'),  # DB_USER
+        'PASSWORD': os.getenv('db_user_password'),  # DB_USER_PASSWORD
+        'HOST': os.getenv('db_host'),  # DB_HOST
+        'PORT': os.getenv('db_port'),
     }
 }
+
 
 AUTH_PASSWORD_VALIDATORS = [
     {
