@@ -50,7 +50,7 @@ class BattleEventData:
     can_fight: Optional[bool] = None
 
     # Параметры для дней с 11 по 31
-    user_team_template: Optional[list[Card]] = None
+    user_team_template: Optional[list[Optional[Card]]] = None
 
 
 @dataclass
@@ -360,6 +360,7 @@ def get_user_award_start_event(user_id) -> dict:
 
     answer_data = {}
     user_profile = Profile.objects.get(user=user_id)
+
     if user_profile.event_visit >= 30:
         answer_data['error_message'] = 'Вы получили все награды из этого события)'
         return answer_data
@@ -367,7 +368,7 @@ def get_user_award_start_event(user_id) -> dict:
     if user_profile.date_event_visit is None or user_profile.date_event_visit < datetime.now().date():
 
         award = InitialEventAwards.objects.get(day_event_visit=user_profile.event_visit + 1)
-        if award.type_award in ['Маленькая книга опыта', 'Средняя книга опыта', 'Большая книга опыта']:
+        if award.type_award in ('Маленькая книга опыта', 'Средняя книга опыта', 'Большая книга опыта'):
             try:
                 books_user = UsersInventory.objects.get(owner=user_id, item__name=award.type_award)
                 books_user.amount += int(award.amount_or_rarity_award)
@@ -424,14 +425,15 @@ def get_user_award_start_event(user_id) -> dict:
 
         else:
             answer_data['error_message'] = 'Что-то пошло не так... Упс'
-            logger.warning(f'Попытка пользователя ID {user_id} получить награду {award.type_award} вызвала ошибку')
+            logger.warning(f'Попытка пользователя ID {user_id} получить награду {award.type_award} вызвала ошибку'
+                           f'Полученная награда не соответствует ни одной из возможных')
             return answer_data
 
         user_profile.add_event_visit()
         return answer_data
     else:
         answer_data['error_message'] = 'Вы уже получили награду за сегодня'
-        logger.warning(f'Пользователь ID {user_id} попытался повторно получить награду дня')
+        logger.warning(f'Пользователь ID {user_id} попытался повторно получить награду {user_profile.date_event_visit} дня')
         return answer_data
 
 
@@ -483,7 +485,7 @@ def battle_event_fight_stage(today: int, user_id: int) -> BattleEventData:
     battle_progress_this_day = user_event_participant.battle_progress.get(str(today))
 
     top_list: list = get_info_top_battle_event()
-    can_fight = not battle_progress_this_day
+    can_fight: bool = not battle_progress_this_day
 
     battle_event_data = BattleEventData(team_user=team_user,
                                         team_enemy=team_enemy,
@@ -543,25 +545,10 @@ def battle_event_prepare_stage(user_id: int) -> BattleEventData:
 
     user = User.objects.get(pk=user_id)
     user_team_template, is_created = TeamsForBattleEvent.objects.get_or_create(user=user)
-    team_template_ids = []
+    team_template = [user_team_template.first_card,
+                     user_team_template.second_card,
+                     user_team_template.third_card]
 
-    if user_team_template.first_card:
-        team_template_ids.append(user_team_template.first_card.id)
-    else:
-        team_template_ids.append(None)
-    if user_team_template.second_card:
-        team_template_ids.append(user_team_template.second_card.id)
-    else:
-        team_template_ids.append(None)
-
-    if user_team_template.third_card:
-        team_template_ids.append(user_team_template.third_card.id)
-    else:
-        team_template_ids.append(None)
-    team_template = []
-
-    for team_template_id in team_template_ids:
-        team_template.append(Card.objects.filter(pk=team_template_id).last())
     battle_event_data = BattleEventData(user_team_template=team_template)
 
     if is_created:
@@ -746,4 +733,3 @@ def award_loot_items(user_profile: Profile) -> dict:
     answer_data['reward_item_user'] = reward_item_user
     answer_data['reward_amulet_user'] = reward_amulet_user
     return answer_data
-
