@@ -171,6 +171,7 @@ def add_member_guild_service(user_id: int, guild_id: int) -> dict:
     return answer_data
 
 
+@transaction.atomic
 def edit_guild_info_service(user_id: int, guild_id: int, name: str,
                             guild_pic: UploadedFile, buff: GuildBuff) -> dict:
     """ Изменение информации о гильдии.
@@ -222,6 +223,7 @@ def edit_guild_info_service(user_id: int, guild_id: int, name: str,
     return answer_data
 
 
+@transaction.atomic
 def create_guild_service(user_id: int, name: str, guild_pic: UploadedFile, buff: GuildBuff) -> dict:
     """ Создание гильдии.
         Если пользователь уже состоит в гильдии или ему не хватает денег, возвращается ошибка.
