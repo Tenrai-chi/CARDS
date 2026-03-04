@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from logging import getLogger
 from math import ceil
 from random import choice, randint
@@ -63,7 +63,6 @@ class FightBattleEventData:
             - add_points Полученные очки события
     """
 
-    # todo Проверить с 1 по 10
     result_fight: Optional[list[list]] = None
     add_points: Optional[int] = None
     error_message: Optional[str] = None
