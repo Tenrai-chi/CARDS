@@ -47,10 +47,9 @@ class GuildAdmin(admin.ModelAdmin):
     search_fields = ('id', 'name')
 
 
-admin.site.register(FavoriteUsers, FavoriteUsersAdmin)
-admin.site.register(SaleStoreCards, SaleStoreCardsAdmin)
-admin.site.register(Transactions, TransactionsAdmin)
 admin.site.register(Profile, ProfileAdmin)
+admin.site.register(Transactions, TransactionsAdmin)
+admin.site.register(SaleStoreCards, SaleStoreCardsAdmin)
+admin.site.register(FavoriteUsers, FavoriteUsersAdmin)
 admin.site.register(GuildBuff, GuildBuffAdmin)
 admin.site.register(Guild, GuildAdmin)
-

@@ -66,11 +66,11 @@ class NewsAdmin(admin.ModelAdmin):
     search_fields = ('id', 'title', 'theme', 'text', 'redirect_name')
 
 
+admin.site.register(Card, CardAdmin)
+admin.site.register(Rarity, RarityAdmin)
+admin.site.register(ClassCard, ClassCardAdmin)
+admin.site.register(CardStore, CardStoreAdmin)
+admin.site.register(FightHistory, FightHistoryAdmin)
 admin.site.register(Type, TypeAdmin)
 admin.site.register(HistoryReceivingCards, HistoryReceivingCardsAdmin)
-admin.site.register(FightHistory, FightHistoryAdmin)
-admin.site.register(Card, CardAdmin)
-admin.site.register(ClassCard, ClassCardAdmin)
-admin.site.register(Rarity, RarityAdmin)
-admin.site.register(CardStore, CardStoreAdmin)
 admin.site.register(News, NewsAdmin)
