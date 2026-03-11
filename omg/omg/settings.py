@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from django.conf.global_settings import LOGGING, SECRET_KEY
+# from django.conf.global_settings import LOGGING, SECRET_KEY
 from dotenv import load_dotenv
 from django.contrib.messages import constants as messages
 
@@ -80,6 +80,9 @@ DATABASES = {
         'PASSWORD': os.getenv('db_user_password'),  # DB_USER_PASSWORD
         'HOST': os.getenv('db_host'),  # DB_HOST
         'PORT': os.getenv('db_port'),
+        # 'OPTIONS': {  #
+        #     'pool': True,  #
+        # },  #
     }
 }
 
@@ -190,5 +193,27 @@ LOGGING = {
     },
 }
 
-CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672//'
-CELERY_RESULT_BACKEND = 'rpc://'
+# Celery
+os.getenv('DEBUG')
+CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND')
+CELERY_TIMEZONE = 'Europe/Moscow'
+
+CELERY_REDIS_MAX_CONNECTIONS = 20
+CELERY_REDIS_RETRY_ON_TIMEOUT = True
+CELERY_RESULT_EXPIRES = 86400  # 24 часа
+
+CELERY_TASK_ACKS_LATE = True  # Подтверждение только после выполнения задачи
+CELERY_TASK_REJECT_ON_WORKER_LOST = True  # Переотправка задачи при падении воркера
+CELERY_TASK_TRACK_STARTED = True  # Отслеживание статуса задач
+
+CELERY_BROKER_CONNECTION_TIMEOUT = 30
+CELERY_BROKER_HEARTBEAT = 10  # Проверка соединения каждые 10 секунд
+CELERY_BROKER_POOL_LIMIT = 10  # Ограничиваем пул соединений
+
+# Настройки повторной отправки
+CELERY_TASK_IGNORE_RESULT = False
+CELERY_TASK_STORE_ERRORS_EVEN_IF_IGNORED = True
+
+
+

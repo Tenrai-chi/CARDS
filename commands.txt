@@ -1,0 +1,23 @@
+worker: celery -A omg worker --loglevel=info --pool=solo/threads/eventlet + --concurrency=10
+beat: celery -A omg beat --loglevel=info
+flower: celery -A omg flower --post=5555
+
+WSL Redis
+redis-server / redis-server /etc/redis/redis.conf - запуск стандарт\конфиг-файл
+redis-server --daemonize yes - фон
+redis-server --port 6380 порт
+redis-cli ping - пинг
+
+sudo service redis-server start/stop/restart - действия
+sudo systemctl enable redis-server - включение автозапуска при загрузке системы
+sudo service redis-server status - статус
+
+redis-cli - подключение
+info
+info keyspace
+keys:
+    *ключ*
+    префикс:*
+get <имя> - посмотреть значение
+
+
