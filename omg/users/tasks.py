@@ -1,6 +1,7 @@
 from celery import shared_task
 
 from django.contrib.auth.models import User
+
 from .models import Transactions
 
 from common.utils import date_time_now
@@ -8,7 +9,7 @@ from common.utils import date_time_now
 
 @shared_task(acks_late=True)
 def create_transaction_test():
-    """ тестовая задача для celery """
+    """ Тестовая задача для celery """
 
     current_user = User.objects.get(id=1)
     new_transaction = Transactions.objects.create(user=current_user,
@@ -17,4 +18,4 @@ def create_transaction_test():
                                                   after=300,
                                                   comment='TEST CELERY')
     new_transaction.save()
-    return f"Transaction {new_transaction.id} created"
+    return f'Transaction {new_transaction.id} created'

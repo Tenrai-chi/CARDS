@@ -194,26 +194,39 @@ LOGGING = {
 }
 
 # Celery
-os.getenv('DEBUG')
 CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL')
 CELERY_RESULT_BACKEND = os.getenv('CELERY_RESULT_BACKEND')
 CELERY_TIMEZONE = 'Europe/Moscow'
 
+# Сериализация
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+
+# Redis
 CELERY_REDIS_MAX_CONNECTIONS = 20
 CELERY_REDIS_RETRY_ON_TIMEOUT = True
 CELERY_RESULT_EXPIRES = 86400  # 24 часа
 
+# Повторные попытки при падении
+CELERY_TASK_MAX_RETRIES = 3  # Пока 3
+CELERY_TASK_RETRY_DELAY = 60
+CELERY_TASK_RETRY_BACKOFF = True  # Увеличение времени между попытками
+CELERY_TASK_RETRY_BACKOFF_MAX = 600  # Максимальное время между попытками
+
+# Подтверждение задач
 CELERY_TASK_ACKS_LATE = True  # Подтверждение только после выполнения задачи
 CELERY_TASK_REJECT_ON_WORKER_LOST = True  # Переотправка задачи при падении воркера
 CELERY_TASK_TRACK_STARTED = True  # Отслеживание статуса задач
 
-CELERY_BROKER_CONNECTION_TIMEOUT = 30
+# Брокер
+CELERY_BROKER_CONNECTION_TIMEOUT = 30  # default 4 (если сеть нестабильная)
 CELERY_BROKER_HEARTBEAT = 10  # Проверка соединения каждые 10 секунд
-CELERY_BROKER_POOL_LIMIT = 10  # Ограничиваем пул соединений
+CELERY_BROKER_POOL_LIMIT = 10  # Пул соединений
 
-# Настройки повторной отправки
+# Результаты
 CELERY_TASK_IGNORE_RESULT = False
-CELERY_TASK_STORE_ERRORS_EVEN_IF_IGNORED = True
+CELERY_TASK_STORE_ERRORS_EVEN_IF_IGNORED = True  # Для отладки сохранение ошибок
 
 
 
