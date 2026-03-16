@@ -22,4 +22,14 @@ get <имя> - посмотреть значение
 
 docker
 docker-compose build - собрать
-docker-compose up/down --build (запуск, стоп, пересборка)
+docker-compose up/down/restart --build (запуск, стоп, пересборка)
+docker-compose up <имя>
+compose config - чекнуть чо внутри
+
+План
+1. django
+2. redis
+3. rabbitmq
+4. celery (worker+beat)
+5. flower
+6. postrgresql ?
