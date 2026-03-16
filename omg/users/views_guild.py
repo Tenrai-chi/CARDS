@@ -69,7 +69,7 @@ def create_guild(request: HttpRequest) -> HttpResponse | HttpResponseRedirect:
 
             else:
                 messages.success(request, answer['success_message'])
-                return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': answer["guild_id"]}))
+                return HttpResponseRedirect(reverse('view_guild', kwargs={'guild_id': answer['guild_id']}))
 
         else:
             messages.error(request, 'Некорректные данные')

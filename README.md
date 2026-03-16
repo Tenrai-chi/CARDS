@@ -86,6 +86,12 @@
 
 # Установка и запуск
 
+## Предварительные требования
+- **PostgreSQL** - база данных для работы сайта
+- **RabbitMQ** - брокер сообщений для Celery
+- **Redis** - бекэнд для Celery
+
+## Установка проекта
 1. Клонируйте репозиторий
 2. Создайте и активируйте виртуальное окружение
 3. Установите необходимые библиотеки requirements.txt
@@ -109,9 +115,39 @@
    ```bash
    python manage.py createsuperuser
    ```
-9. Запустите проект. По умолчанию сайт работает на [localhost](http://127.0.0.1:8000/), а режим работы установлен на debug.
-	```bash
-	python manage.py runserver
-	```
+   
+## Запуск служб
 
-Python 3.10, Django, PostgreSQL, Pillow, pytz, sqlparse, tzdata
+1. **Django**
+    По умолчанию сайт работает на [localhost](http://127.0.0.1:8000/)
+   ```bash
+   python manage.py runserver
+   ```
+2. **RabbitMQ**
+    В командной строке от имени администратора запустите сервис RabbitMQ
+    ```bash
+   net start RabbitMQ
+    ```
+3. **Redis**
+    Запуск redis с использованием WSL
+    ```bash
+   sudo service redis-server start
+    ```
+4. **Celery**
+    В проекте используется обработка задач по расписанию для обновления списков участников в боевом событии и выдачи наград. Для этого запустите в отдельных терминалах IDE 2 обработчика:
+    - Worker
+    ```bash
+   celery -A omg worker --loglevel=info --pool=solo
+    ```
+   - Beat
+   ```bash
+   celery -A omg beat --loglevel=info
+    ```
+5. **Flower**
+    Для мониторинга задач celery запустите flower. После запуска интерфейс будет доступен по [адресу](http://127.0.0.1:5555/)
+    ```bash
+   celery -A omg flower --post=5555
+    ```
+
+
+Python 3.10, Django, PostgreSQL, Celery, RabbitMQ, Redis, Flower, Pillow, pytz, sqlparse, tzdata

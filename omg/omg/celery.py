@@ -19,10 +19,10 @@ app.conf.beat_schedule = {
         'schedule': crontab(day_of_month='11', hour=0, minute=0),
     },
 
-    'create-transaction-test': {
-        'task': 'users.tasks.create_transaction_test',
-        'schedule': crontab(minute='*/1'),
-    },
+    # 'create-transaction-test': {
+    #     'task': 'users.tasks.create_transaction_test',
+    #     'schedule': crontab(minute='*/1'),
+    # },
 }
 
 app.autodiscover_tasks()

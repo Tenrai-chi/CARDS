@@ -20,4 +20,6 @@ keys:
     префикс:*
 get <имя> - посмотреть значение
 
-
+docker
+docker-compose build - собрать
+docker-compose up/down --build (запуск, стоп, пересборка)
