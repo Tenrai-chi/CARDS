@@ -7,19 +7,20 @@ services:
       - "8000:8000"
     env_file:
       - .env
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "${REDIS_PORT}:6379"
-
-  rabbitmq:
-    image: rabbitmq:3-management-alpine
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     environment:
-      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-#    env_file:
-#      - .env
+      - IN_DOCKER=true
+
+#  redis:
+#    image: redis:7-alpine
+#    ports:
+#      - "${REDIS_PORT}:6379"
+#
+#  rabbitmq:
+#    image: rabbitmq:3-management-alpine
+#    ports:
+#      - "5672:5672"
+#      - "15672:15672"
+#    environment:
+#      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+#      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
