@@ -26,3 +26,17 @@ docker-compose build - собрать
 docker-compose up/down/restart --build (запуск, стоп, пересборка)
 docker-compose up <имя>
 compose config - чекнуть чо внутри
+
+
+Сначала создать пользователя и бд
+Потом запустить веб
+Сделать миграции
+Сделать команды
+
+docker-compose up --build web
+docker-compose exec web python manage.py migrate
+docker-compose exec web python manage.py pop_cards
+docker-compose exec web python manage.py pop_users
+docker-compose exec web python manage.py pop_exch
+
+self.stdout.write(self.style.SUCCESS())
