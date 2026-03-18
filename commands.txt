@@ -1,6 +1,6 @@
-worker: celery -A omg worker --loglevel=info --pool=solo/threads/eventlet + --concurrency=10
-beat: celery -A omg beat --loglevel=info
-flower: celery -A omg flower --post=5555
+worker: celery -A config worker --loglevel=info --pool=solo/threads/eventlet + --concurrency=10
+beat: celery -A config beat --loglevel=info
+flower: celery -A config flower --post=5555
 
 WSL Redis
 redis-server / redis-server /etc/redis/redis.conf - запуск стандарт\конфиг-файл
@@ -26,11 +26,3 @@ docker-compose build - собрать
 docker-compose up/down/restart --build (запуск, стоп, пересборка)
 docker-compose up <имя>
 compose config - чекнуть чо внутри
-
-План
-1. django
-2. redis
-3. rabbitmq
-4. celery (worker+beat)
-5. flower
-6. postrgresql ?
