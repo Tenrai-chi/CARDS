@@ -48,7 +48,7 @@ class Command(BaseCommand):
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_rarity.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "amulet_rarity.json": {e}'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_amulet_rarity: {e}'))
 
@@ -84,7 +84,7 @@ class Command(BaseCommand):
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_type.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "amulet_type.json": {e}'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_amulet_type: {e}'))
 
@@ -118,7 +118,7 @@ class Command(BaseCommand):
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "experience_items.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "experience_items.json": {e}'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_experience_items: {e}'))
 
@@ -150,7 +150,7 @@ class Command(BaseCommand):
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "upgrade_items_type.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "upgrade_items_type.json": {e}'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_upgrade_items_type: {e}'))
 
@@ -180,7 +180,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Файл "start_event_awards.json" не найден.'))
 
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "start_event_awards.json": {e}'))
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_start_event_awards: {e}'))
@@ -210,7 +210,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Файл "battle_event_awards.json" не найден.'))
 
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "battle_event_awards.json": {e}'))
 
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_battle_event_awards: {e}'))

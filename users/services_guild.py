@@ -6,8 +6,6 @@ from django.core.paginator import Paginator
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-
-from cards.models import Card
 from common.utils import date_time_now, time_difference_check
 
 from .models import Profile, Transactions, Guild, GuildBuff

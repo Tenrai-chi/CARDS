@@ -1,3 +1,4 @@
+Команды для запуска сервисов из командной строки
 worker: celery -A config worker --loglevel=info --pool=solo/threads/eventlet + --concurrency=10
 beat: celery -A config beat --loglevel=info
 flower: celery -A config flower --post=5555
@@ -22,9 +23,10 @@ keys:
 get <имя> - посмотреть значение
 
 docker
-docker-compose build - собрать
+docker-compose build
 docker-compose up/down/restart --build (запуск, стоп, пересборка)
 docker-compose up <имя>
+docker-compose logs <имя>
 compose config - чекнуть чо внутри
 
 
@@ -39,4 +41,6 @@ docker-compose exec web python manage.py pop_cards
 docker-compose exec web python manage.py pop_users
 docker-compose exec web python manage.py pop_exch
 
-self.stdout.write(self.style.SUCCESS())
+docker-compose exec web bash - войти в контейнер чтобы написать команды
+docker-compose exec web python manage.py createsuperuser - для админки
+

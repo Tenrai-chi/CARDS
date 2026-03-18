@@ -1,4 +1,5 @@
 from django.contrib import admin
+
 from .models import (SaleUserCards, ExperienceItems, UsersInventory,
                      HistoryPurchaseItems, AmuletItem, AmuletType, AmuletRarity,
                      UpgradeItemsType, UpgradeItemsUsers, InitialEventAwards,

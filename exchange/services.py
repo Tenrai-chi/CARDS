@@ -4,7 +4,7 @@ from random import choice, randint
 from django.db import transaction
 from django.shortcuts import get_object_or_404
 
-from cards.models import Card, HistoryReceivingCards, Type, Rarity
+from cards.models import Card, HistoryReceivingCards
 from common.utils import date_time_now, create_new_card
 from users.models import Transactions, Profile
 

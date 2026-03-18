@@ -5,12 +5,7 @@ from celery import Celery
 from celery.schedules import crontab
 
 load_dotenv()
-#todo убрать нахуй
-IN_DOCKER = os.getenv('IN_DOCKER', 'false') == 'true'
-if IN_DOCKER:
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-else:
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 app = Celery('cards_celery')
 

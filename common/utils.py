@@ -6,7 +6,7 @@ from logging import getLogger
 
 from django.contrib.auth.models import User
 
-from cards.models import Card, CardStore, HistoryReceivingCards, ClassCard, Type, Rarity
+from cards.models import Card, ClassCard, Type, Rarity
 
 logger = getLogger(__name__)
 

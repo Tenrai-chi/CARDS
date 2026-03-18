@@ -6,8 +6,6 @@ from django.core.files.uploadedfile import UploadedFile
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 
-from cards.models import Card
-
 from .models import Profile, FavoriteUsers
 
 logger = getLogger(__name__)

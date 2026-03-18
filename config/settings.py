@@ -10,8 +10,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = os.getenv('DEBUG')
-#todo убрать нахуй
-IN_DOCKER = os.getenv('IN_DOCKER', 'false') == 'true'
 
 ALLOWED_HOSTS = ['*']
 
@@ -37,10 +35,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-if IN_DOCKER:
-    ROOT_URLCONF = 'config.urls'
-else:
-    ROOT_URLCONF = 'config.urls'
+ROOT_URLCONF = 'config.urls'
 
 TEMPLATES = [
     {
@@ -60,6 +55,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+IN_DOCKER = os.getenv('IN_DOCKER', 'false') == 'true'
 if IN_DOCKER:
     DATABASES = {
         'default': {

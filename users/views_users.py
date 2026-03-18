@@ -12,7 +12,7 @@ from django.shortcuts import get_object_or_404, render
 from django.urls import reverse_lazy, reverse
 from django.views.generic import CreateView
 
-from cards.models import Card, FightHistory
+from cards.models import FightHistory
 from common.decorators import auth_required, owner_required
 from common.utils import date_time_now
 from exchange.models import AmuletItem

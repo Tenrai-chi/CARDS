@@ -3,7 +3,6 @@ from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.shortcuts import get_object_or_404, render
 from django.urls import reverse
 
-from cards.models import Card
 from common.decorators import auth_required
 
 from .forms import CreateGuildForm, EditGuildInfoForm

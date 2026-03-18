@@ -41,6 +41,6 @@ class Command(BaseCommand):
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "amulet_rarity.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "amulet_rarity.json": {e}'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_guild_buff: {e}'))

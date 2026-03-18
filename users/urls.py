@@ -30,5 +30,4 @@ urlpatterns = [
     path('guilds/<int:guild_id>/<int:user_id>/change_leader_guild/', change_leader_guild, name='change_leader_guild'),
     path('guilds/<int:guild_id>/join/', add_member_guild, name='add_member_guild'),
     path('guilds/<int:guild_id>-<int:member_id>/', delete_member_guild, name='remove_member_guild'),
-
 ]

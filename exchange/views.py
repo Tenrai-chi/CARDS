@@ -4,7 +4,7 @@ from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.shortcuts import render, get_object_or_404
 from django.urls import reverse
 
-from cards.models import Card, Type
+from cards.models import Card
 from common.decorators import auth_required, owner_required
 from users.models import Profile
 
