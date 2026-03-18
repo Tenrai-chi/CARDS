@@ -15,6 +15,7 @@ sudo service redis-server status - статус
 redis-cli - подключение
 info
 info keyspace
+KEYS *
 keys:
     *ключ*
     префикс:*

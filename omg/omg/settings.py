@@ -11,6 +11,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv()
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY')
 DEBUG = os.getenv('DEBUG')
+IN_DOCKER = os.getenv('IN_DOCKER', 'false') == 'true'
 
 ALLOWED_HOSTS = ['*']
 
@@ -36,7 +37,10 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'omg.urls'
+if IN_DOCKER:
+    ROOT_URLCONF = 'omg.omg.urls'
+else:
+    ROOT_URLCONF = 'omg.urls'
 
 TEMPLATES = [
     {
@@ -56,7 +60,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'omg.wsgi.application'
 
-IN_DOCKER = os.getenv('IN_DOCKER', 'false') == 'true'
 if IN_DOCKER:
     DATABASES = {
         'default': {

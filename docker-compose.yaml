@@ -1,6 +1,7 @@
 services:
   web:
     build: .
+    command: sh -c "printenv && python omg/manage.py runserver 0.0.0.0:8000"
     volumes:
       - .:/app
     ports:
@@ -9,18 +10,79 @@ services:
       - .env
     environment:
       - IN_DOCKER=true
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app:/app/omg
+      - DJANGO_SETTINGS_MODULE=omg.omg.settings
 
-#  redis:
-#    image: redis:7-alpine
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT}:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+
+  celery_worker:
+    build: .
+    command: celery -A omg.omg worker --loglevel=info --pool=solo --concurrency=10
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - IN_DOCKER=true
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app:/app/omg
+      - DJANGO_SETTINGS_MODULE=omg.omg.settings
+    depends_on:
+      - web
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+
+  celery_beat:
+    build: .
+    command: celery -A omg.omg beat --loglevel=info
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    environment:
+      - IN_DOCKER=true
+      - REDIS_HOST=redis
+      - RABBITMQ_HOST=rabbitmq
+      - PYTHONPATH=/app:/app/omg
+      - DJANGO_SETTINGS_MODULE=omg.omg.settings
+    depends_on:
+      - web
+      - redis
+      - rabbitmq
+    restart: unless-stopped
+
+#  flower:
+#    build: .
+#    command: celery -A omg.omg flower --port=5555
 #    ports:
-#      - "${REDIS_PORT}:6379"
-#
-#  rabbitmq:
-#    image: rabbitmq:3-management-alpine
-#    ports:
-#      - "5672:5672"
-#      - "15672:15672"
+#      - "5555:5555"
+#    volumes:
+#      - .:/app
+#    env_file:
+#      - .env
 #    environment:
-#      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
-#      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
-
+#      - IN_DOCKER=true
+#      - PYTHONPATH=/app:/app/omg
+##      - DJANGO_SETTINGS_MODULE=omg.omg.settings
+#    depends_on:
+##      - web
+#      - redis
+#      - rabbitmq
+#      - web
+#    restart: unless-stopped
