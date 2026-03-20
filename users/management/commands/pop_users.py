@@ -51,6 +51,9 @@ class Command(BaseCommand):
         admin_django_username = os.getenv('ADMIN_DJANGO_USERNAME')
         admin_django_password = os.getenv('ADMIN_DJANGO_PASSWORD')
         admin_django_email = os.getenv('ADMIN_DJANGO_EMAIL')
+        if not (admin_django_username and admin_django_password and admin_django_email):
+            self.stdout.write(self.style.WARNING('Данные для создания суперпользователя не заданы.'))
+            return
         try:
             if not User.objects.filter(username=admin_django_username).exists():
                 new_admin = User.objects.create_superuser(username=admin_django_username,
@@ -58,6 +61,6 @@ class Command(BaseCommand):
                                                           password=admin_django_password)
                 self.stdout.write(self.style.SUCCESS(f'Создан супер пользователь ID {new_admin.id}'))
             else:
-                self.stdout.write(self.style.WARNING(f'Суперпользователь уже существует'))
+                self.stdout.write(self.style.WARNING(f'Суперпользователь {admin_django_username} уже существует'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла ошибка при создании суперпользователя: {e}'))

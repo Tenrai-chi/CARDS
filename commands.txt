@@ -1,46 +1,53 @@
-Команды для запуска сервисов из командной строки
-worker: celery -A config worker --loglevel=info --pool=solo/threads/eventlet + --concurrency=10
-beat: celery -A config beat --loglevel=info
-flower: celery -A config flower --post=5555
+# Команды для запуска сервисов из командной строки
+* Запуск Django
+python manage.py runserver
 
-WSL Redis
-redis-server / redis-server /etc/redis/redis.conf - запуск стандарт\конфиг-файл
-redis-server --daemonize yes - фон
-redis-server --port 6380 порт
-redis-cli ping - пинг
+* Worker (обработка задач)
+celery -A config worker --loglevel=info --pool=solo --concurrency=10
 
-sudo service redis-server start/stop/restart - действия
-sudo systemctl enable redis-server - включение автозапуска при загрузке системы
-sudo service redis-server status - статус
+* Beat (планировщик задач)
+celery -A config beat --loglevel=info
 
-redis-cli - подключение
-info
-info keyspace
-KEYS *
-keys:
-    *ключ*
-    префикс:*
-get <имя> - посмотреть значение
+* Flower (мониторинг)
+celery -A config flower --port=5555
 
-docker
-docker-compose build
-docker-compose up/down/restart --build (запуск, стоп, пересборка)
-docker-compose up <имя>
-docker-compose logs <имя>
-compose config - чекнуть чо внутри
+# Redis (в WSL)
+* Общие
+redis-server - Запуск с дефолтным конфигом
+redis-server /etc/redis/redis.conf - Запуск с конфигурационным файлом
+redis-cli ping - Проверка доступности
 
+* Управление службой
+sudo service redis-server start - Старт
+sudo service redis-server stop - Стоп
+sudo service redis-server restart - Перезапуск
+sudo service redis-server status - Статус
 
-Сначала создать пользователя и бд
-Потом запустить веб
-Сделать миграции
-Сделать команды
+* Работа с Redis через CLI (может понадобиться для просмотра данных о задачах)
+redis-cli - Подключиться
+info - Общая информация
+info keyspace - Информация о ключах
+KEYS * - Список всех ключей
+KEYS prefix:* - Ключи с определенным префиксом
+GET <key> - Получить значение по ключу
 
-docker-compose up --build web
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py pop_cards
-docker-compose exec web python manage.py pop_users
-docker-compose exec web python manage.py pop_exch
+# Docker Compose
+* Общие
+docker-compose up --build о Собрать все образы и запустить
+docker-compose up -d - Запустить в фоне
+docker-compose down - Остановить все
+docker-compose restart - перезапуск всего
+docker-compose up --build web - Запустить конкретный сервис
+docker-compose stop web - Остановить конкретный сервис
 
-docker-compose exec web bash - войти в контейнер чтобы написать команды
-docker-compose exec web python manage.py createsuperuser - для админки
+docker-compose down -v - Удалить все контейнеры
+
+docker-compose logs - Все логи
+docker-compose logs -f <имя контейнера> - Логи конкретного сервиса
+
+docker-compose config - показать текущую конфигурацию
+
+* Выполнение команд внутри контейнера
+docker-compose exec web bash - войти в shell контейнера, тогда команды обычные
+docker-compose exec <имя контейнера> <команда> - выполнить команду без входа, просто передать
 

@@ -84,70 +84,129 @@
 
 * **Инвентарь.** Все доступные предметы опыта, предметы улучшений и амулеты можно просмотреть в своем инвентаре. Там же можно продать или использовать все при необходимости.
 
-# Установка и запуск
+# Установка и запуск проекта
 
-## Предварительные требования
+## Общие шаги
+1. Клонируйте репозиторий
+    ```bash
+   git clone https://github.com/Tenrai-chi/CARDS.git
+   cd CARDS
+   ```
+2. Создайте файл .env в корне проекта по примеру из файла .env_example. Все параметры обязательны. В комментариях указаны примеры или значения по умолчанию, при необходимости используйте свои реальные данные, если они у вас уже настроены.
+
+3. В PostgreSQL создайте базу данных и пользователя с данными, которые вы указали в файле .env (шаг 2). Затем дайте права на базу данных и схему для выбранного пользователя.
+
+4. Полезные команды для работы с компонентами проекта находятся в файле commands.txt
+
+## Локальный запуск
+
+### Необходимые условия:
+Для корректных запуска и работы проекта необходимо, чтобы на устройстве были установлены следующие компоненты: 
 - **PostgreSQL** - база данных для работы сайта
 - **RabbitMQ** - брокер сообщений для Celery
 - **Redis** - бекэнд для Celery
 
-## Установка проекта
-1. Клонируйте репозиторий
-2. Создайте и активируйте виртуальное окружение
-3. Установите необходимые библиотеки requirements.txt
+### Подготовка
+1. Создайте и активируйте виртуальное окружение
+2. Установите необходимые библиотеки из requirements.txt
 	```bash
-	pip install -r reqirements.txt
+	pip install -r requirements.txt
 	```
-4. Создайте чистую базу данных и пользователя для работы с ней. Проект настроен на работу с базой данных PostgreSQL
-5. Создайте файл .env по примеру .env_example
-6. Сделайте миграции. Файл manage.py находится в директории omg
+3. Сделайте миграции
     ```bash
     python manage.py makemigrations
     python manage.py migrate
     ```
-7. Запустите команды для заполнения базы данных необходимыми данными
+4. Запустите команды для заполнения базы данных необходимыми данными. На этом этапе будет создан суперпользователь, если заданы параметры в .env ADMIN_DJANGO_*
     ```bash
     python manage.py pop_cards
     python manage.py pop_users
   	python manage.py pop_exch
     ```
-8. При желании создайте суперпользователя для доступа к панели администратора. Дать права суперпользователя можно и позже в базе данных
-   ```bash
-   python manage.py createsuperuser
-   ```
    
-## Запуск служб
+### Запуск служб
 
 1. **Django**
     По умолчанию сайт работает на [localhost](http://127.0.0.1:8000/)
    ```bash
    python manage.py runserver
    ```
+   [Панель администрирования](http://127.0.0.1:8000/admin). Для доступа войдите под суперпользователем, созданным на основе файла .env
+
 2. **RabbitMQ**
     В командной строке от имени администратора запустите сервис RabbitMQ
     ```bash
    net start RabbitMQ
+    ```
+    Для остановки 
+     ```bash
+   net stop RabbitMQ
     ```
 3. **Redis**
     Запуск redis с использованием WSL
     ```bash
    sudo service redis-server start
     ```
+   Для остановки 
+     ```bash
+   sudo service redis-server stop
+    ```
 4. **Celery**
     В проекте используется обработка задач по расписанию для обновления списков участников в боевом событии и выдачи наград. Для этого запустите в отдельных терминалах IDE 2 обработчика:
     - Worker
     ```bash
-   celery -A omg worker --loglevel=info --pool=solo
+   celery -A worker --loglevel=info --pool=solo
     ```
    - Beat
    ```bash
-   celery -A omg beat --loglevel=info
+   celery -Abeat --loglevel=info
     ```
 5. **Flower**
     Для мониторинга задач celery запустите flower. После запуска интерфейс будет доступен по [адресу](http://127.0.0.1:5555/)
     ```bash
-   celery -A omg flower --post=5555
+   celery -A  flower --post=5555
     ```
 
+## Запуск с помощью Docker Compose
+1. Запустите Docker
+2. Выполните следующую команду. Всего будет запущено 6 сервисов: web, rabbitmq, redis, celery_worker, celery_beat, flower. При желании можно запустить конкретные контейнеры по имени. 
+    ```bash
+   docker-compose up --build
+    ```
+    Для остановки 
+    ```bash
+   docker-compose down
+    ```
+3. Доступ к компонентам будет такой же, как и при локальном запуске
+
+## Смешанный запуск (Redis+RabbitMQ в Docker, остальные компоненты локально)
+1. Запустите Docker
+2. Выполните следующую команду. В докере появится 2 контейнера: Redis и RabbitMQ. Это упростит запуск проекта, если вы не хотите устанавливать эти компоненты, а проект хотите запустить локально.
+    ```bash
+   docker-compose up --build redis rabbitmq
+    ```
+3. Для каждого сервиса в отдельных терминалах запустите следующие команды:
+    - **Web**. При первом запуске выполните миграции и заполнение бд, в последующих запусках это не требуется.
+    ```bash
+   python manage.py runserver
+   
+   python manage.py migrate
+   python manage.py pop_cards
+   python manage.py pop_exch
+   python manage.py pop_users
+    ```
+   - **Celery Worker**
+   ```bash
+    celery -A config worker --loglevel=info --pool=solo/threads/eventlet + --concurrency=10
+    ```
+   - **Celery Beat**
+   ```bash
+   celery -A config beat --loglevel=info
+    ```
+   - **Flower** (По желанию)
+   ```bash
+   celery -A config flower --post=5555
+    ```
+4. Доступ к компонентам будет такой же, как и при локальном запуске
 
 Python 3.10, Django, PostgreSQL, Celery, RabbitMQ, Redis, Flower, Pillow, pytz, sqlparse, tzdata
