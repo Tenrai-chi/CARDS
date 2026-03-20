@@ -13,7 +13,6 @@ from .models import Card
 
 from common.decorators import auth_required
 from exchange.models import TeamsForBattleEvent
-from users.models import Profile
 
 
 def home(request: HttpRequest, theme: str = 'news') -> HttpResponse:

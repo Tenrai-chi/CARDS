@@ -5,7 +5,7 @@ from random import randint
 
 from django.contrib.auth.models import User
 
-from cards.models import Card, CardStore, HistoryReceivingCards, Type, Rarity
+from cards.models import Card, CardStore, HistoryReceivingCards
 from exchange.models import AmuletItem
 
 

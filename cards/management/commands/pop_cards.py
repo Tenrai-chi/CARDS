@@ -1,14 +1,10 @@
 import json
 import os
 
-from logging import getLogger
-
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
 from cards.models import ClassCard, Type, Rarity, CardStore, News
-
-logger = getLogger(__name__)
 
 
 class Command(BaseCommand):
@@ -17,13 +13,13 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         """ Запуск функций загрузки данных приложения cards """
 
-        logger.info(f'Запуск загрузки данных для приложения CARDS...')
+        self.stdout.write(self.style.SUCCESS(f'Запуск загрузки данных для приложения CARDS...'))
         self._load_class_card()
         self._load_type_card()
         self._load_rarity_card()
         self._load_card_store()
         self._load_news()
-        logger.info(f'Загрузка данных для приложения CARDS завершена!')
+        self.stdout.write(self.style.SUCCESS(f'Загрузка данных для приложения CARDS завершена!'))
 
     def _load_class_card(self):
         """ Заполняет класс карт """
@@ -49,14 +45,14 @@ class Command(BaseCommand):
 
             with transaction.atomic():
                 ClassCard.objects.bulk_create(new_records)
-                logger.info(f'Зарегистрировано {len(new_records)} классов в class_card')
+                self.stdout.write(self.style.SUCCESS(f'Зарегистрировано {len(new_records)} классов в class_card'))
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "class_card.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "class_card.json": {e}'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_class_card: {e}'))
 
     def _load_type_card(self):
         """ Заполняет тип карт """
@@ -76,14 +72,14 @@ class Command(BaseCommand):
 
             with transaction.atomic():
                 Type.objects.bulk_create(new_records)
-                logger.info(f'Зарегистрировано {len(new_records)} типов в type')
+                self.stdout.write(self.style.SUCCESS(f'Зарегистрировано {len(new_records)} типов в type'))
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "type_card.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "type_card.json": {e}'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_type_card: {e}'))
 
         try:
             all_type = list(Type.objects.all())
@@ -133,14 +129,14 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлена редкость: {rarity["name"]}'))
             with transaction.atomic():
                 Rarity.objects.bulk_create(new_records)
-                logger.info(f'Зарегистрировано {len(new_records)} редкостей в rarity')
+                self.stdout.write(self.style.SUCCESS(f'Зарегистрировано {len(new_records)} редкостей в rarity'))
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "rarity_card.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "rarity_card.json": {e}'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_rarity_card: {e}'))
 
     def _load_card_store(self):
         """ Заполняет магазин карт.
@@ -172,14 +168,14 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'Добавлена карта в магазин'))
             with transaction.atomic():
                 CardStore.objects.bulk_create(new_records)
-                logger.info(f'Зарегистрировано {len(new_records)} карт в card_store')
+                self.stdout.write(self.style.SUCCESS(f'Зарегистрировано {len(new_records)} карт в card_store'))
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "card_store.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "card_store.json": {e}'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_card_store: {e}'))
 
     def _load_news(self):
         """ Заполняет новости сайта """
@@ -201,11 +197,11 @@ class Command(BaseCommand):
                     self.stdout.write(self.style.SUCCESS(f'Добавлена новость'))
             with transaction.atomic():
                 News.objects.bulk_create(new_records)
-                logger.info(f'Зарегистрировано {len(new_records)} новостей в news')
+                self.stdout.write(self.style.SUCCESS(f'Зарегистрировано {len(new_records)} новостей в news'))
 
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'Файл "news.json" не найден.'))
         except json.JSONDecodeError as e:
-            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON: {e}'))
+            self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "news.json": {e}'))
         except Exception as e:
-            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка: {e}'))
+            self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_news: {e}'))
