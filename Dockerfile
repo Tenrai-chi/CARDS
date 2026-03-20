@@ -3,18 +3,19 @@ FROM python:3.10-slim
 ENV PYTHONDONTWRITEBYTECODE=True
 ENV PYTHONUNBUFFERED=True
 
-RUN mkdir /app
 WORKDIR /app
 
 RUN pip install --upgrade pip
 COPY requirements.txt /app/
-RUN apt-get update && apt-get install -y libpq-dev build-essential
-RUN pip install --no-cache-dir -r requirements.txt
+RUN apt-get update && apt-get install -y libpq-dev build-essential\
+    && pip install --no-cache-dir -r requirements.txt
+    && rm -rf /var/lib/apt/lists/*
 
 COPY . /app/
 
-COPY --from=ghcr.io/ufoscout/docker-compose-wait:latest /wait /wait
+COPY wait /wait
 RUN chmod +x /wait
+
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]

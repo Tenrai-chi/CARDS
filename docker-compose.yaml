@@ -39,7 +39,6 @@ services:
   celery_worker:
     build: .
     entrypoint: []
-#    command: celery -A config worker --loglevel=info --pool=solo --concurrency=10
     command: sh -c "/wait && celery -A config worker --loglevel=info --pool=solo --concurrency=10"
     volumes:
       - .:/app
@@ -64,7 +63,6 @@ services:
   celery_beat:
     build: .
     entrypoint: []
-#    command: celery -A config beat --loglevel=info
     command: sh -c "/wait && celery -A config beat --loglevel=info"
     volumes:
       - .:/app
@@ -89,7 +87,6 @@ services:
   flower:
     build: .
     entrypoint: []
-#    command: celery -A config flower --port=5555
     command: sh -c "/wait && celery -A config flower --port=5555"
     ports:
       - "5555:5555"
@@ -106,9 +103,9 @@ services:
       - WAIT_HOSTS=redis:6379, rabbitmq:5672
       - WAIT_TIMEOUT=30
     depends_on:
+      - celery_worker
+      - celery_beat
       - web
       - redis
       - rabbitmq
-      - celery_worker
-      - celery_beat
     restart: unless-stopped
