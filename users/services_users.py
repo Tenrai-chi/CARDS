@@ -2,13 +2,27 @@ from logging import getLogger
 
 from django.contrib.auth.models import User
 from django.db.models import F
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.core.files.uploadedfile import UploadedFile
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404
 
+from common.utils import date_time_now
 from .models import Profile, FavoriteUsers
 
 logger = getLogger(__name__)
+
+
+@receiver(post_save, sender=User)
+def create_profile_user(sender, instance, created, **kwargs):
+    """ Создание профиля пользователя при создании экземпляра User.
+    """
+
+    if created and not Profile.objects.filter(user=instance).exists():
+        Profile.objects.create(user=instance,
+                               receiving_timer=date_time_now()
+                               )
 
 
 def add_favorite_user_service(user_id: int, favorite_user_id: int) -> dict:

@@ -14,6 +14,13 @@ services:
       - DJANGO_SETTINGS_MODULE=config.settings
       - REDIS_HOST=redis
       - RABBITMQ_HOST=rabbitmq
+      - DB_HOST=host.docker.internal
+      - DB_PORT=${DB_PORT}
+      - WAIT_HOSTS=host.docker.internal:${DB_PORT}, redis:6379, rabbitmq:5672
+      - WAIT_TIMEOUT=60
+    depends_on:
+      - redis
+      - rabbitmq
 
   redis:
     image: redis:7-alpine
@@ -31,7 +38,9 @@ services:
 
   celery_worker:
     build: .
-    command: celery -A config worker --loglevel=info --pool=solo --concurrency=10
+    entrypoint: []
+#    command: celery -A config worker --loglevel=info --pool=solo --concurrency=10
+    command: sh -c "/wait && celery -A config worker --loglevel=info --pool=solo --concurrency=10"
     volumes:
       - .:/app
     env_file:
@@ -42,6 +51,10 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=config.settings
+      - DB_HOST=host.docker.internal
+      - DB_PORT=${DB_PORT}
+      - WAIT_HOSTS=host.docker.internal:${DB_PORT}, redis:6379, rabbitmq:5672
+      - WAIT_TIMEOUT=60
     depends_on:
       - web
       - redis
@@ -50,7 +63,9 @@ services:
 
   celery_beat:
     build: .
-    command: celery -A config beat --loglevel=info
+    entrypoint: []
+#    command: celery -A config beat --loglevel=info
+    command: sh -c "/wait && celery -A config beat --loglevel=info"
     volumes:
       - .:/app
     env_file:
@@ -61,6 +76,10 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=config.settings
+      - DB_HOST=host.docker.internal
+      - DB_PORT=${DB_PORT}
+      - WAIT_HOSTS=host.docker.internal:${DB_PORT}, redis:6379, rabbitmq:5672
+      - WAIT_TIMEOUT=60
     depends_on:
       - web
       - redis
@@ -69,7 +88,9 @@ services:
 
   flower:
     build: .
-    command: celery -A config flower --port=5555
+    entrypoint: []
+#    command: celery -A config flower --port=5555
+    command: sh -c "/wait && celery -A config flower --port=5555"
     ports:
       - "5555:5555"
     volumes:
@@ -82,6 +103,8 @@ services:
       - RABBITMQ_HOST=rabbitmq
       - PYTHONPATH=/app
       - DJANGO_SETTINGS_MODULE=config.settings
+      - WAIT_HOSTS=redis:6379, rabbitmq:5672
+      - WAIT_TIMEOUT=30
     depends_on:
       - web
       - redis

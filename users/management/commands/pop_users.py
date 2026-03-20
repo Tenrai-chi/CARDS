@@ -2,6 +2,7 @@ import json
 import os
 
 from django.core.management.base import BaseCommand
+from django.contrib.auth.models import User
 from django.db import transaction
 
 from users.models import GuildBuff
@@ -15,6 +16,7 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS(f'Запуск функции загрузки данных для приложения USERS...'))
         self._load_guild_buff()
+        self._create_super_user()
         self.stdout.write(self.style.SUCCESS(f'Загрузка данных для приложения USERS завершена!'))
 
     def _load_guild_buff(self):
@@ -44,3 +46,18 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(f'Ошибка при разборе JSON "amulet_rarity.json": {e}'))
         except Exception as e:
             self.stdout.write(self.style.ERROR(f'Произошла непредвиденная ошибка в _load_guild_buff: {e}'))
+
+    def _create_super_user(self):
+        admin_django_username = os.getenv('ADMIN_DJANGO_USERNAME')
+        admin_django_password = os.getenv('ADMIN_DJANGO_PASSWORD')
+        admin_django_email = os.getenv('ADMIN_DJANGO_EMAIL')
+        try:
+            if not User.objects.filter(username=admin_django_username).exists():
+                new_admin = User.objects.create_superuser(username=admin_django_username,
+                                                          email=admin_django_email,
+                                                          password=admin_django_password)
+                self.stdout.write(self.style.SUCCESS(f'Создан супер пользователь ID {new_admin.id}'))
+            else:
+                self.stdout.write(self.style.WARNING(f'Суперпользователь уже существует'))
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f'Произошла ошибка при создании суперпользователя: {e}'))

@@ -1,10 +1,8 @@
 import os
-from dotenv import load_dotenv
 
 from celery import Celery
 from celery.schedules import crontab
 
-load_dotenv()
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 
 app = Celery('cards_celery')

@@ -4,8 +4,6 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.views import LoginView
 from django.db.models import F, Q
-from django.db.models.signals import post_save
-from django.dispatch import receiver
 from django.forms import Form
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.shortcuts import get_object_or_404, render
@@ -14,7 +12,6 @@ from django.views.generic import CreateView
 
 from cards.models import FightHistory
 from common.decorators import auth_required, owner_required
-from common.utils import date_time_now
 from exchange.models import AmuletItem
 
 from .forms import LoginForm, RegistrationForm, EditProfileForm
@@ -53,18 +50,6 @@ class CustomRegistrationView(CreateView):
     def form_valid(self, form: Form) -> HttpResponse:
         form.save()
         return super().form_valid(form)
-
-
-@receiver(post_save, sender=User)
-def create_profile_user(sender, instance, created, **kwargs):
-    """ Создание профиля пользователя.
-        Создает профиль пользователя при создании экземпляра User.
-    """
-
-    if created and not Profile.objects.filter(user=instance).exists():
-        Profile.objects.create(user=instance,
-                               receiving_timer=date_time_now()
-                               )
 
 
 def view_profile(request: HttpRequest, user_id: int) -> HttpResponse:
