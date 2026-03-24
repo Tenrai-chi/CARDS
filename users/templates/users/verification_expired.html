@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock title %}
+
+{% block header %}{{ header }}{% endblock header %}
+
+<h2>Срок действия ссылки истёк</h2>
+<p>Чтобы подтвердить email, запросите новое письмо:</p>
+<form method="post" action="{% url 'resend_verification' %}">
+    {% csrf_token %}
+    <input type="hidden" name="user_id" value="{{ user_id }}">
+    <button type="submit">Отправить повторно</button>
+</form>

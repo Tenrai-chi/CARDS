@@ -1,5 +1,11 @@
 from PIL.Image import Image
 
+from django.conf import settings
+from django.core.signing import TimestampSigner
+from django.urls import reverse
+
+signer = TimestampSigner()
+
 
 def new_size(image: Image) -> Image:
     """ Преобразование изображение в квадратное. """
@@ -28,6 +34,9 @@ def new_size(image: Image) -> Image:
     return image
 
 
+def generate_verification_url(user_id: int) -> str:
+    """ Возвращает абсолютный URL для подтверждения email """
 
-
-
+    signed_value = signer.sign(user_id)
+    path = reverse('verify_email', kwargs={'signed_value': signed_value})
+    return settings.SITE_URL + path

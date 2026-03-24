@@ -1,5 +1,5 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm, UserCreationForm, SetPasswordForm, PasswordChangeForm
 from django.contrib.auth.models import User
 
 from .models import Profile, Guild, GuildBuff
@@ -58,10 +58,16 @@ class EditProfileForm(forms.ModelForm):
 
     about_user = forms.CharField(label='Описание')
     profile_pic = forms.ImageField(label='Аватарка')
+    email = forms.EmailField(label='Email', required=True)
 
     class Meta:
         model = Profile
         fields = ['about_user', 'profile_pic']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.user:
+            self.fields['email'].initial = self.instance.user.email
 
 
 class EditGuildInfoForm(forms.ModelForm):
@@ -92,3 +98,22 @@ class CreateGuildForm(forms.ModelForm):
     class Meta:
         model = Guild
         fields = ['name', 'guild_pic', 'buff']
+
+
+class CustomSetPasswordForm(SetPasswordForm):
+    """ Форма установки нового пароля после перехода по ссылке "восстановление пароля" """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['new_password1'].widget.attrs.update({'class': 'form-control'})
+        self.fields['new_password2'].widget.attrs.update({'class': 'form-control'})
+
+
+class CustomPasswordChangeForm(PasswordChangeForm):
+    """ Форма смены пароля в настройках профиля """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['old_password'].widget.attrs.update({'class': 'form-control'})
+        self.fields['new_password1'].widget.attrs.update({'class': 'form-control'})
+        self.fields['new_password2'].widget.attrs.update({'class': 'form-control'})

@@ -24,6 +24,29 @@
                 {% else %}
                     <p>Обо мне: </p>
                 {% endif %}
+
+                {% if user == user_info and user_info.profile.pending_email != None%}
+                    <p>Почта: {{ user_info.profile.pending_email }}
+                        <form method="post" action="{% url 'resend_verification'  %}" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ user_info.id }}">
+                            <button type="submit">Активировать</button>
+                        </form>
+                    </p>
+                {% elif user == user_info and not user_info.profile.is_activated %}
+                    <p>Почта: {{ user_info.email }}
+                        <form method="post" action="{% url 'resend_verification' %}" style="display:inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="user_id" value="{{ user_info.id }}">
+                            <button type="submit">Активировать</button>
+                        </form>
+                    </p>
+                {% elif user == user_info and user_info.profile.is_activated %}
+                    <p>Почта: {{ user_info.email }}</p>
+                {% endif %}
+
+
+
                 {% if user_info.profile.guild %}
                 <p>Гильдия: <a href="{% url 'view_guild' guild_id=user_info.profile.guild.id %}">{{ user_info.profile.guild.name }}</a></p>
                 {% endif %}

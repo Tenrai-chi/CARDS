@@ -96,7 +96,7 @@ class Profile(models.Model):
     lose = models.PositiveIntegerField(blank=True, null=True, default=0, verbose_name='Поражения')
     current_card = models.ForeignKey(Card, null=True, blank=True, default=None,
                                      on_delete=models.SET_NULL, verbose_name='Выбранная карта')
-    is_activated = models.BooleanField(null=True, blank=True, default=True, verbose_name='Активен')
+    is_activated = models.BooleanField(null=True, blank=True, default=False, verbose_name='Активен')
     profile_pic = models.ImageField(null=True, blank=True, default='image/profile/avatar.jpg',
                                     upload_to='image/profile/', verbose_name='Аватарка')
     guild = models.ForeignKey(Guild, on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Гильдия')
@@ -110,6 +110,7 @@ class Profile(models.Model):
 
     event_visit = models.PositiveSmallIntegerField(default=0, blank=True, null=True, verbose_name='Отметки пользователя для награды')
     date_event_visit = models.DateField(blank=True, null=True, verbose_name='Дата последней отметки для награды')
+    pending_email = models.EmailField(max_length=254, null=True, blank=True, verbose_name='Новый email на подтверждение')
 
     class Meta:
         verbose_name_plural = 'Профили'

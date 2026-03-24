@@ -5,10 +5,12 @@ ENV PYTHONUNBUFFERED=True
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates \
+    && update-ca-certificates
 RUN pip install --upgrade pip
 COPY requirements.txt /app/
 RUN apt-get update && apt-get install -y libpq-dev build-essential\
-    && pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements.txt --timeout 100\
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app/

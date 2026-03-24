@@ -50,4 +50,4 @@ docker-compose config - показать текущую конфигурацию
 * Выполнение команд внутри контейнера
 docker-compose exec web bash - войти в shell контейнера, тогда команды обычные
 docker-compose exec <имя контейнера> <команда> - выполнить команду без входа, просто передать
-
+erhaehaetjadfvbh\r

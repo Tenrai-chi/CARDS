@@ -22,4 +22,21 @@
             <input type="submit" value="Сохранить">
         </form>
     </div>
+
+
+    <div class="container col-md-10 mt-5">
+        <h3>Смена пароля</h3>
+        <form method="post" action="{% url 'change_password' user_id=user_info.user.id %}">
+            {% csrf_token %}
+            {% if password_form %}
+            {{ password_form.as_p }}
+            {% else %}
+            <p><label>Старый пароль:</label> <input type="password" name="old_password" class="form-control" required></p>
+            <p><label>Новый пароль:</label> <input type="password" name="new_password1" class="form-control" required></p>
+            <p><label>Подтверждение пароля:</label> <input type="password" name="new_password2" class="form-control"
+                                                           required></p>
+            {% endif %}
+            <input type="submit" value="Сменить пароль">
+        </form>
+    </div>
 {% endblock content %}

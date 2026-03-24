@@ -2,7 +2,9 @@ from django.urls import path
 from django.contrib.auth import views
 
 from .views_users import (view_profile, CustomLoginView, CustomRegistrationView, view_rating, edit_profile,
-                          view_transactions, add_favorite_user, delete_favorite_user, view_favorite_users)
+                          view_transactions, add_favorite_user, delete_favorite_user, view_favorite_users,
+                          verify_email, resend_verification, password_reset_request, password_reset_confirm,
+                          change_password, confirm_new_email)
 
 from .views_guild import (create_guild, view_guild, view_all_guilds, delete_member_guild,
                           add_member_guild, change_leader_guild_choice, change_leader_guild,
@@ -30,4 +32,11 @@ urlpatterns = [
     path('guilds/<int:guild_id>/<int:user_id>/change_leader_guild/', change_leader_guild, name='change_leader_guild'),
     path('guilds/<int:guild_id>/join/', add_member_guild, name='add_member_guild'),
     path('guilds/<int:guild_id>-<int:member_id>/', delete_member_guild, name='remove_member_guild'),
+
+    path('verify/<str:signed_value>/', verify_email, name='verify_email'),
+    path('resend_verification/', resend_verification, name='resend_verification'),
+    path('password_reset/', password_reset_request, name='password_reset'),
+    path('reset/<uidb64>/<token>/', password_reset_confirm, name='password_reset_confirm'),
+    path('change-password/<int:user_id>/', change_password, name='change_password'),
+    path('confirm-new-email/<str:signed_value>/', confirm_new_email, name='confirm_new_email'),
 ]

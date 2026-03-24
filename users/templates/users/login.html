@@ -19,6 +19,9 @@
                 <p>{{ field }}</p>
                 {% endfor %}
                 <div class="text-center col-md-12-fluid"><input type="submit" value="Войти"></div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'password_reset' %}">Забыли пароль?</a>
+                </div>
             </div>
         </form>
     </div>
